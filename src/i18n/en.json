@@ -1,0 +1,14 @@
+{
+  "luma.radio.l1":       "Rock to my left... energy crystal two tiles ahead.",
+  "luma.tutorial.step1": "Hi! I'm LUMA. I can only see what's directly ahead.",
+  "luma.tutorial.step2": "You have the orbital scan. Tell me where I am.",
+  "luma.tutorial.step3": "Build me a command sequence. Let's try!",
+  "spt.prompt":          "Which object is directly ahead of LUMA?",
+  "decomp.prompt":       "Tap the grid to mark a midpoint waypoint.",
+  "strategy.embody":     "I imagined standing where you stood",
+  "strategy.rotate":     "I rotated the scan in my head",
+  "strategy.landmarks":  "I used the landmarks around you",
+  "luma.emotion.l1":     "I'm okay… I think. Can you see where I am?",
+  "luma.emotion.l8":     "I'm really turned around in here...",
+  "luma.emotion.l12":    "We're almost home. Guide me through this!"
+}
