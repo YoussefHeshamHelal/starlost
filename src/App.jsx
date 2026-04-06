@@ -13,8 +13,6 @@ const PANEL_W  = 420   // right panel — wider
 const GAP      = 32
 
 // ── Helmet Radio ─────────────────────────────────────────────────────────────
-// radioIsUncertain: Level 2 flag — shows a pulsing "?" badge and amber styling
-// to hint that the signal is fuzzy without explicitly telling the child.
 function HelmetRadio({ report, radioIsUncertain }) {
   return (
     <div style={{
@@ -39,53 +37,33 @@ function HelmetRadio({ report, radioIsUncertain }) {
           📡  LUMA HELMET RADIO
         </p>
 
-        {/* Uncertainty badge — only on Level 2 before visor flip */}
         {radioIsUncertain && (
           <motion.div
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
-            {/* Pulsing dots — "thinking..." animation */}
             <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
               {[0, 1, 2].map(i => (
                 <motion.div
                   key={i}
                   animate={{ opacity: [0.2, 1, 0.2], scale: [0.8, 1.2, 0.8] }}
-                  transition={{
-                    duration: 1.2,
-                    delay: i * 0.25,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  }}
-                  style={{
-                    width: 4, height: 4, borderRadius: '50%',
-                    background: '#f59e0b',
-                  }}
+                  transition={{ duration: 1.2, delay: i * 0.25, repeat: Infinity, ease: 'easeInOut' }}
+                  style={{ width: 4, height: 4, borderRadius: '50%', background: '#f59e0b' }}
                 />
               ))}
             </div>
-            {/* Question mark badge */}
             <motion.div
-              animate={{
-                boxShadow: [
-                  '0 0 6px rgba(245,158,11,0.3)',
-                  '0 0 14px rgba(245,158,11,0.7)',
-                  '0 0 6px rgba(245,158,11,0.3)',
-                ],
-              }}
+              animate={{ boxShadow: ['0 0 6px rgba(245,158,11,0.3)', '0 0 14px rgba(245,158,11,0.7)', '0 0 6px rgba(245,158,11,0.3)'] }}
               transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
               style={{
                 width: 18, height: 18, borderRadius: '50%',
                 background: 'rgba(245,158,11,0.15)',
                 border: '1.5px solid #f59e0b',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 10, color: '#f59e0b', fontWeight: 900,
-                fontFamily: 'monospace',
+                fontSize: 10, color: '#f59e0b', fontWeight: 900, fontFamily: 'monospace',
               }}
-            >
-              ?
-            </motion.div>
+            >?</motion.div>
           </motion.div>
         )}
       </div>
@@ -99,7 +77,6 @@ function HelmetRadio({ report, radioIsUncertain }) {
         "{report}"
       </p>
 
-      {/* Subtle static noise line when uncertain */}
       {radioIsUncertain && (
         <motion.div
           animate={{ opacity: [0.3, 0.6, 0.2, 0.5, 0.3] }}
@@ -122,11 +99,7 @@ function VisorFlipButton({ visorFlipCount, onVisorFlip, highlighted }) {
     <motion.button
       whileTap={{ scale: 0.96 }}
       animate={highlighted && !exhausted ? {
-        boxShadow: [
-          '0 0 0px rgba(167,139,250,0)',
-          '0 0 20px rgba(167,139,250,0.5)',
-          '0 0 0px rgba(167,139,250,0)',
-        ],
+        boxShadow: ['0 0 0px rgba(167,139,250,0)', '0 0 20px rgba(167,139,250,0.5)', '0 0 0px rgba(167,139,250,0)'],
       } : {}}
       transition={highlighted ? { duration: 1.8, repeat: Infinity } : {}}
       onClick={onVisorFlip}
@@ -218,8 +191,6 @@ function DiamondButton({ option, isSelected, isCorrect, isWrong, disabled, onCli
 }
 
 // ── SPT Question panel ────────────────────────────────────────────────────────
-// radioIsUncertain: when true (Level 2), we highlight the visor flip button
-// to gently nudge the child toward trying it — without forcing them.
 function SPTQuestion({ question, onAnswer, sptAnswer, sptCorrect, visorFlipCount, onVisorFlip, radioIsUncertain }) {
   return (
     <motion.div
@@ -245,7 +216,6 @@ function SPTQuestion({ question, onAnswer, sptAnswer, sptCorrect, visorFlipCount
         highlighted={radioIsUncertain && visorFlipCount === 0}
       />
 
-      {/* Level 2: gentle hint below the visor flip button */}
       {radioIsUncertain && visorFlipCount === 0 && (
         <motion.p
           initial={{ opacity: 0 }}
@@ -273,15 +243,13 @@ function SPTQuestion({ question, onAnswer, sptAnswer, sptCorrect, visorFlipCount
         gridTemplateRows: '90px 90px 90px',
         gridTemplateAreas: COMPASS_AREAS,
         placeItems: 'center',
-        width: 270,
-        height: 270,
+        width: 270, height: 270,
         alignSelf: 'center',
         overflow: 'hidden',
       }}>
         <div style={{
           gridArea: 'center',
-          width: 22, height: 22,
-          borderRadius: '50%',
+          width: 22, height: 22, borderRadius: '50%',
           border: '1.5px solid #2dd4bf33',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
@@ -350,9 +318,7 @@ function PredictionBanner({ predictionTile, predictionResult }) {
       animate={{ opacity: 1, y: 0 }}
       style={{
         background: hasResult
-          ? predictionResult === 'correct'
-            ? 'rgba(74,222,128,0.06)'
-            : 'rgba(251,113,133,0.06)'
+          ? predictionResult === 'correct' ? 'rgba(74,222,128,0.06)' : 'rgba(251,113,133,0.06)'
           : 'rgba(56,189,248,0.06)',
         border: `1.5px solid ${borderColor}44`,
         borderLeft: `3px solid ${borderColor}`,
@@ -361,11 +327,7 @@ function PredictionBanner({ predictionTile, predictionResult }) {
         boxSizing: 'border-box',
       }}
     >
-      <p style={{
-        fontSize: 10, color: borderColor,
-        fontFamily: 'monospace', letterSpacing: 1,
-        margin: '0 0 3px 0', fontWeight: 600,
-      }}>
+      <p style={{ fontSize: 10, color: borderColor, fontFamily: 'monospace', letterSpacing: 1, margin: '0 0 3px 0', fontWeight: 600 }}>
         🎯  PREDICTION CHALLENGE
       </p>
       <p style={{ fontSize: 11, color: borderColor, fontFamily: 'monospace', margin: '0 0 2px 0' }}>
@@ -540,14 +502,7 @@ function FloatingStar({ emoji, delay, x, duration }) {
       initial={{ opacity: 0, y: 40, x: 0 }}
       animate={{ opacity: [0, 1, 1, 0], y: -60, x: [0, x, 0] }}
       transition={{ duration, delay, repeat: Infinity, repeatDelay: duration * 0.4, ease: 'easeInOut' }}
-      style={{
-        position: 'absolute',
-        bottom: 0,
-        left: '50%',
-        fontSize: 18,
-        pointerEvents: 'none',
-        zIndex: 0,
-      }}
+      style={{ position: 'absolute', bottom: 0, left: '50%', fontSize: 18, pointerEvents: 'none', zIndex: 0 }}
     >
       {emoji}
     </motion.div>
@@ -556,49 +511,39 @@ function FloatingStar({ emoji, delay, x, duration }) {
 
 function StrategyCard({ card, selected, onSelect }) {
   const isSelected = selected === card.id
-
   return (
     <motion.div
       whileHover={{ y: -6, scale: 1.02 }}
       whileTap={{ scale: 0.97 }}
       onClick={() => onSelect(card.id)}
       style={{
-        flex: 1,
-        minWidth: 0,
-        position: 'relative',
+        flex: 1, minWidth: 0, position: 'relative',
         background: isSelected ? card.bg : 'rgba(8,14,24,0.92)',
         border: `2.5px solid ${isSelected ? card.border : '#1e2a42'}`,
         borderRadius: 20,
         padding: '28px 20px 24px',
         cursor: 'pointer',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
-        boxShadow: isSelected
-          ? `0 0 40px ${card.glow}, 0 0 0 1px ${card.border}44`
-          : '0 4px 24px rgba(0,0,0,0.4)',
+        boxShadow: isSelected ? `0 0 40px ${card.glow}, 0 0 0 1px ${card.border}44` : '0 4px 24px rgba(0,0,0,0.4)',
         transition: 'border-color 0.2s, background 0.2s, box-shadow 0.2s',
-        overflow: 'hidden',
-        textAlign: 'center',
-        userSelect: 'none',
+        overflow: 'hidden', textAlign: 'center', userSelect: 'none',
       }}
     >
       {isSelected && card.stars.map((s, i) => (
         <FloatingStar key={i} emoji={s} delay={i * 0.6} x={(i - 1) * 18} duration={2.2 + i * 0.3} />
       ))}
-
       {isSelected && (
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           style={{
-            position: 'absolute', inset: -1,
-            borderRadius: 20,
+            position: 'absolute', inset: -1, borderRadius: 20,
             border: `3px solid ${card.border}`,
             pointerEvents: 'none',
             boxShadow: `inset 0 0 30px ${card.glow}`,
           }}
         />
       )}
-
       <motion.div
         animate={isSelected ? { rotate: [0, -8, 8, -4, 4, 0], scale: [1, 1.18, 1] } : {}}
         transition={{ duration: 0.5 }}
@@ -606,51 +551,25 @@ function StrategyCard({ card, selected, onSelect }) {
       >
         {card.emoji}
       </motion.div>
-
       <div style={{
         background: isSelected ? `${card.border}22` : 'rgba(255,255,255,0.04)',
         border: `1px solid ${isSelected ? card.border : '#1e2a42'}`,
-        borderRadius: 20,
-        padding: '3px 14px',
+        borderRadius: 20, padding: '3px 14px',
         fontSize: 9, fontFamily: 'monospace', letterSpacing: 2,
         color: isSelected ? card.color : '#334155',
-        fontWeight: 700,
-        position: 'relative', zIndex: 1,
-        transition: 'all 0.2s',
+        fontWeight: 700, position: 'relative', zIndex: 1, transition: 'all 0.2s',
       }}>
         {card.subtitle.toUpperCase()}
       </div>
-
-      <p style={{
-        fontSize: 15, fontWeight: 800,
-        color: isSelected ? card.color : '#94a3b8',
-        lineHeight: 1.3, margin: 0,
-        position: 'relative', zIndex: 1,
-        transition: 'color 0.2s',
-      }}>
+      <p style={{ fontSize: 15, fontWeight: 800, color: isSelected ? card.color : '#94a3b8', lineHeight: 1.3, margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s' }}>
         {card.title}
       </p>
-
-      <p style={{
-        fontSize: 12, color: isSelected ? '#cbd5e1' : '#475569',
-        lineHeight: 1.55, margin: 0,
-        position: 'relative', zIndex: 1,
-        transition: 'color 0.2s',
-      }}>
+      <p style={{ fontSize: 12, color: isSelected ? '#cbd5e1' : '#475569', lineHeight: 1.55, margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s' }}>
         {card.description}
       </p>
-
-      <p style={{
-        fontSize: 11,
-        color: isSelected ? card.color : '#1e3a54',
-        fontFamily: 'monospace', fontStyle: 'italic',
-        margin: 0,
-        position: 'relative', zIndex: 1,
-        transition: 'color 0.2s',
-      }}>
+      <p style={{ fontSize: 11, color: isSelected ? card.color : '#1e3a54', fontFamily: 'monospace', fontStyle: 'italic', margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s' }}>
         {card.quote}
       </p>
-
       <motion.div
         initial={{ opacity: 0, scale: 0 }}
         animate={isSelected ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0 }}
@@ -659,25 +578,31 @@ function StrategyCard({ card, selected, onSelect }) {
           width: 32, height: 32, borderRadius: '50%',
           background: card.border,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 16, color: '#040810',
-          fontWeight: 900,
+          fontSize: 16, color: '#040810', fontWeight: 900,
           position: 'relative', zIndex: 1,
           boxShadow: `0 0 20px ${card.glow}`,
         }}
-      >
-        ✓
-      </motion.div>
+      >✓</motion.div>
     </motion.div>
   )
 }
 
-function StrategyCardScreen({ levelId, onDone }) {
+// ── FIX: StrategyCardScreen now accepts levelId and participantId so it can
+//         log the strategyCard GBI itself when the child confirms their choice.
+function StrategyCardScreen({ levelId, participantId, onDone }) {
   const [selected, setSelected] = useState(null)
   const [confirmed, setConfirmed] = useState(false)
 
   const handleConfirm = () => {
     if (!selected) return
     setConfirmed(true)
+
+    // ── Log the strategy card choice as a GBI ────────────────────────────────
+    // We log it here rather than in App because this is the exact moment the
+    // child commits to a choice.  The snapshot only contains the card choice;
+    // the rest of the level GBIs were already logged on the SuccessScreen.
+    logGBI(participantId, levelId, { strategyCard: selected })
+
     setTimeout(() => onDone(selected), 1200)
   }
 
@@ -702,26 +627,9 @@ function StrategyCardScreen({ levelId, onDone }) {
         <motion.div
           key={i}
           initial={{ opacity: 0 }}
-          animate={{
-            opacity: [0, 0.6, 0],
-            y: ['100vh', '-10vh'],
-            x: [0, (i % 2 === 0 ? 30 : -30)],
-          }}
-          transition={{
-            duration: 6 + i * 1.2,
-            delay: i * 1.1,
-            repeat: Infinity,
-            repeatDelay: 2,
-            ease: 'easeInOut',
-          }}
-          style={{
-            position: 'absolute',
-            left: `${10 + i * 16}%`,
-            bottom: 0,
-            fontSize: 22 + (i % 3) * 8,
-            pointerEvents: 'none',
-            zIndex: 0,
-          }}
+          animate={{ opacity: [0, 0.6, 0], y: ['100vh', '-10vh'], x: [0, (i % 2 === 0 ? 30 : -30)] }}
+          transition={{ duration: 6 + i * 1.2, delay: i * 1.1, repeat: Infinity, repeatDelay: 2, ease: 'easeInOut' }}
+          style={{ position: 'absolute', left: `${10 + i * 16}%`, bottom: 0, fontSize: 22 + (i % 3) * 8, pointerEvents: 'none', zIndex: 0 }}
         >
           {s}
         </motion.div>
@@ -731,10 +639,7 @@ function StrategyCardScreen({ levelId, onDone }) {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        style={{
-          display: 'flex', alignItems: 'flex-start', gap: 16,
-          marginBottom: 28, zIndex: 1, maxWidth: 760,
-        }}
+        style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 28, zIndex: 1, maxWidth: 760 }}
       >
         <motion.div
           animate={{ y: [0, -6, 0] }}
@@ -747,16 +652,13 @@ function StrategyCardScreen({ levelId, onDone }) {
             fontSize: 30, flexShrink: 0,
             boxShadow: '0 0 24px rgba(45,212,191,0.4)',
           }}
-        >
-          🤖
-        </motion.div>
+        >🤖</motion.div>
 
         <div style={{
           background: 'rgba(8,14,24,0.95)',
           border: '1.5px solid #2dd4bf44',
           borderRadius: '0 16px 16px 16px',
-          padding: '14px 20px',
-          position: 'relative',
+          padding: '14px 20px', position: 'relative',
           boxShadow: '0 4px 20px rgba(45,212,191,0.1)',
         }}>
           <div style={{
@@ -765,21 +667,13 @@ function StrategyCardScreen({ levelId, onDone }) {
             borderTop: '10px solid #2dd4bf44',
             borderLeft: '10px solid transparent',
           }}/>
-          <p style={{
-            fontSize: 9, color: '#2dd4bf', fontFamily: 'monospace',
-            letterSpacing: 2, margin: '0 0 6px 0', opacity: 0.8,
-          }}>
+          <p style={{ fontSize: 9, color: '#2dd4bf', fontFamily: 'monospace', letterSpacing: 2, margin: '0 0 6px 0', opacity: 0.8 }}>
             LUMA SAYS
           </p>
-          <p style={{
-            fontSize: 15, color: '#e2e8f0', lineHeight: 1.5,
-            margin: 0, fontWeight: 600,
-          }}>
+          <p style={{ fontSize: 15, color: '#e2e8f0', lineHeight: 1.5, margin: 0, fontWeight: 600 }}>
             Awesome work on Level {levelId}! 🎉
           </p>
-          <p style={{
-            fontSize: 13, color: '#94a3b8', lineHeight: 1.5, margin: '6px 0 0 0',
-          }}>
+          <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.5, margin: '6px 0 0 0' }}>
             How did you figure out which way I was facing? Pick the card that matches how <em>you</em> thought about it!
           </p>
         </div>
@@ -789,18 +683,10 @@ function StrategyCardScreen({ levelId, onDone }) {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
-        style={{
-          display: 'flex', gap: 18, width: '100%', maxWidth: 860,
-          zIndex: 1, alignItems: 'stretch',
-        }}
+        style={{ display: 'flex', gap: 18, width: '100%', maxWidth: 860, zIndex: 1, alignItems: 'stretch' }}
       >
         {STRATEGY_CARDS.map(card => (
-          <StrategyCard
-            key={card.id}
-            card={card}
-            selected={selected}
-            onSelect={setSelected}
-          />
+          <StrategyCard key={card.id} card={card} selected={selected} onSelect={setSelected} />
         ))}
       </motion.div>
 
@@ -819,9 +705,7 @@ function StrategyCardScreen({ levelId, onDone }) {
               disabled={!selected}
               style={{
                 padding: '14px 48px',
-                background: selected
-                  ? `linear-gradient(135deg, rgba(45,212,191,0.18), rgba(45,212,191,0.08))`
-                  : 'rgba(10,15,25,0.5)',
+                background: selected ? `linear-gradient(135deg, rgba(45,212,191,0.18), rgba(45,212,191,0.08))` : 'rgba(10,15,25,0.5)',
                 border: `2px solid ${selected ? '#2dd4bf' : '#1e2a3a'}`,
                 borderRadius: 14,
                 color: selected ? '#2dd4bf' : '#1e2a3a',
@@ -840,15 +724,10 @@ function StrategyCardScreen({ levelId, onDone }) {
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 280, damping: 18 }}
-              style={{
-                fontSize: 40,
-                display: 'flex', alignItems: 'center', gap: 12,
-              }}
+              style={{ fontSize: 40, display: 'flex', alignItems: 'center', gap: 12 }}
             >
               <span>🎊</span>
-              <span style={{ fontSize: 18, color: '#4ade80', fontFamily: 'monospace', letterSpacing: 2 }}>
-                GREAT CHOICE!
-              </span>
+              <span style={{ fontSize: 18, color: '#4ade80', fontFamily: 'monospace', letterSpacing: 2 }}>GREAT CHOICE!</span>
               <span>🎊</span>
             </motion.div>
           )}
@@ -873,7 +752,7 @@ function StrategyCardScreen({ levelId, onDone }) {
 }
 
 // ── Level Screen ──────────────────────────────────────────────────────────────
-function LevelScreen({ levelConfig, onComplete, onStrategyCard }) {
+function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard }) {
   const [animSpeed, setAnimSpeed] = useState(50)
 
   const {
@@ -912,29 +791,26 @@ function LevelScreen({ levelConfig, onComplete, onStrategyCard }) {
 
   const totalW = GRID_PX + GAP + PANEL_W
 
+  // ── FIX: Log all GBIs (except strategyCard) here on level completion.
+  //         strategyCard is logged inside StrategyCardScreen.
   const handleSuccessNext = () => {
-  // Log GBI data to Firebase on level completion
-  const snapshot = getGBISnapshot()
-  logGBI('child_01', levelConfig.id, snapshot)   // swap 'child_01' for real participant ID later
-
-  onComplete()
-  if (levelConfig.strategyCardAfter) onStrategyCard()
-}
+    const snapshot = getGBISnapshot()
+    logGBI(participantId, levelConfig.id, snapshot)
+    onComplete()
+    if (levelConfig.strategyCardAfter) onStrategyCard()
+  }
 
   return (
     <div style={{
       position: 'fixed',
-      top: HEADER_H,
-      left: 0, right: 0, bottom: 0,
-      display: 'flex',
-      flexDirection: 'column',
+      top: HEADER_H, left: 0, right: 0, bottom: 0,
+      display: 'flex', flexDirection: 'column',
       alignItems: 'center',
       padding: '14px 24px 14px',
       gap: 12,
       boxSizing: 'border-box',
       overflow: 'hidden',
     }}>
-
       {/* ── Title bar ── */}
       <div style={{
         width: totalW,
@@ -963,29 +839,20 @@ function LevelScreen({ levelConfig, onComplete, onStrategyCard }) {
         </div>
       </div>
 
-      {/* ── Helmet radio — passes radioIsUncertain for Level 2 styling ── */}
+      {/* ── Helmet radio ── */}
       <div style={{ width: totalW, flexShrink: 0 }}>
         <HelmetRadio report={helmetReport} radioIsUncertain={radioIsUncertain} />
       </div>
 
       {/* ── Main play area ── */}
       <div style={{
-        flex: 1,
-        width: totalW,
-        display: 'flex',
-        gap: GAP,
-        alignItems: 'stretch',
-        minHeight: 0,
-        overflow: 'hidden',
+        flex: 1, width: totalW,
+        display: 'flex', gap: GAP, alignItems: 'stretch',
+        minHeight: 0, overflow: 'hidden',
       }}>
-
-        {/* GameGrid — receives effectiveLevel so walls/objects reflect generated layout */}
         <div style={{
-          flex: '0 0 auto',
-          width: GRID_PX,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          flex: '0 0 auto', width: GRID_PX,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
           position: 'relative',
         }}>
           <GameGrid
@@ -1006,13 +873,9 @@ function LevelScreen({ levelConfig, onComplete, onStrategyCard }) {
 
         {/* Right panel */}
         <div style={{
-          flex: '0 0 auto',
-          width: PANEL_W,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          minHeight: 0,
-          overflow: 'hidden',
+          flex: '0 0 auto', width: PANEL_W,
+          display: 'flex', flexDirection: 'column',
+          justifyContent: 'center', minHeight: 0, overflow: 'hidden',
         }}>
           <AnimatePresence mode="wait">
             {phase === 'identify' && levelConfig.sptQuestion && (
@@ -1050,7 +913,6 @@ function LevelScreen({ levelConfig, onComplete, onStrategyCard }) {
                     levelConfig={levelConfig}
                   />
                 )}
-
                 <CommandBuilder
                   sequence={sequence}
                   isRunning={isRunning}
@@ -1089,12 +951,18 @@ function LevelScreen({ levelConfig, onComplete, onStrategyCard }) {
 }
 
 // ── Root ──────────────────────────────────────────────────────────────────────
+// PARTICIPANT_ID: replace this constant with your actual participant ID system
+// before the real study. For now, every session uses 'child_01' as a placeholder.
+const PARTICIPANT_ID = 'child_01'
+
 export default function App() {
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0)
   const [appPhase, setAppPhase] = useState('playing')
 
   const level = LEVELS[currentLevelIndex]
 
+  // ── FIX: handleStrategyCardDone no longer needs to receive the card value
+  //         because logging is now done inside StrategyCardScreen.
   const handleLevelComplete = () => {
     if (currentLevelIndex < LEVELS.length - 1)
       setCurrentLevelIndex(i => i + 1)
@@ -1112,9 +980,7 @@ export default function App() {
 
   return (
     <div style={{
-      width: '100vw',
-      height: '100vh',
-      overflow: 'hidden',
+      width: '100vw', height: '100vh', overflow: 'hidden',
       background: 'radial-gradient(ellipse at 50% -10%, rgba(45,212,191,0.05) 0%, #040810 55%)',
     }}>
       <motion.header
@@ -1122,13 +988,11 @@ export default function App() {
         animate={{ opacity: 1, y: 0 }}
         style={{
           position: 'fixed', top: 0, left: 0, right: 0,
-          height: HEADER_H,
-          padding: '0 28px',
+          height: HEADER_H, padding: '0 28px',
           background: 'rgba(4,8,16,0.97)',
           borderBottom: '1px solid #0f1c2e',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          zIndex: 50, backdropFilter: 'blur(10px)',
-          boxSizing: 'border-box',
+          zIndex: 50, backdropFilter: 'blur(10px)', boxSizing: 'border-box',
         }}
       >
         <h1 style={{ fontSize: 15, fontWeight: 900, color: '#2dd4bf', letterSpacing: 6, fontFamily: 'monospace', margin: 0 }}>
@@ -1152,6 +1016,7 @@ export default function App() {
             <LevelScreen
               key={level.id}
               levelConfig={level}
+              participantId={PARTICIPANT_ID}
               onComplete={handleLevelComplete}
               onStrategyCard={handleShowStrategyCard}
             />
@@ -1169,6 +1034,7 @@ export default function App() {
           >
             <StrategyCardScreen
               levelId={level.id}
+              participantId={PARTICIPANT_ID}
               onDone={handleStrategyCardDone}
             />
           </motion.div>

@@ -1,28 +1,58 @@
 // src/logGBI.js
 import { db } from './firebase'
-import { serverTimestamp, collection, addDoc } from 'firebase/firestore'
+import { serverTimestamp, doc, setDoc } from 'firebase/firestore'
 
 /**
- * Logs one GBI snapshot for a participant completing a level.
+ * Logs one GBI snapshot for a participant at the correct Firestore path:
+ *   participants/{participantId}/sessions/{sessionId}/levels/{levelId}
  *
- * @param {string} participantId  - A unique ID for the child (e.g. "child_01")
- * @param {number} levelId        - The level number (1, 2, 3…)
- * @param {object} gbiData        - The object returned by getGBISnapshot()
- * @param {string} [strategyCard] - Optional: the strategy card chosen ('embody'|'rotate'|'landmarks')
+ * Called TWICE per level that has a strategy card:
+ *   1. On level completion (from LevelScreen)           — logs all numeric GBIs.
+ *   2. On strategy card confirm (from StrategyCardScreen) — logs { strategyCard }.
+ *
+ * For levels without a strategy card, called once with the full snapshot.
+ *
+ * @param {string} participantId  - Unique child ID, e.g. "child_01"
+ * @param {number} levelId        - Level number (1, 2, 3…)
+ * @param {object} gbiData        - Either getGBISnapshot() result OR { strategyCard: '...' }
+ * @param {string} [sessionId]    - Optional session label; defaults to "session_1"
  */
-export async function logGBI(participantId, levelId, gbiData, strategyCard = null) {
-  const payload = {
-    participantId,
-    levelId,
-    timestamp: serverTimestamp(),
-    ...gbiData,
-    ...(strategyCard ? { strategyCard } : {}),
+export async function logGBI(participantId, levelId, gbiData, sessionId = 'session_1') {
+  if (!participantId || !levelId || !gbiData) {
+    console.warn('[GBI] logGBI called with missing arguments — skipping.')
+    return
   }
 
+  // Path matches your Firestore rules exactly:
+  // participants/{childId}/sessions/{sessionId}/levels/{levelId}
+  const levelDocRef = doc(
+    db,
+    'participants', String(participantId),
+    'sessions',     String(sessionId),
+    'levels',       String(levelId)
+  )
+
+  // Firestore rejects undefined values — strip them all out before writing.
+  const rawPayload = {
+    participantId,
+    levelId,
+    sessionId,
+    timestamp: serverTimestamp(),
+    ...gbiData,
+  }
+  const payload = Object.fromEntries(
+    Object.entries(rawPayload).filter(([, v]) => v !== undefined)
+  )
+
   try {
-    await addDoc(collection(db, 'gbi_logs'), payload)
-    console.log(`[GBI] Logged level ${levelId} for ${participantId}`)
+    // setDoc with merge:true so a second call (strategyCard log) adds to the
+    // same document rather than overwriting the numeric GBIs already logged.
+    await setDoc(levelDocRef, payload, { merge: true })
+    console.log(
+      `[GBI] ✅ Logged — participants/${participantId}/sessions/${sessionId}/levels/${levelId}`,
+      payload
+    )
   } catch (err) {
-    console.error('[GBI] Failed to log:', err)
+    console.error('[GBI] ❌ Failed to write to Firestore:', err)
   }
 }
