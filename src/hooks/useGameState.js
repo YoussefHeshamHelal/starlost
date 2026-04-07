@@ -3,6 +3,7 @@ import {
   generateLevel1Layout,
   generateLevel2Layout,
   generateLevel3Layout,
+  generateLevel4Layout,
 } from '../data/levels'
 
 const DIRECTIONS = ['north', 'east', 'south', 'west']
@@ -192,6 +193,7 @@ function generateLayout(generatorKey, facing) {
     case 'level1': return generateLevel1Layout(facing)
     case 'level2': return generateLevel2Layout(facing)
     case 'level3': return generateLevel3Layout(facing)
+    case 'level4': return generateLevel4Layout(facing)
     default: return { walls: [], objects: [], solution: null }
   }
 }
@@ -202,6 +204,10 @@ export function useGameState(levelConfig, animSpeed = 50) {
   const [initialFacing] = useState(() => {
     if (levelConfig.lumaFacing === 'random') {
       return DIRECTIONS[Math.floor(Math.random() * 4)]
+    }
+    if (levelConfig.lumaFacing === 'random-NE') {
+      // Only north or east — both guaranteed to give the correct target command count
+      return Math.random() < 0.5 ? 'north' : 'east'
     }
     return levelConfig.lumaFacing
   })
@@ -220,23 +226,31 @@ export function useGameState(levelConfig, animSpeed = 50) {
   })
 
   // Merge layout into effective level config (walls, objects, solution from generated layout)
+  // Level 1's generator also returns lumaStart, goal, and lumaFacing overrides.
   const effectiveLevel = useMemo(() => ({
     ...levelConfig,
-    walls: layout.walls,
-    objects: layout.objects,
+    walls:    layout.walls,
+    objects:  layout.objects,
     solution: layout.solution,
+    // Apply start/goal/facing overrides if the generator provided them (Level 1)
+    ...(layout.lumaStart  != null && { lumaStart:   layout.lumaStart  }),
+    ...(layout.goal       != null && { goal:         layout.goal       }),
   }), [levelConfig, layout])
 
+  // Use layout's lumaStart override if provided (Level 1), otherwise use levelConfig
+  const resolvedStart   = layout.lumaStart  ?? levelConfig.lumaStart
+  const resolvedFacing  = layout.lumaFacing ?? initialFacing
+
   const [luma, setLuma] = useState(() => ({
-    x: levelConfig.lumaStart.x,
-    y: levelConfig.lumaStart.y,
-    facing: initialFacing,
-    rotateDeg: FACING_DEG[initialFacing] ?? 0,
+    x: resolvedStart.x,
+    y: resolvedStart.y,
+    facing: resolvedFacing,
+    rotateDeg: FACING_DEG[resolvedFacing] ?? 0,
   }))
 
-  const initialFacingRef = useRef(luma.facing)
+  const initialFacingRef = useRef(resolvedFacing)
 
-  const [sptCorrectAnswer] = useState(() => FACING_TO_ANSWER[luma.facing])
+  const [sptCorrectAnswer] = useState(() => FACING_TO_ANSWER[resolvedFacing])
 
   const shipPartObjects = useMemo(
     () => (effectiveLevel.objects ?? []).filter(o => o.type === 'ship_part'),
@@ -245,16 +259,16 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
   const [collectedParts, setCollectedParts] = useState(() => new Set())
 
-  // ── Level 2 uncertain radio ───────────────────────────────────────────────
+  // ── Level 2/3/4 uncertain radio ───────────────────────────────────────────
   // Pick a fixed uncertain message for this session (so it doesn't change on re-renders)
   const [uncertainMessage] = useState(() => {
     if (levelConfig.uncertainRadio) {
       return buildUncertainRadioReport(
-        { x: levelConfig.lumaStart.x, y: levelConfig.lumaStart.y },
-        initialFacing,
+        { x: resolvedStart.x, y: resolvedStart.y },
+        resolvedFacing,
         layout.walls,
         layout.objects,
-        levelConfig.goal,
+        effectiveLevel.goal ?? levelConfig.goal,
         new Set()
       )
     }
@@ -269,7 +283,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
   const [reportOverride, setReportOverride] = useState(null)
 
   const liveReport = useMemo(() => {
-    // Level 2: show uncertain message until the player flips the visor
+    // Level 2/3: show uncertain message until the player flips the visor
     // After flipping, switch to the clear normal message
     if (levelConfig.uncertainRadio && !visorFlippedThisLevel) {
       return uncertainMessage
@@ -279,18 +293,19 @@ export function useGameState(levelConfig, animSpeed = 50) {
       luma.facing,
       effectiveLevel.walls,
       effectiveLevel.objects,
-      levelConfig.goal,
+      effectiveLevel.goal ?? levelConfig.goal,
       collectedParts,
     )
   }, [
-    luma, effectiveLevel.walls, effectiveLevel.objects, levelConfig.goal,
+    luma, effectiveLevel.walls, effectiveLevel.objects,
+    effectiveLevel.goal, levelConfig.goal,
     collectedParts, levelConfig.uncertainRadio, visorFlippedThisLevel, uncertainMessage
   ])
 
   const helmetReport = reportOverride ?? liveReport
 
   // ── Phases & answers ──────────────────────────────────────────────────────
-  const [phase, setPhase] = useState('identify')
+  const [phase, setPhase] = useState(() => levelConfig.skipIdentify ? 'develop' : 'identify')
   const [sptAnswer, setSptAnswer]         = useState(null)
   const [sptCorrect, setSptCorrect]       = useState(false)
 
@@ -385,8 +400,8 @@ export function useGameState(levelConfig, animSpeed = 50) {
   const resetLuma = useCallback(() => {
     if (isRunning) return
     setLuma({
-      x: levelConfig.lumaStart.x,
-      y: levelConfig.lumaStart.y,
+      x: resolvedStart.x,
+      y: resolvedStart.y,
       facing: initialFacingRef.current,
       rotateDeg: FACING_DEG[initialFacingRef.current] ?? 0,
     })
@@ -394,7 +409,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     setNeedsReset(false)
     setReportOverride(null)
     setPredictionResult(null)
-  }, [isRunning, levelConfig.lumaStart])
+  }, [isRunning, resolvedStart])
 
   // ── PREDICTION PROMPT ────────────────────────────────────────────────────
   const setPrediction = useCallback((tile) => {
@@ -416,7 +431,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     let localCollected = new Set(collectedParts)
     const steps = [...sequence]
     const walls = effectiveLevel.walls ?? []
-    const goal  = levelConfig.goal
+    const goal  = effectiveLevel.goal ?? levelConfig.goal
     const gridCols = levelConfig.grid.cols
     const gridRows = levelConfig.grid.rows
 

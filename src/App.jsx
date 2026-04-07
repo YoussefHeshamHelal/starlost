@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LEVELS } from './data/levels'
 import { useGameState } from './hooks/useGameState'
@@ -12,8 +12,39 @@ const GRID_PX  = 520   // 5 tiles × 104 px
 const PANEL_W  = 420   // right panel — wider
 const GAP      = 32
 
+// ── CSS keyframe animations (injected once, run on compositor thread) ─────────
+const ANIM_STYLES = `
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 0.2; transform: scale(0.8); }
+    50%       { opacity: 1;   transform: scale(1.2); }
+  }
+  @keyframes pulse-shadow {
+    0%, 100% { box-shadow: 0 0 6px rgba(245,158,11,0.3); }
+    50%       { box-shadow: 0 0 14px rgba(245,158,11,0.7); }
+  }
+  @keyframes pulse-bar {
+    0%   { opacity: 0.3; }
+    25%  { opacity: 0.6; }
+    50%  { opacity: 0.2; }
+    75%  { opacity: 0.5; }
+    100% { opacity: 0.3; }
+  }
+  @keyframes pulse-visor {
+    0%, 100% { box-shadow: 0 0 0px rgba(167,139,250,0); }
+    50%       { box-shadow: 0 0 20px rgba(167,139,250,0.5); }
+  }
+  @keyframes fade-in-hint {
+    from { opacity: 0; }
+    to   { opacity: 0.75; }
+  }
+  @keyframes blink-try {
+    0%, 100% { opacity: 0.5; }
+    50%       { opacity: 1; }
+  }
+`
+
 // ── Helmet Radio ─────────────────────────────────────────────────────────────
-function HelmetRadio({ report, radioIsUncertain }) {
+const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain }) {
   return (
     <div style={{
       background: radioIsUncertain ? 'rgba(14,10,4,0.92)' : 'rgba(8,14,24,0.9)',
@@ -38,33 +69,27 @@ function HelmetRadio({ report, radioIsUncertain }) {
         </p>
 
         {radioIsUncertain && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
               {[0, 1, 2].map(i => (
-                <motion.div
+                <div
                   key={i}
-                  animate={{ opacity: [0.2, 1, 0.2], scale: [0.8, 1.2, 0.8] }}
-                  transition={{ duration: 1.2, delay: i * 0.25, repeat: Infinity, ease: 'easeInOut' }}
-                  style={{ width: 4, height: 4, borderRadius: '50%', background: '#f59e0b' }}
+                  style={{
+                    width: 4, height: 4, borderRadius: '50%', background: '#f59e0b',
+                    animation: `pulse-dot 1.2s ${i * 0.25}s ease-in-out infinite`,
+                  }}
                 />
               ))}
             </div>
-            <motion.div
-              animate={{ boxShadow: ['0 0 6px rgba(245,158,11,0.3)', '0 0 14px rgba(245,158,11,0.7)', '0 0 6px rgba(245,158,11,0.3)'] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              style={{
-                width: 18, height: 18, borderRadius: '50%',
-                background: 'rgba(245,158,11,0.15)',
-                border: '1.5px solid #f59e0b',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 10, color: '#f59e0b', fontWeight: 900, fontFamily: 'monospace',
-              }}
-            >?</motion.div>
-          </motion.div>
+            <div style={{
+              width: 18, height: 18, borderRadius: '50%',
+              background: 'rgba(245,158,11,0.15)',
+              border: '1.5px solid #f59e0b',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 10, color: '#f59e0b', fontWeight: 900, fontFamily: 'monospace',
+              animation: 'pulse-shadow 2s ease-in-out infinite',
+            }}>?</div>
+          </div>
         )}
       </div>
 
@@ -78,30 +103,22 @@ function HelmetRadio({ report, radioIsUncertain }) {
       </p>
 
       {radioIsUncertain && (
-        <motion.div
-          animate={{ opacity: [0.3, 0.6, 0.2, 0.5, 0.3] }}
-          transition={{ duration: 3, repeat: Infinity }}
-          style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: 2,
-            borderRadius: '0 0 8px 8px',
-            background: 'linear-gradient(to right, transparent, #f59e0b44, transparent)',
-          }}
-        />
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: 2,
+          borderRadius: '0 0 8px 8px',
+          background: 'linear-gradient(to right, transparent, #f59e0b44, transparent)',
+          animation: 'pulse-bar 3s linear infinite',
+        }} />
       )}
     </div>
   )
-}
+})
 
 // ── Visor Flip button ─────────────────────────────────────────────────────────
-function VisorFlipButton({ visorFlipCount, onVisorFlip, highlighted }) {
+const VisorFlipButton = memo(function VisorFlipButton({ visorFlipCount, onVisorFlip, highlighted }) {
   const exhausted = visorFlipCount >= 3
   return (
-    <motion.button
-      whileTap={{ scale: 0.96 }}
-      animate={highlighted && !exhausted ? {
-        boxShadow: ['0 0 0px rgba(167,139,250,0)', '0 0 20px rgba(167,139,250,0.5)', '0 0 0px rgba(167,139,250,0)'],
-      } : {}}
-      transition={highlighted ? { duration: 1.8, repeat: Infinity } : {}}
+    <button
       onClick={onVisorFlip}
       disabled={exhausted}
       style={{
@@ -115,17 +132,17 @@ function VisorFlipButton({ visorFlipCount, onVisorFlip, highlighted }) {
         fontFamily: 'monospace', fontSize: 11, letterSpacing: 1.5,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         transition: 'all 0.2s', boxSizing: 'border-box',
+        animation: highlighted && !exhausted ? 'pulse-visor 1.8s ease-in-out infinite' : 'none',
       }}
     >
       <span>👁  VISOR FLIP</span>
       {highlighted && !exhausted && (
-        <motion.span
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 1.2, repeat: Infinity }}
-          style={{ fontSize: 9, color: '#f59e0b', fontFamily: 'monospace', marginRight: 4 }}
-        >
+        <span style={{
+          fontSize: 9, color: '#f59e0b', fontFamily: 'monospace', marginRight: 4,
+          animation: 'blink-try 1.2s ease-in-out infinite',
+        }}>
           try it!
-        </motion.span>
+        </span>
       )}
       <span style={{
         background: exhausted ? 'transparent' : 'rgba(167,139,250,0.15)',
@@ -134,9 +151,9 @@ function VisorFlipButton({ visorFlipCount, onVisorFlip, highlighted }) {
       }}>
         {3 - visorFlipCount} left
       </span>
-    </motion.button>
+    </button>
   )
-}
+})
 
 // ── Diamond MCQ ───────────────────────────────────────────────────────────────
 const ARROW_META = {
@@ -191,7 +208,7 @@ function DiamondButton({ option, isSelected, isCorrect, isWrong, disabled, onCli
 }
 
 // ── SPT Question panel ────────────────────────────────────────────────────────
-function SPTQuestion({ question, onAnswer, sptAnswer, sptCorrect, visorFlipCount, onVisorFlip, radioIsUncertain }) {
+const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, sptCorrect, visorFlipCount, onVisorFlip, radioIsUncertain, showVisorFlip }) {
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -210,27 +227,24 @@ function SPTQuestion({ question, onAnswer, sptAnswer, sptCorrect, visorFlipCount
         PHASE 1 — IDENTIFY
       </p>
 
-      <VisorFlipButton
-        visorFlipCount={visorFlipCount}
-        onVisorFlip={onVisorFlip}
-        highlighted={radioIsUncertain && visorFlipCount === 0}
-      />
+      {showVisorFlip && (
+        <VisorFlipButton
+          visorFlipCount={visorFlipCount}
+          onVisorFlip={onVisorFlip}
+          highlighted={radioIsUncertain && visorFlipCount === 0}
+        />
+      )}
 
-      {radioIsUncertain && visorFlipCount === 0 && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          style={{
-            margin: '-8px 0 0 0',
-            color: '#f59e0b',
-            fontSize: 10, fontFamily: 'monospace',
-            textAlign: 'center', letterSpacing: 1,
-            opacity: 0.75,
-          }}
-        >
+      {showVisorFlip && radioIsUncertain && visorFlipCount === 0 && (
+        <p style={{
+          margin: '-8px 0 0 0',
+          color: '#f59e0b',
+          fontSize: 10, fontFamily: 'monospace',
+          textAlign: 'center', letterSpacing: 1,
+          animation: 'fade-in-hint 0.4s 0.5s ease both',
+        }}>
           LUMA seems unsure… maybe peek through her helmet?
-        </motion.p>
+        </p>
       )}
 
       <p style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.5, margin: 0 }}>
@@ -270,23 +284,21 @@ function SPTQuestion({ question, onAnswer, sptAnswer, sptCorrect, visorFlipCount
       </div>
 
       {sptAnswer && !sptCorrect && (
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          style={{ margin: 0, color: '#fb7185', fontSize: 11, fontFamily: 'monospace', textAlign: 'center' }}>
+        <p style={{ margin: 0, color: '#fb7185', fontSize: 11, fontFamily: 'monospace', textAlign: 'center', animation: 'fade-in-hint 0.2s ease both' }}>
           Not quite — use the radio clue to find LUMA's facing.
-        </motion.p>
+        </p>
       )}
       {sptCorrect && (
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          style={{ margin: 0, color: '#4ade80', fontSize: 11, fontFamily: 'monospace', textAlign: 'center', letterSpacing: 1 }}>
+        <p style={{ margin: 0, color: '#4ade80', fontSize: 11, fontFamily: 'monospace', textAlign: 'center', letterSpacing: 1, animation: 'fade-in-hint 0.2s ease both' }}>
           ✓ Correct! Now guide LUMA home.
-        </motion.p>
+        </p>
       )}
     </motion.div>
   )
-}
+})
 
 // ── Prediction Prompt ─────────────────────────────────────────────────────────
-function PredictionBanner({ predictionTile, predictionResult }) {
+const PredictionBanner = memo(function PredictionBanner({ predictionTile, predictionResult }) {
   const hasResult = predictionResult !== null
   const hasTile   = predictionTile !== null
 
@@ -338,7 +350,7 @@ function PredictionBanner({ predictionTile, predictionResult }) {
       </p>
     </motion.div>
   )
-}
+})
 
 // ── Missed Fragments Alert ────────────────────────────────────────────────────
 function MissedFragmentsAlert({ onDismiss }) {
@@ -789,7 +801,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
 
   const runBlocked = levelConfig.predictionPrompt && predictionTile === null && predictionResult === null
 
-  const totalW = GRID_PX + GAP + PANEL_W
+  const panelW = levelConfig.skipIdentify ? GRID_PX : PANEL_W
+  const totalW = GRID_PX + GAP + panelW
 
   // ── FIX: Log all GBIs (except strategyCard) here on level completion.
   //         strategyCard is logged inside StrategyCardScreen.
@@ -825,29 +838,33 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
             {levelConfig.name}
           </h2>
         </div>
-        <div style={{
-          padding: '4px 14px',
-          background: phase === 'identify' ? 'rgba(45,212,191,0.07)' : 'rgba(245,158,11,0.07)',
-          border: `1px solid ${phase === 'identify' ? '#2dd4bf44' : '#f59e0b44'}`,
-          borderRadius: 20,
-          fontSize: 9, fontFamily: 'monospace', letterSpacing: 2,
-          color: phase === 'identify' ? '#2dd4bf' : '#f59e0b',
-        }}>
-          {phase === 'identify' ? 'PHASE 1 — IDENTIFY'
-           : phase === 'develop' ? 'PHASE 2 — DEVELOP'
-           : 'COMPLETE'}
-        </div>
+        {!levelConfig.skipIdentify && (
+          <div style={{
+            padding: '4px 14px',
+            background: phase === 'identify' ? 'rgba(45,212,191,0.07)' : 'rgba(245,158,11,0.07)',
+            border: `1px solid ${phase === 'identify' ? '#2dd4bf44' : '#f59e0b44'}`,
+            borderRadius: 20,
+            fontSize: 9, fontFamily: 'monospace', letterSpacing: 2,
+            color: phase === 'identify' ? '#2dd4bf' : '#f59e0b',
+          }}>
+            {phase === 'identify' ? 'PHASE 1 — IDENTIFY'
+             : phase === 'develop' ? 'PHASE 2 — DEVELOP'
+             : 'COMPLETE'}
+          </div>
+        )}
       </div>
 
-      {/* ── Helmet radio ── */}
-      <div style={{ width: totalW, flexShrink: 0 }}>
-        <HelmetRadio report={helmetReport} radioIsUncertain={radioIsUncertain} />
-      </div>
+      {/* ── Helmet radio — hidden when noRadio flag is set (Level 1) ── */}
+      {!levelConfig.noRadio && (
+        <div style={{ width: totalW, flexShrink: 0 }}>
+          <HelmetRadio report={helmetReport} radioIsUncertain={radioIsUncertain} />
+        </div>
+      )}
 
       {/* ── Main play area ── */}
       <div style={{
         flex: 1, width: totalW,
-        display: 'flex', gap: GAP, alignItems: 'stretch',
+        display: 'flex', gap: GAP, alignItems: levelConfig.id === 1 || phase === 'identify' ? 'center' : 'flex-start',
         minHeight: 0, overflow: 'hidden',
       }}>
         <div style={{
@@ -873,9 +890,11 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
 
         {/* Right panel */}
         <div style={{
-          flex: '0 0 auto', width: PANEL_W,
+          flex: '0 0 auto', width: levelConfig.skipIdentify ? GRID_PX : PANEL_W,
+          height: levelConfig.id >= 2 && phase === 'develop' ? '100%' : GRID_PX,
           display: 'flex', flexDirection: 'column',
-          justifyContent: 'center', minHeight: 0, overflow: 'hidden',
+          justifyContent: phase === 'identify' ? 'center' : 'flex-start',
+          minHeight: 0, overflow: 'hidden',
         }}>
           <AnimatePresence mode="wait">
             {phase === 'identify' && levelConfig.sptQuestion && (
@@ -894,6 +913,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
                   visorFlipCount={visorFlipCount}
                   onVisorFlip={flipVisor}
                   radioIsUncertain={radioIsUncertain}
+                  showVisorFlip={!levelConfig.noVisorFlip}
                 />
               </motion.div>
             )}
@@ -927,10 +947,13 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
                   onReorder={handleReorder}
                   needsReset={needsReset}
                   onReset={resetLuma}
-                  panelWidth={PANEL_W}
+                  panelWidth={panelW}
                   runBlocked={runBlocked}
                   speed={animSpeed}
                   onSpeedChange={setAnimSpeed}
+                  showVisorFlip={!levelConfig.noVisorFlip}
+                  targetCommands={levelConfig.targetCommands ?? null}
+                  showPhaseLabel={!levelConfig.skipIdentify}
                 />
               </motion.div>
             )}
@@ -960,8 +983,6 @@ export default function App() {
   const [appPhase, setAppPhase] = useState('playing')
 
   const level = LEVELS[currentLevelIndex]
-
-  // ── FIX: handleStrategyCardDone no longer needs to receive the card value
   //         because logging is now done inside StrategyCardScreen.
   const handleLevelComplete = () => {
     if (currentLevelIndex < LEVELS.length - 1)
@@ -983,6 +1004,7 @@ export default function App() {
       width: '100vw', height: '100vh', overflow: 'hidden',
       background: 'radial-gradient(ellipse at 50% -10%, rgba(45,212,191,0.05) 0%, #040810 55%)',
     }}>
+      <style>{ANIM_STYLES}</style>
       <motion.header
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}

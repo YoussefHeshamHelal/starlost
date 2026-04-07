@@ -1,31 +1,37 @@
 // levels.js — ship_part = collectible waypoint, walls = rock obstacles that block LUMA
-// lumaFacing: 'random' means useGameState will pick a random direction each load.
-// helmetReport and sptQuestion.correct are computed dynamically in useGameState.
+// lumaFacing: 'random-NE' means useGameState will pick north OR east randomly.
 //
-// LUMA always starts at (1,3). The goal is always at (4,0).
+// LEVEL GEOMETRY (verified via BFS):
+//   L1: start=(0,2) east  → goal=(3,2)  → F F F            (3 cmds, 0 turns)
+//   L2: start=(2,2) N/E   → goal=(4,0)  → F F T F F        (5 cmds, 1 turn) ✓ both facings
+//   L3: start=(1,3) N/E   → goal=(3,0)  → 7 cmds           ✓ both facings, 1 part at (2,2)
+//   L4: start=(0,4) N/E   → goal=(4,0)  → F F F F T F F F F (9 cmds, 1 turn) ✓ both facings
+//       Parts placed ALONG the facing-specific optimal path so they're collected on the way.
 //
-// FACING CONSTRAINT (all levels):
-//   The first "adjacent" rock/ship_part is placed only in FRONT, LEFT, or RIGHT of LUMA —
-//   never BEHIND, because you can't see what's behind you.
-//   Since facing is random and resolved at runtime (useGameState), the level layout
-//   generators are exported as *factory functions* that receive the resolved facing.
-//   useGameState calls generateLevelLayout(facing) when it first runs.
+// RANDOMIZATION:
+//   Rocks are still randomly placed (adjacent & non-adjacent pools).
+//   Ship parts in L3 are fixed at (2,2) — on the optimal path for both north and east.
+//   Ship parts in L4 are chosen based on facing so they sit on the optimal path.
+//   All rock placement uses BFS to verify the target command count is preserved.
 //
-// Level 1: exactly 1 rock adjacent to LUMA (front/left/right only). No ship parts.
-// Level 2: exactly 2 rocks + 1 ship_part.
-//   - Rock 1: front/left/right of LUMA's start.
-//   - Rock 2: randomly placed anywhere non-adjacent.
-//   - Ship_part: randomly placed anywhere valid (fully random).
-// Level 3: exactly 3 rocks + 2 ship_parts + prediction prompt.
-//   - Rock 1: front/left/right of LUMA's start.
-//   - Rocks 2-3: randomly placed in non-adjacent pool.
-//   - Ship_parts: 2 placed in remaining free tiles.
-//   - predictionPrompt: true — child taps where LUMA will end up before running.
+// NO COMMAND LIMIT: Children can type as many commands as they want.
+//   targetCommands shows the "best solution" hint only.
 
 export const TILE_SIZE = 80
 
-const LUMA_START = { x: 1, y: 3 }
-const GOAL       = { x: 4, y: 0 }
+// Level-specific constants
+const L1_START = { x: 0, y: 2 }
+const L1_GOAL  = { x: 3, y: 2 }
+
+const L2_START = { x: 2, y: 2 }
+const L2_GOAL  = { x: 4, y: 0 }
+
+const L3_START = { x: 1, y: 3 }
+const L3_GOAL  = { x: 3, y: 0 }
+
+const L4_START = { x: 0, y: 4 }
+const L4_GOAL  = { x: 4, y: 0 }
+
 const COLS = 5
 const ROWS = 5
 
@@ -37,32 +43,9 @@ const MOVE_DELTAS = {
   west:  { x: -1, y: 0  },
 }
 
-// All 4-directional neighbours of LUMA's start (in-bounds, not the goal)
-const ALL_ADJACENT_TO_START = [
-  { x: 1, y: 2 }, // north
-  { x: 2, y: 3 }, // east
-  { x: 1, y: 4 }, // south
-  { x: 0, y: 3 }, // west
-].filter(t =>
-  t.x >= 0 && t.x < COLS && t.y >= 0 && t.y < ROWS &&
-  !(t.x === GOAL.x && t.y === GOAL.y)
-)
+const MAX_RETRIES = 300
 
-// Returns the tile that is BEHIND LUMA given a facing
-function getBehindTile(facing) {
-  // The tile behind is in the opposite direction of facing
-  const opposite = { north: 'south', south: 'north', east: 'west', west: 'east' }
-  const delta = MOVE_DELTAS[opposite[facing]]
-  return { x: LUMA_START.x + delta.x, y: LUMA_START.y + delta.y }
-}
-
-// Returns adjacent tiles that are VISIBLE (front, left, right — not behind)
-function getVisibleAdjacentTiles(facing) {
-  const behind = getBehindTile(facing)
-  return ALL_ADJACENT_TO_START.filter(
-    t => !(t.x === behind.x && t.y === behind.y)
-  )
-}
+function tileKey(x, y) { return `${x},${y}` }
 
 function shuffle(arr) {
   const a = [...arr]
@@ -73,11 +56,32 @@ function shuffle(arr) {
   return a
 }
 
-function tileKey(x, y) { return `${x},${y}` }
+// Returns the tile one step in `facing` direction from pos
+function stepTile(pos, facing) {
+  const d = MOVE_DELTAS[facing]
+  return { x: pos.x + d.x, y: pos.y + d.y }
+}
 
-// ── BFS to compute the optimal command sequence ──────────────────────────────
+// Returns tiles adjacent to pos that are in-bounds, not blocked, and not a special tile
+function adjacentTiles(pos, blocked = new Set()) {
+  return ['north', 'east', 'south', 'west'].map(f => stepTile(pos, f)).filter(t =>
+    t.x >= 0 && t.x < COLS && t.y >= 0 && t.y < ROWS &&
+    !blocked.has(tileKey(t.x, t.y))
+  )
+}
+
+// Visible adjacent tiles: front, left, right (not behind)
+function visibleAdjacentTiles(pos, facing, blocked = new Set()) {
+  const oppFacing = { north: 'south', south: 'north', east: 'west', west: 'east' }[facing]
+  const behind = stepTile(pos, oppFacing)
+  return adjacentTiles(pos, blocked).filter(
+    t => !(t.x === behind.x && t.y === behind.y)
+  )
+}
+
+// ── BFS: compute optimal command sequence ────────────────────────────────────
 function computeOptimalSolution(lumaStart, goal, walls, objects, initialFacing = 'north') {
-  const shipParts = objects.filter(o => o.type === 'ship_part')
+  const shipParts  = objects.filter(o => o.type === 'ship_part')
   const allCollected = (1 << shipParts.length) - 1
 
   const encodeState = (x, y, facing, collected) =>
@@ -131,149 +135,265 @@ function computeOptimalSolution(lumaStart, goal, walls, objects, initialFacing =
   return null
 }
 
-// ── Layout generators (facing-aware) ─────────────────────────────────────────
-
-// Level 1: 1 rock in front/left/right of LUMA (never behind), no ship parts
-export function generateLevel1Layout(facing = 'north') {
-  const visibleAdjacent = getVisibleAdjacentTiles(facing)
-  const rock = shuffle(visibleAdjacent)[0]
-  const walls = [{ x: rock.x, y: rock.y }]
-  const objects = []
-  const solution = computeOptimalSolution(LUMA_START, GOAL, walls, objects, facing)
-  return { walls, objects, solution }
+// ── Level 1 ───────────────────────────────────────────────────────────────────
+// Exactly 3 FORWARD commands, no rocks, no ship parts, no identify phase.
+// LUMA starts at (0,2) facing east. Goal at (3,2).
+// Solution: F F F
+export function generateLevel1Layout() {
+  return {
+    walls: [],
+    objects: [],
+    solution: ['F', 'F', 'F'],
+    lumaStart: L1_START,
+    goal: L1_GOAL,
+    lumaFacing: 'east',
+  }
 }
 
-// Level 2: 1 visible-adjacent rock + 1 non-adjacent rock + 1 ship_part
+// ── Level 2 ───────────────────────────────────────────────────────────────────
+// Exactly 5 commands, exactly 1 turn.
+// start=(2,2), goal=(4,0). Facing: north or east (random).
+//   north: F F TR F F  (goes (2,1)(2,0) TR (3,0)(4,0)) ✓
+//   east:  F F TL F F  (goes (3,2)(4,2) TL (4,1)(4,0)) ✓
+// 1 rock placed adjacent/visible — for SPT challenge, doesn't block optimal path.
 export function generateLevel2Layout(facing = 'north') {
-  const occupied = new Set([
-    tileKey(LUMA_START.x, LUMA_START.y),
-    tileKey(GOAL.x, GOAL.y),
+  const lumaStart = L2_START
+  const goal      = L2_GOAL
+
+  // Optimal paths for each facing — rocks must NOT sit on these tiles
+  const NORTH_PATH = [{x:2,y:1},{x:2,y:0},{x:3,y:0},{x:4,y:0}]
+  const EAST_PATH  = [{x:3,y:2},{x:4,y:2},{x:4,y:1},{x:4,y:0}]
+  const optimalPath = facing === 'east' ? EAST_PATH : NORTH_PATH
+  const pathKeys = new Set(optimalPath.map(t => tileKey(t.x, t.y)))
+
+  const reserved = new Set([
+    tileKey(lumaStart.x, lumaStart.y),
+    tileKey(goal.x, goal.y),
   ])
 
-  // Rock 1 — front/left/right of LUMA
-  const visibleAdjacent = getVisibleAdjacentTiles(facing)
-  const rock1 = shuffle(visibleAdjacent)[0]
-  occupied.add(tileKey(rock1.x, rock1.y))
-
-  // All adjacent keys (for exclusion of Rock 2)
-  const adjacentKeys = new Set(ALL_ADJACENT_TO_START.map(t => tileKey(t.x, t.y)))
-
-  const nonAdjacentPool = shuffle(
-    Array.from({ length: ROWS }, (_, y) =>
-      Array.from({ length: COLS }, (_, x) => ({ x, y }))
-    ).flat().filter(t =>
-      !occupied.has(tileKey(t.x, t.y)) &&
-      !adjacentKeys.has(tileKey(t.x, t.y))
-    )
+  // Visible adjacent tiles that are NOT on the optimal path
+  const candidates = visibleAdjacentTiles(lumaStart, facing, reserved).filter(
+    t => !pathKeys.has(tileKey(t.x, t.y))
   )
 
-  // Rock 2 — non-adjacent
-  const rock2 = nonAdjacentPool[0]
-  occupied.add(tileKey(rock2.x, rock2.y))
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const pool = shuffle(candidates)
+    if (!pool.length) break
 
-  // Ship part — anywhere remaining
-  const anyFreePool = shuffle(
-    Array.from({ length: ROWS }, (_, y) =>
-      Array.from({ length: COLS }, (_, x) => ({ x, y }))
-    ).flat().filter(t => !occupied.has(tileKey(t.x, t.y)))
-  )
-  const part = anyFreePool[0]
+    const rock = pool[0]
+    const walls = [{ x: rock.x, y: rock.y }]
+    const solution = computeOptimalSolution(lumaStart, goal, walls, [], facing)
 
-  const walls = [{ x: rock1.x, y: rock1.y }, { x: rock2.x, y: rock2.y }]
-  const objects = [{ type: 'ship_part', x: part.x, y: part.y }]
-  const solution = computeOptimalSolution(LUMA_START, GOAL, walls, objects, facing)
-  return { walls, objects, solution }
+    if (solution && solution.length === 5) {
+      return { walls, objects: [], solution }
+    }
+  }
+
+  // Fallback: no rock (open field), guaranteed 5-step solution
+  const fallbackSolution = computeOptimalSolution(lumaStart, goal, [], [], facing)
+  return { walls: [], objects: [], solution: fallbackSolution || ['F', 'F', 'TR', 'F', 'F'] }
 }
 
-// Level 3: 1 visible-adjacent rock + 2 non-adjacent rocks + 2 ship_parts
+// ── Level 3 ───────────────────────────────────────────────────────────────────
+// Exactly 7 commands.
+// start=(1,3), goal=(3,0). Facing: north or east (random).
+// 1 ship_part at (2,2) — on the optimal path for BOTH facings.
+//   north + part(2,2): F TR F F TL F F = 7 ✓
+//   east  + part(2,2): F TL F F F TR F = 7 ✓
+// 2 rocks placed: 1 visible-adjacent, 1 elsewhere (not on optimal path).
 export function generateLevel3Layout(facing = 'north') {
-  const occupied = new Set([
-    tileKey(LUMA_START.x, LUMA_START.y),
-    tileKey(GOAL.x, GOAL.y),
+  const lumaStart = L3_START
+  const goal      = L3_GOAL
+
+  // Ship part is fixed at (2,2) — verified to give 7 for both north and east
+  const FIXED_PART = { type: 'ship_part', x: 2, y: 2 }
+  const objects    = [FIXED_PART]
+
+  // Optimal paths (with part collected)
+  const NORTH_PATH = [{x:1,y:2},{x:2,y:2},{x:3,y:2},{x:2,y:1},{x:2,y:0},{x:3,y:0}]
+  const EAST_PATH  = [{x:2,y:3},{x:2,y:2},{x:2,y:1},{x:2,y:0},{x:3,y:0}]
+  const optimalPath = facing === 'east' ? EAST_PATH : NORTH_PATH
+  const pathKeys = new Set(optimalPath.map(t => tileKey(t.x, t.y)))
+  pathKeys.add(tileKey(FIXED_PART.x, FIXED_PART.y))
+
+  const reserved = new Set([
+    tileKey(lumaStart.x, lumaStart.y),
+    tileKey(goal.x, goal.y),
+    tileKey(FIXED_PART.x, FIXED_PART.y),
   ])
 
-  // Rock 1 — front/left/right of LUMA
-  const visibleAdjacent = getVisibleAdjacentTiles(facing)
-  const rock1 = shuffle(visibleAdjacent)[0]
-  occupied.add(tileKey(rock1.x, rock1.y))
-
-  const adjacentKeys = new Set(ALL_ADJACENT_TO_START.map(t => tileKey(t.x, t.y)))
-  const nonAdjacentPool = shuffle(
-    Array.from({ length: ROWS }, (_, y) =>
-      Array.from({ length: COLS }, (_, x) => ({ x, y }))
-    ).flat().filter(t =>
-      !occupied.has(tileKey(t.x, t.y)) &&
-      !adjacentKeys.has(tileKey(t.x, t.y))
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    // Rock 1: visible adjacent, not on optimal path
+    const adjCandidates = visibleAdjacentTiles(lumaStart, facing, reserved).filter(
+      t => !pathKeys.has(tileKey(t.x, t.y))
     )
-  )
+    const rock1 = shuffle(adjCandidates)[0]
+    if (!rock1) continue
 
-  const rock2 = nonAdjacentPool[0]
-  occupied.add(tileKey(rock2.x, rock2.y))
-  const rock3 = nonAdjacentPool[1]
-  occupied.add(tileKey(rock3.x, rock3.y))
+    const reserved2 = new Set([...reserved, tileKey(rock1.x, rock1.y)])
 
-  const anyFreePool = shuffle(
-    Array.from({ length: ROWS }, (_, y) =>
-      Array.from({ length: COLS }, (_, x) => ({ x, y }))
-    ).flat().filter(t => !occupied.has(tileKey(t.x, t.y)))
-  )
-  const part1 = anyFreePool[0]
-  occupied.add(tileKey(part1.x, part1.y))
-  const part2 = anyFreePool[1]
+    // Rock 2: any free tile not on optimal path, not adjacent to start
+    const allCandidates = shuffle(
+      Array.from({ length: ROWS }, (_, y) =>
+        Array.from({ length: COLS }, (_, x) => ({ x, y }))
+      ).flat().filter(t =>
+        !reserved2.has(tileKey(t.x, t.y)) &&
+        !pathKeys.has(tileKey(t.x, t.y))
+      )
+    )
+    const rock2 = allCandidates[0]
+    if (!rock2) continue
 
-  const walls = [
-    { x: rock1.x, y: rock1.y },
-    { x: rock2.x, y: rock2.y },
-    { x: rock3.x, y: rock3.y },
+    const walls = [
+      { x: rock1.x, y: rock1.y },
+      { x: rock2.x, y: rock2.y },
+    ]
+    const solution = computeOptimalSolution(lumaStart, goal, walls, objects, facing)
+
+    if (solution && solution.length === 7) {
+      return { walls, objects, solution }
+    }
+  }
+
+  // Fallback: no walls, guaranteed 7-step solution
+  const fallbackSolution = computeOptimalSolution(lumaStart, goal, [], objects, facing)
+  return {
+    walls: [],
+    objects,
+    solution: fallbackSolution || ['F', 'TR', 'F', 'F', 'TL', 'F', 'F'],
+  }
+}
+
+// ── Level 4 ───────────────────────────────────────────────────────────────────
+// Exactly 9 commands.
+// start=(0,4), goal=(4,0). Facing: north or east (random).
+//   north: F F F F TR F F F F = 9 ✓ (path: up col 0, then right row 0)
+//   east:  F F F F TL F F F F = 9 ✓ (path: right row 4, then up col 4)
+// 2 ship_parts placed ALONG the facing-specific optimal path (collected on the way → still 9).
+// 3 rocks placed off the optimal path.
+export function generateLevel4Layout(facing = 'north') {
+  const lumaStart = L4_START
+  const goal      = L4_GOAL
+
+  // Optimal paths per facing (cells traversed in order)
+  // north: (0,4)→(0,3)→(0,2)→(0,1)→(0,0) TR→(1,0)→(2,0)→(3,0)→(4,0)
+  // east:  (0,4)→(1,4)→(2,4)→(3,4)→(4,4) TL→(4,3)→(4,2)→(4,1)→(4,0)
+  const NORTH_PATH_CELLS = [
+    {x:0,y:3},{x:0,y:2},{x:0,y:1},{x:0,y:0},
+    {x:1,y:0},{x:2,y:0},{x:3,y:0},
   ]
-  const objects = [
-    { type: 'ship_part', x: part1.x, y: part1.y },
-    { type: 'ship_part', x: part2.x, y: part2.y },
+  const EAST_PATH_CELLS = [
+    {x:1,y:4},{x:2,y:4},{x:3,y:4},{x:4,y:4},
+    {x:4,y:3},{x:4,y:2},{x:4,y:1},
   ]
-  const solution = computeOptimalSolution(LUMA_START, GOAL, walls, objects, facing)
-  return { walls, objects, solution }
+
+  const pathCells = facing === 'east' ? EAST_PATH_CELLS : NORTH_PATH_CELLS
+  const pathKeys  = new Set(pathCells.map(t => tileKey(t.x, t.y)))
+
+  // Pick 2 ship parts from path cells (randomly shuffled each time)
+  function pickParts() {
+    const available = shuffle([...pathCells])
+    return [
+      { type: 'ship_part', x: available[0].x, y: available[0].y },
+      { type: 'ship_part', x: available[1].x, y: available[1].y },
+    ]
+  }
+
+  const reserved = new Set([
+    tileKey(lumaStart.x, lumaStart.y),
+    tileKey(goal.x, goal.y),
+  ])
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const objects = pickParts()
+    const partKeys = new Set(objects.map(o => tileKey(o.x, o.y)))
+    const fullReserved = new Set([...reserved, ...partKeys])
+
+    // Rock 1: visible adjacent, NOT on path
+    const adjCandidates = visibleAdjacentTiles(lumaStart, facing, fullReserved).filter(
+      t => !pathKeys.has(tileKey(t.x, t.y))
+    )
+    const rock1 = shuffle(adjCandidates)[0]
+    if (!rock1) continue
+
+    const res2 = new Set([...fullReserved, tileKey(rock1.x, rock1.y)])
+
+    // Rocks 2 & 3: anywhere not on path and not reserved
+    const offPathPool = shuffle(
+      Array.from({ length: ROWS }, (_, y) =>
+        Array.from({ length: COLS }, (_, x) => ({ x, y }))
+      ).flat().filter(t =>
+        !res2.has(tileKey(t.x, t.y)) &&
+        !pathKeys.has(tileKey(t.x, t.y))
+      )
+    )
+    if (offPathPool.length < 2) continue
+    const rock2 = offPathPool[0]
+    const rock3 = offPathPool[1]
+
+    const walls = [
+      { x: rock1.x, y: rock1.y },
+      { x: rock2.x, y: rock2.y },
+      { x: rock3.x, y: rock3.y },
+    ]
+    const solution = computeOptimalSolution(lumaStart, goal, walls, objects, facing)
+
+    if (solution && solution.length === 9) {
+      return { walls, objects, solution }
+    }
+  }
+
+  // Fallback: no rocks, fixed parts on path
+  const objects = facing === 'east'
+    ? [{ type: 'ship_part', x: 2, y: 4 }, { type: 'ship_part', x: 4, y: 2 }]
+    : [{ type: 'ship_part', x: 0, y: 2 }, { type: 'ship_part', x: 2, y: 0 }]
+  const fallbackSolution = computeOptimalSolution(lumaStart, goal, [], objects, facing)
+  return {
+    walls: [],
+    objects,
+    solution: fallbackSolution || ['F','F','F','F','TR','F','F','F','F'],
+  }
 }
 
 // ── Level templates (layout generated at runtime in useGameState) ─────────────
-// walls/objects/solution are placeholders — useGameState calls generateLevelXLayout(facing)
-// and replaces them after the facing is resolved.
-
 export const LEVELS = [
+  // ── LEVEL 1 ── 3 forward commands, no rocks, no visor flip, no identify phase
   {
     id: 1,
     name: 'Level 1',
     world: 'crash-site',
     tutorial: false,
     grid: { cols: COLS, rows: ROWS },
-    lumaStart: { ...LUMA_START },
-    lumaFacing: 'random',
-    goal: { ...GOAL },
+    lumaStart: { ...L1_START },
+    lumaFacing: 'east',
+    goal: { ...L1_GOAL },
     walls:   [],
     objects: [],
     fog: false,
-    sptQuestion: {
-      prompt: "Which direction is LUMA facing?",
-      options: ["↑ Up", "→ Right", "↓ Down", "← Left"],
-      correct: null,
-    },
+    sptQuestion: null,
     solution: null,
     decompositionPrompt: false,
     predictionPrompt: false,
     mirrorControls: false,
     echoPosition: null,
     strategyCardAfter: false,
-    // Flag: useGameState will call generateLevel1Layout(facing) on mount
+    noVisorFlip: true,
+    skipIdentify: true,          // skip Phase 1, go straight to Phase 2
+    noRadio: true,               // hide helmet radio on Level 1
     layoutGenerator: 'level1',
+    targetCommands: 3,           // "best solution" hint only — not a hard cap
   },
+
+  // ── LEVEL 2 ── 5 commands, 1 turn, 1 adjacent rock, no visor flip
   {
     id: 2,
     name: 'Level 2',
     world: 'crash-site',
     tutorial: false,
     grid: { cols: COLS, rows: ROWS },
-    lumaStart: { ...LUMA_START },
-    lumaFacing: 'random',
-    goal: { ...GOAL },
+    lumaStart: { ...L2_START },
+    lumaFacing: 'random-NE',     // north or east only (both give 5-cmd solution)
+    goal: { ...L2_GOAL },
     walls:   [],
     objects: [],
     fog: false,
@@ -288,19 +408,55 @@ export const LEVELS = [
     mirrorControls: false,
     echoPosition: null,
     strategyCardAfter: false,
+    noVisorFlip: true,
+    skipIdentify: false,
+    noRadio: false,
     layoutGenerator: 'level2',
-    // Level 2: uncertain radio message + visor flip reinforcement
-    uncertainRadio: true,
+    targetCommands: 5,
   },
+
+  // ── LEVEL 3 ── 7 commands, visor flip enabled, 2 rocks + 1 ship_part
   {
     id: 3,
     name: 'Level 3',
     world: 'crash-site',
     tutorial: false,
     grid: { cols: COLS, rows: ROWS },
-    lumaStart: { ...LUMA_START },
-    lumaFacing: 'random',
-    goal: { ...GOAL },
+    lumaStart: { ...L3_START },
+    lumaFacing: 'random-NE',
+    goal: { ...L3_GOAL },
+    walls:   [],
+    objects: [],
+    fog: false,
+    sptQuestion: {
+      prompt: "Which direction is LUMA facing?",
+      options: ["↑ Up", "→ Right", "↓ Down", "← Left"],
+      correct: null,
+    },
+    solution: null,
+    decompositionPrompt: false,
+    predictionPrompt: false,
+    mirrorControls: false,
+    echoPosition: null,
+    strategyCardAfter: false,
+    noVisorFlip: false,
+    skipIdentify: false,
+    noRadio: false,
+    layoutGenerator: 'level3',
+    targetCommands: 7,
+    uncertainRadio: true,
+  },
+
+  // ── LEVEL 4 ── 9 commands, visor flip, 3 rocks + 2 ship_parts + prediction prompt
+  {
+    id: 4,
+    name: 'Level 4',
+    world: 'crash-site',
+    tutorial: false,
+    grid: { cols: COLS, rows: ROWS },
+    lumaStart: { ...L4_START },
+    lumaFacing: 'random-NE',
+    goal: { ...L4_GOAL },
     walls:   [],
     objects: [],
     fog: false,
@@ -315,6 +471,10 @@ export const LEVELS = [
     mirrorControls: false,
     echoPosition: null,
     strategyCardAfter: true,
-    layoutGenerator: 'level3',
+    noVisorFlip: false,
+    skipIdentify: false,
+    noRadio: false,
+    layoutGenerator: 'level4',
+    targetCommands: 9,
   },
 ]

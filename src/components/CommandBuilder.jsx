@@ -58,7 +58,7 @@ function SpeedBar({ speed, onSpeedChange }) {
 
       {/* Label row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <p style={{ fontSize: 7, color: '#334155', fontFamily: 'monospace', letterSpacing: 2, margin: 0 }}>
+        <p style={{ fontSize: 9, color: '#64748b', fontFamily: 'monospace', letterSpacing: 1, margin: 0 }}>
           LUMA SPEED
         </p>
         <span style={{
@@ -381,6 +381,9 @@ export default function CommandBuilder({
   needsReset, onReset,
   runBlocked = false,
   speed, onSpeedChange,
+  showVisorFlip = true,
+  targetCommands = null,
+  showPhaseLabel = false,
 }) {
   const [dragOver, setDragOver] = useState(false)
 
@@ -405,7 +408,8 @@ export default function CommandBuilder({
       flexDirection: 'column',
       gap: 10,
       width: '100%',
-      height: '100%',
+      flex: 1,
+      minHeight: 0,
       background: 'rgba(8,14,24,0.95)',
       border: '1.5px solid #f59e0b',
       borderRadius: 12,
@@ -413,11 +417,17 @@ export default function CommandBuilder({
       boxSizing: 'border-box',
       overflow: 'hidden',
     }}>
-      <p style={{ fontSize: 9, color: '#f59e0b', fontFamily: 'monospace', letterSpacing: 3, margin: 0, flexShrink: 0 }}>
-        PHASE 2 — DEVELOP
-      </p>
+
+      {/* ── PHASE 2 — DEVELOP label (hidden on Level 1 via targetCommands===3 heuristic,
+              but cleaner: we pass showPhaseLabel prop — see App.jsx) ── */}
+      {showPhaseLabel && (
+        <p style={{ fontSize: 10, color: '#f59e0b', fontFamily: 'monospace', letterSpacing: 3, margin: 0, flexShrink: 0 }}>
+          PHASE 2 — DEVELOP
+        </p>
+      )}
 
       {/* ── VISOR FLIP ── */}
+      {showVisorFlip && (
       <motion.button
         whileTap={{ scale: 0.96 }}
         onClick={onVisorFlip}
@@ -445,6 +455,7 @@ export default function CommandBuilder({
           {3 - visorFlipCount} left
         </span>
       </motion.button>
+      )}
 
       {/* ── SPEED BAR ── */}
       <SpeedBar speed={speed} onSpeedChange={onSpeedChange} />
@@ -459,7 +470,7 @@ export default function CommandBuilder({
             style={{
               overflow:'hidden', padding:'5px 10px',
               background:'rgba(251,113,133,0.06)', border:'1px solid #fb718544',
-              borderRadius:6, color:'#fb7185', fontSize:9,
+              borderRadius:6, color:'#fb7185', fontSize:11,
               fontFamily:'monospace', letterSpacing:1,
               flexShrink: 0,
             }}
@@ -471,8 +482,8 @@ export default function CommandBuilder({
 
       {/* ── COMMAND PALETTE ── */}
       <div style={{ flexShrink: 0 }}>
-        <p style={{ fontSize:7, color:'#334155', fontFamily:'monospace', letterSpacing:2, marginBottom:6 }}>
-          TAP OR DRAG TO SEQUENCE
+        <p style={{ fontSize:10, color:'#64748b', fontFamily:'monospace', letterSpacing:1, marginBottom:6 }}>
+          TAP OR DRAG TO ADD
         </p>
         <div style={{ display:'flex', gap:8 }}>
           {Object.keys(CMD_META).map(cmd => (
@@ -484,19 +495,24 @@ export default function CommandBuilder({
       {/* ── SEQUENCE STRIP WITH SCROLL ── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, flexShrink: 1 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6, flexShrink: 0 }}>
-          <p style={{ fontSize:7, color:'#334155', fontFamily:'monospace', letterSpacing:2 }}>
-            PROGRAM  ({sequence.length})
+          <p style={{ fontSize:10, color:'#94a3b8', fontFamily:'monospace', letterSpacing:1, margin: 0 }}>
+            PROGRAM  <span style={{ color: '#475569' }}>({sequence.length} commands)</span>
           </p>
-          <div style={{ display:'flex', gap:4 }}>
+          <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+            {targetCommands !== null && (
+              <span style={{ fontSize:10, color:'#2dd4bf99', fontFamily:'monospace', letterSpacing:0.5, marginRight: 4 }}>
+                Best Path: {targetCommands}
+              </span>
+            )}
             <button
               onClick={onRemove}
               disabled={isRunning || sequence.length === 0}
               style={{
-                padding:'3px 8px', background:'transparent',
+                padding:'3px 10px', background:'transparent',
                 border:'1px solid #1e2a3a', borderRadius:4,
-                color: sequence.length === 0 ? '#1e2a3a' : '#475569',
+                color: sequence.length === 0 ? '#1e2a3a' : '#64748b',
                 cursor: isRunning || sequence.length === 0 ? 'not-allowed' : 'pointer',
-                fontSize:10, fontFamily:'monospace',
+                fontSize:12, fontFamily:'monospace',
               }}
               title="Remove last"
             >⌫</button>
@@ -504,11 +520,11 @@ export default function CommandBuilder({
               onClick={onClear}
               disabled={isRunning || sequence.length === 0}
               style={{
-                padding:'3px 8px', background:'transparent',
+                padding:'3px 10px', background:'transparent',
                 border:'1px solid #1e2a3a', borderRadius:4,
-                color: sequence.length === 0 ? '#1e2a3a' : '#475569',
+                color: sequence.length === 0 ? '#1e2a3a' : '#64748b',
                 cursor: isRunning || sequence.length === 0 ? 'not-allowed' : 'pointer',
-                fontSize:10, fontFamily:'monospace',
+                fontSize:12, fontFamily:'monospace',
               }}
               title="Clear all"
             >✕</button>
@@ -538,7 +554,7 @@ export default function CommandBuilder({
               style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height: '100%', gap:6 }}
             >
               <div style={{ fontSize:18, opacity:0.15 }}>↓</div>
-              <p style={{ color:'#1e2a3a', fontSize:9, fontFamily:'monospace', letterSpacing:1, userSelect:'none' }}>
+              <p style={{ color:'#334155', fontSize:11, fontFamily:'monospace', letterSpacing:1, userSelect:'none' }}>
                 drag commands here
               </p>
             </div>
@@ -570,7 +586,7 @@ export default function CommandBuilder({
               background: 'linear-gradient(135deg, rgba(251,113,133,0.13), rgba(251,113,133,0.06))',
               border: '1.5px solid #fb7185',
               borderRadius: 8, color: '#fb7185',
-              fontFamily: 'monospace', fontSize: 10, letterSpacing: 2,
+              fontFamily: 'monospace', fontSize: 12, letterSpacing: 2,
               cursor: isRunning ? 'not-allowed' : 'pointer',
               transition: 'all 0.2s',
               boxShadow: '0 0 20px rgba(251,113,133,0.1)',
@@ -597,7 +613,7 @@ export default function CommandBuilder({
           border: `1.5px solid ${isRunning || sequence.length === 0 || needsReset || runBlocked ? '#1e2a3a' : '#2dd4bf'}`,
           borderRadius: 8,
           color: isRunning || sequence.length === 0 || needsReset || runBlocked ? '#1e2a3a' : '#2dd4bf',
-          fontFamily: 'monospace', fontSize: 11, letterSpacing: 2,
+          fontFamily: 'monospace', fontSize: 13, letterSpacing: 2,
           cursor: isRunning || sequence.length === 0 || needsReset || runBlocked ? 'not-allowed' : 'pointer',
           transition: 'all 0.2s',
           boxShadow: isRunning || sequence.length === 0 || needsReset || runBlocked

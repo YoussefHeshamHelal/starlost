@@ -1089,7 +1089,7 @@ export default function GameGrid({
         )}
 
         <div style={{ position:'absolute', inset:0, zIndex:7, pointerEvents:'none' }}>
-          <LumaSprite x={luma.x} y={luma.y} rotateDeg={luma.rotateDeg ?? 0} tileSize={TILE_SIZE} showFacing={sptCorrect} />
+          <LumaSprite x={luma.x} y={luma.y} rotateDeg={luma.rotateDeg ?? 0} tileSize={TILE_SIZE} showFacing={sptCorrect || !!levelConfig.skipIdentify} />
         </div>
 
         <AnimatePresence>
