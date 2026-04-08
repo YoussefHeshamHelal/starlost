@@ -1,354 +1,637 @@
-// LumaSprite.jsx — Detailed alien robot LUMA
-// Before SPT answered: LUMA sits crouched, facing ground (no direction hint)
-// After SPT answered correctly: LUMA stands up, rotates to face correct direction.
+// LumaSprite.jsx — LUMA v7 — CUTE ALIEN CHILD
 //
-// ROTATION FIX: We receive `rotateDeg` (cumulative degrees) from useGameState.
-// Each TR adds +90, each TL adds -90 to the running total, so Framer Motion
-// always animates the correct direction (never takes the 270° shortcut).
-import { motion } from 'framer-motion'
+// Luma is a top-down 2D alien child for a kids' puzzle-adventure game.
+// She is NOT a robot, NOT an insect, NOT a blob, NOT a sea creature.
+//
+// Design language:
+//   - Oversized smooth round head (takes ~60% of the total sprite height)
+//   - Enormous round glossy eyes — the emotional centerpiece
+//   - Tiny soft nose ridge + tiny warm smile (south & profile only)
+//   - Very small soft body below the head
+//   - Tiny smooth arm stubs, small rounded foot pads
+//   - One optional tiny smooth alien nub on top of head (never reads as antenna)
+//   - Bright cheerful luminous green-teal skin, purple-blue glossy eyes
+//   - Subtle cheek blush circles for extra cuteness
+//   - No antennae, no fronds, no fins, no insect anatomy
+//
+// 4 DIRECTIONAL SPRITES:
+//   south : both eyes visible, cutest most open view
+//   north : back of smooth head, dorsal amber glow, eyes hidden
+//   east  : one eye, head points right, ONE foot pad only
+//   west  : one eye, head points left, ONE foot pad only
+//
+// CROUCHED: direction unknown, eyes closed, "?" floats
+//
+// ANIMATION: cross-fade transitions only — Luma never disappears mid-turn.
+//
+import { motion, AnimatePresence } from 'framer-motion'
 
-// ── Standing LUMA (original design) ─────────────────────────────────────────
-function LumaStanding({ size, showFacing, rotateDeg }) {
+// ─── Shared gradient & filter defs ────────────────────────────────────────────
+const LUMA_DEFS = ({ id = '' }) => (
+  <defs>
+    {/* Head skin — bright luminous green-teal, very cheerful */}
+    <radialGradient id={`hF${id}`} cx="40%" cy="32%" r="68%">
+      <stop offset="0%"   stopColor="#88ffe4"/>
+      <stop offset="22%"  stopColor="#3decc8"/>
+      <stop offset="55%"  stopColor="#0fa88e"/>
+      <stop offset="100%" stopColor="#023830"/>
+    </radialGradient>
+
+    {/* Head back — deeper teal-indigo, still bright enough */}
+    <radialGradient id={`hB${id}`} cx="55%" cy="58%" r="62%">
+      <stop offset="0%"   stopColor="#1a6060"/>
+      <stop offset="48%"  stopColor="#0a3245"/>
+      <stop offset="100%" stopColor="#030e1a"/>
+    </radialGradient>
+
+    {/* Body — slightly richer green, small and cute */}
+    <radialGradient id={`bd${id}`} cx="48%" cy="38%" r="62%">
+      <stop offset="0%"   stopColor="#44e8c0"/>
+      <stop offset="50%"  stopColor="#0c8070"/>
+      <stop offset="100%" stopColor="#021e18"/>
+    </radialGradient>
+
+    {/* Eyes — round, dreamy, rich purple-blue iris, very glossy */}
+    <radialGradient id={`ir${id}`} cx="30%" cy="26%" r="68%">
+      <stop offset="0%"   stopColor="#ffffff"/>
+      <stop offset="10%"  stopColor="#ddd0ff"/>
+      <stop offset="30%"  stopColor="#6d28d9"/>
+      <stop offset="62%"  stopColor="#2e1065"/>
+      <stop offset="100%" stopColor="#08001a"/>
+    </radialGradient>
+
+    {/* Eye socket — very dark deep purple-black */}
+    <radialGradient id={`sk${id}`} cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stopColor="#0a0018"/>
+      <stop offset="100%" stopColor="#010008"/>
+    </radialGradient>
+
+    {/* Dorsal back glow — warm amber, organic, soft blob */}
+    <radialGradient id={`dg${id}`} cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stopColor="#fef08a" stopOpacity="0.95"/>
+      <stop offset="38%"  stopColor="#f59e0b" stopOpacity="0.65"/>
+      <stop offset="100%" stopColor="#451a03" stopOpacity="0"/>
+    </radialGradient>
+
+    {/* Hover glow under feet */}
+    <radialGradient id={`hg${id}`} cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stopColor="#34d399" stopOpacity="0.5"/>
+      <stop offset="100%" stopColor="#2dd4bf" stopOpacity="0"/>
+    </radialGradient>
+
+    {/* Top cranium sheen — bright specular */}
+    <radialGradient id={`sh${id}`} cx="45%" cy="18%" r="55%">
+      <stop offset="0%"   stopColor="#ccfff2" stopOpacity="0.55"/>
+      <stop offset="60%"  stopColor="#88ffe4" stopOpacity="0.1"/>
+      <stop offset="100%" stopColor="#2dd4bf" stopOpacity="0"/>
+    </radialGradient>
+
+    {/* Cheek blush — very subtle warm teal highlight */}
+    <radialGradient id={`ck${id}`} cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stopColor="#5eead4" stopOpacity="0.35"/>
+      <stop offset="100%" stopColor="#2dd4bf" stopOpacity="0"/>
+    </radialGradient>
+
+    {/* Filters */}
+    <filter id={`eg${id}`} x="-55%" y="-55%" width="210%" height="210%">
+      <feGaussianBlur stdDeviation="1.6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id={`sg${id}`} x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2.4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id={`df${id}`} x="-90%" y="-90%" width="280%" height="280%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id={`bf${id}`} x="-28%" y="-28%" width="156%" height="156%">
+      <feGaussianBlur stdDeviation="1.1" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+)
+
+// ─── Big round glossy eye ─────────────────────────────────────────────────────
+// Rounder and softer — childlike and innocent.
+// rx and ry are nearly equal for a round rather than almond shape.
+const LumaEye = ({
+  cx, cy,
+  rx = 7.5, ry = 7.2,
+  id = '',
+  blinkDur = '3.8s',
+  dimmed = false,
+}) => (
+  <g opacity={dimmed ? 0.15 : 1} filter={`url(#eg${id})`}>
+    {/* Socket — large, soft dark surround */}
+    <ellipse cx={cx} cy={cy} rx={rx + 2} ry={ry + 1.8} fill={`url(#sk${id})`}/>
+    {/* Iris — rich purple-violet round */}
+    <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={`url(#ir${id})`}>
+      <animate
+        attributeName="ry"
+        values={`${ry};${ry * 0.86};${ry};${ry * 0.9};${ry}`}
+        dur={blinkDur}
+        repeatCount="indefinite"/>
+    </ellipse>
+    {/* Pupil — round, deep */}
+    <ellipse cx={cx} cy={cy + ry * 0.06} rx={rx * 0.36} ry={ry * 0.44} fill="#04000c"/>
+    {/* Primary highlight — big bright star-like spot */}
+    <ellipse
+      cx={cx - rx * 0.28}
+      cy={cy - ry * 0.30}
+      rx={rx * 0.30}
+      ry={ry * 0.26}
+      fill="white"
+      opacity="0.96"/>
+    {/* Secondary soft highlight */}
+    <ellipse
+      cx={cx + rx * 0.20}
+      cy={cy + ry * 0.14}
+      rx={rx * 0.12}
+      ry={ry * 0.10}
+      fill="white"
+      opacity="0.55"/>
+    {/* Tiny sparkle dot */}
+    <circle cx={cx - rx * 0.10} cy={cy - ry * 0.42} r={rx * 0.07} fill="white" opacity="0.7"/>
+    {/* Limbal ring */}
+    <ellipse cx={cx} cy={cy} rx={rx} ry={ry}
+      fill="none" stroke="#16003a" strokeWidth="0.65" opacity="0.55"/>
+  </g>
+)
+
+// ─── Organic dorsal back glow ─────────────────────────────────────────────────
+// A soft warm amber bioluminescent patch — biological, not gadget-like.
+const DorsalMark = ({ cx, cy, id = '' }) => (
+  <g filter={`url(#df${id})`}>
+    <ellipse cx={cx} cy={cy} rx={13} ry={10} fill={`url(#dg${id})`} opacity="0.38">
+      <animate attributeName="opacity" values="0.26;0.52;0.26" dur="2.8s" repeatCount="indefinite"/>
+      <animate attributeName="rx"      values="11;14;11"        dur="2.8s" repeatCount="indefinite"/>
+    </ellipse>
+    <ellipse cx={cx} cy={cy} rx={5.5} ry={4.5} fill="#fbbf24" opacity="0.8">
+      <animate attributeName="opacity" values="0.65;0.95;0.65" dur="2.3s" repeatCount="indefinite"/>
+    </ellipse>
+    <ellipse cx={cx} cy={cy} rx={2.5} ry={2}   fill="#fef9c3" opacity="0.98"/>
+    <ellipse cx={cx - 0.8} cy={cy - 0.8} rx={1} ry={0.8} fill="white" opacity="0.85"/>
+  </g>
+)
+
+// ─── Tiny alien nub on top of head ───────────────────────────────────────────
+// One small smooth rounded bump — subtle, cute, never reads as antenna.
+const HeadNub = ({ cx, cy, id = '' }) => (
+  <g>
+    <ellipse cx={cx} cy={cy} rx={2.8} ry={2.2}
+      fill="#3decc8" opacity="0.85" filter={`url(#bf${id})`}/>
+    <ellipse cx={cx} cy={cy} rx={1.4} ry={1.1}
+      fill="#88ffe4" opacity="0.7"/>
+  </g>
+)
+
+// ─── Tiny nose ridge ──────────────────────────────────────────────────────────
+const NoseRidge = ({ cx, cy }) => (
+  <path
+    d={`M${cx - 2.2},${cy} Q${cx},${cy + 2.8} ${cx + 2.2},${cy}`}
+    stroke="#0a6655" strokeWidth="0.95" fill="none"
+    strokeLinecap="round" opacity="0.5"/>
+)
+
+// ─── Tiny warm smile ──────────────────────────────────────────────────────────
+const Smile = ({ cx, cy, w = 6.5 }) => (
+  <path
+    d={`M${cx - w / 2},${cy} Q${cx},${cy + 2.8} ${cx + w / 2},${cy}`}
+    stroke="#3decc8" strokeWidth="1.05" fill="none"
+    strokeLinecap="round" opacity="0.72"/>
+)
+
+// ─── Subtle cheek blush circles ───────────────────────────────────────────────
+const Cheeks = ({ lx, ly, rx, ry, id = '' }) => (
+  <g>
+    <ellipse cx={lx} cy={ly} rx={4.5} ry={3} fill={`url(#ck${id})`} opacity="0.9"
+      filter={`url(#bf${id})`}/>
+    <ellipse cx={rx} cy={ry} rx={4.5} ry={3} fill={`url(#ck${id})`} opacity="0.9"
+      filter={`url(#bf${id})`}/>
+  </g>
+)
+
+// ─── FACING SOUTH ─────────────────────────────────────────────────────────────
+// Main hero view. Both eyes fully visible. Cutest, most open, brightest face.
+function FacingSouth() {
+  const id = 'S'
   return (
-    <motion.div
-      key="standing"
-      initial={{ opacity: 0, scale: 0.7, y: 12 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 180, damping: 16, delay: 0.05 }}
-    >
-      <motion.div
-        animate={{ rotate: showFacing ? rotateDeg : 0 }}
-        transition={{ type: 'spring', stiffness: 220, damping: 20 }}
-        style={{ position: 'relative', zIndex: 1 }}
-      >
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 64 80"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <radialGradient id="helmetG" cx="38%" cy="30%" r="65%">
-              <stop offset="0%"  stopColor="#5eead4" stopOpacity="0.95"/>
-              <stop offset="40%" stopColor="#0e7490" stopOpacity="0.9"/>
-              <stop offset="100%" stopColor="#082f49" stopOpacity="1"/>
-            </radialGradient>
-            <radialGradient id="bodyG" cx="40%" cy="25%" r="70%">
-              <stop offset="0%"  stopColor="#1e3a4a"/>
-              <stop offset="100%" stopColor="#071018"/>
-            </radialGradient>
-            <radialGradient id="visorG" cx="35%" cy="30%" r="65%">
-              <stop offset="0%"  stopColor="#e0f7fa" stopOpacity="0.95"/>
-              <stop offset="50%" stopColor="#b2ebf2" stopOpacity="0.85"/>
-              <stop offset="100%" stopColor="#4dd0e1" stopOpacity="0.7"/>
-            </radialGradient>
-            <radialGradient id="eyeG" cx="35%" cy="35%" r="60%">
-              <stop offset="0%"  stopColor="#ffffff"/>
-              <stop offset="100%" stopColor="#2dd4bf"/>
-            </radialGradient>
-            <filter id="lumaGlow">
-              <feGaussianBlur stdDeviation="1.5" result="b"/>
-              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-            <filter id="strongGlow">
-              <feGaussianBlur stdDeviation="2.5" result="b"/>
-              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
+    <svg width={58} height={70} viewBox="0 0 58 70" fill="none">
+      <LUMA_DEFS id={id}/>
 
-          {/* Thruster flames */}
-          <ellipse cx={14} cy={68} rx={5} ry={7} fill="#2dd4bf" opacity="0.4" filter="url(#strongGlow)">
-            <animate attributeName="ry" values="7;10;7" dur="0.6s" repeatCount="indefinite"/>
-            <animate attributeName="opacity" values="0.3;0.6;0.3" dur="0.6s" repeatCount="indefinite"/>
-          </ellipse>
-          <ellipse cx={50} cy={68} rx={5} ry={7} fill="#2dd4bf" opacity="0.4" filter="url(#strongGlow)">
-            <animate attributeName="ry" values="7;10;7" dur="0.7s" repeatCount="indefinite"/>
-            <animate attributeName="opacity" values="0.3;0.6;0.3" dur="0.7s" repeatCount="indefinite"/>
-          </ellipse>
+      {/* Ground hover glow */}
+      <ellipse cx={29} cy={66} rx={19} ry={5} fill={`url(#hg${id})`}/>
 
-          {/* Body */}
-          <rect x={18} y={38} width={28} height={24} rx={6} fill="url(#bodyG)" stroke="#1e4a5a" strokeWidth="1.5"/>
-          <line x1={22} y1={44} x2={42} y2={44} stroke="#1e4060" strokeWidth="0.7" opacity="0.8"/>
-          <line x1={22} y1={50} x2={42} y2={50} stroke="#1e4060" strokeWidth="0.7" opacity="0.8"/>
-          <circle cx={32} cy={47} r={5} fill="#082f49" stroke="#2dd4bf" strokeWidth="1"/>
-          <circle cx={32} cy={47} r={3} fill="#2dd4bf" opacity="0.85" filter="url(#lumaGlow)">
-            <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/>
-          </circle>
-          {[44,47,50].map((yv,i) => (
-            <line key={i} x1={40} y1={yv} x2={44} y2={yv} stroke="#2dd4bf" strokeWidth="0.8" opacity="0.5"/>
-          ))}
-          {[44,47,50].map((yv,i) => (
-            <line key={i} x1={20} y1={yv} x2={24} y2={yv} stroke="#2dd4bf" strokeWidth="0.8" opacity="0.5"/>
-          ))}
+      {/* ── BODY — small, round, cute ── */}
+      <ellipse cx={29} cy={55} rx={9.5} ry={8.5} fill={`url(#bd${id})`}/>
+      <ellipse cx={29} cy={44} rx={5.5} ry={4}   fill={`url(#bd${id})`}/>
+      {/* Left arm stub */}
+      <ellipse cx={16.5} cy={55} rx={5} ry={3.2} fill={`url(#bd${id})`}
+        transform="rotate(-20,16.5,55)"/>
+      {/* Right arm stub */}
+      <ellipse cx={41.5} cy={55} rx={5} ry={3.2} fill={`url(#bd${id})`}
+        transform="rotate(20,41.5,55)"/>
 
-          {/* Legs */}
-          <rect x={19} y={58} width={10} height={14} rx={3} fill="#0e1c2a" stroke="#1a3a4a" strokeWidth="1.2"/>
-          <ellipse cx={24} cy={73} rx={6} ry={3} fill="#0a1420" stroke="#2dd4bf" strokeWidth="0.8"/>
-          <rect x={35} y={58} width={10} height={14} rx={3} fill="#0e1c2a" stroke="#1a3a4a" strokeWidth="1.2"/>
-          <ellipse cx={40} cy={73} rx={6} ry={3} fill="#0a1420" stroke="#2dd4bf" strokeWidth="0.8"/>
+      {/* ── HEAD — oversized smooth round cranium ── */}
+      <ellipse cx={29} cy={27} rx={21} ry={23} fill={`url(#hF${id})`}>
+        <animate attributeName="ry" values="23;23.6;23" dur="4s" repeatCount="indefinite"/>
+      </ellipse>
 
-          {/* Arms */}
-          <rect x={8} y={40} width={9} height={18} rx={4} fill="#0e1c2a" stroke="#1a3a4a" strokeWidth="1.2"/>
-          <circle cx={12} cy={60} r={4} fill="#071018" stroke="#2dd4bf" strokeWidth="1"/>
-          <line x1={10} y1={63} x2={8}  y2={67} stroke="#2dd4bf" strokeWidth="1" strokeLinecap="round"/>
-          <line x1={12} y1={64} x2={12} y2={68} stroke="#2dd4bf" strokeWidth="1" strokeLinecap="round"/>
-          <line x1={14} y1={63} x2={16} y2={67} stroke="#2dd4bf" strokeWidth="1" strokeLinecap="round"/>
-          <rect x={47} y={40} width={9} height={18} rx={4} fill="#0e1c2a" stroke="#1a3a4a" strokeWidth="1.2"/>
-          <circle cx={52} cy={60} r={4} fill="#071018" stroke="#2dd4bf" strokeWidth="1"/>
-          <line x1={50} y1={63} x2={48} y2={67} stroke="#2dd4bf" strokeWidth="1" strokeLinecap="round"/>
-          <line x1={52} y1={64} x2={52} y2={68} stroke="#2dd4bf" strokeWidth="1" strokeLinecap="round"/>
-          <line x1={54} y1={63} x2={56} y2={67} stroke="#2dd4bf" strokeWidth="1" strokeLinecap="round"/>
+      {/* Cranium top sheen */}
+      <ellipse cx={29} cy={14} rx={17} ry={11} fill={`url(#sh${id})`}/>
 
-          {/* Neck */}
-          <rect x={26} y={33} width={12} height={8} rx={3} fill="#0a1820" stroke="#1a3a4a" strokeWidth="1"/>
-          <line x1={26} y1={36} x2={38} y2={36} stroke="#1e4060" strokeWidth="0.6" opacity="0.7"/>
-          <line x1={26} y1={39} x2={38} y2={39} stroke="#1e4060" strokeWidth="0.6" opacity="0.7"/>
+      {/* Tiny alien nub on top */}
+      <HeadNub cx={29} cy={5} id={id}/>
 
-          {/* Helmet */}
-          <circle cx={32} cy={22} r={20} fill="url(#helmetG)" stroke="#67e8f9" strokeWidth="1.5"/>
-          <circle cx={32} cy={22} r={18} fill="none" stroke="#0a2a3a" strokeWidth="2" opacity="0.4"/>
-          <path d="M14,16 Q32,4 50,16" stroke="#7ae8d8" strokeWidth="0.8" fill="none" opacity="0.4"/>
+      {/* ── FACE ── */}
+      {/* Cheek blush */}
+      <Cheeks lx={12} ly={33} rx={46} ry={33} id={id}/>
 
-          {/* Visor */}
-          <rect x={20} y={14} width={24} height={15} rx={6} fill="url(#visorG)" stroke="#b2ebf2" strokeWidth="1"/>
-          <path d="M22,16 Q28,13 34,16" stroke="white" strokeWidth="1.2" fill="none" opacity="0.5" strokeLinecap="round"/>
-          <rect x={21} y={22} width={22} height={1.5} rx={0.75} fill="#2dd4bf" opacity="0.4">
-            <animate attributeName="y" values="15;28;15" dur="3s" repeatCount="indefinite"/>
-            <animate attributeName="opacity" values="0;0.5;0" dur="3s" repeatCount="indefinite"/>
-          </rect>
+      {/* Eyes — both large and round */}
+      <LumaEye cx={18} cy={27} rx={7.5} ry={7.2} id={id} blinkDur="3.8s"/>
+      <LumaEye cx={40} cy={27} rx={7.5} ry={7.2} id={id} blinkDur="4.6s"/>
 
-          {/* Eyes */}
-          <circle cx={26} cy={19} r={3.5} fill="url(#eyeG)" filter="url(#lumaGlow)">
-            <animate attributeName="opacity" values="0.8;1;0.8" dur="2.5s" repeatCount="indefinite"/>
-          </circle>
-          <circle cx={38} cy={19} r={3.5} fill="url(#eyeG)" filter="url(#lumaGlow)">
-            <animate attributeName="opacity" values="0.8;1;0.8" dur="2.5s" repeatCount="indefinite"/>
-          </circle>
-          <circle cx={27} cy={19} r={1.5} fill="#082f49"/>
-          <circle cx={39} cy={19} r={1.5} fill="#082f49"/>
-          <circle cx={27.8} cy={18} r={0.7} fill="white" opacity="0.9"/>
-          <circle cx={39.8} cy={18} r={0.7} fill="white" opacity="0.9"/>
+      {/* Tiny nose */}
+      <NoseRidge cx={29} cy={37}/>
+      {/* Smile */}
+      <Smile cx={29} cy={40.5} w={6.5}/>
 
-          {/* Antenna */}
-          <line x1={32} y1={2} x2={32} y2={8} stroke="#2dd4bf" strokeWidth="1.5" strokeLinecap="round"/>
-          <line x1={32} y1={2} x2={26} y2={-2} stroke="#2dd4bf" strokeWidth="1" strokeLinecap="round" opacity="0.7"/>
-          <circle cx={32} cy={2} r={2.5} fill="#2dd4bf" filter="url(#strongGlow)">
-            <animate attributeName="opacity" values="0.6;1;0.6" dur="1.2s" repeatCount="indefinite"/>
-          </circle>
-          <circle cx={26} cy={-2} r={1.5} fill="#5eead4" opacity="0.6">
-            <animate attributeName="opacity" values="0.3;0.8;0.3" dur="1.8s" repeatCount="indefinite"/>
-          </circle>
-
-          {/* Direction arrow — only visible after SPT is answered correctly */}
-          {showFacing && (
-            <polygon
-              points="32,-8 27,-2 37,-2"
-              fill="#2dd4bf"
-              opacity="0.9"
-              filter="url(#strongGlow)"
-            />
-          )}
-        </svg>
-      </motion.div>
-    </motion.div>
+      {/* ── FEET — two rounded pads, both visible from front ── */}
+      <ellipse cx={21} cy={63} rx={5.8} ry={2.8}
+        fill="#062820" stroke="#2dd4bf" strokeWidth="0.75" opacity="0.92"/>
+      <ellipse cx={37} cy={63} rx={5.8} ry={2.8}
+        fill="#062820" stroke="#2dd4bf" strokeWidth="0.75" opacity="0.92"/>
+      {/* Foot glow */}
+      <ellipse cx={21} cy={64.5} rx={5.8} ry={1.6}
+        fill="#2dd4bf" opacity="0.3" filter={`url(#bf${id})`}/>
+      <ellipse cx={37} cy={64.5} rx={5.8} ry={1.6}
+        fill="#2dd4bf" opacity="0.3" filter={`url(#bf${id})`}/>
+    </svg>
   )
 }
 
-// ── Crouched / sitting LUMA (no directional information) ─────────────────
-// LUMA is hunched over, helmet facing down — the player cannot infer facing.
+// ─── FACING NORTH ─────────────────────────────────────────────────────────────
+// Back of smooth head. Eyes hidden. Organic dorsal warm glow visible.
+function FacingNorth() {
+  const id = 'N'
+  return (
+    <svg width={58} height={70} viewBox="0 0 58 70" fill="none">
+      <LUMA_DEFS id={id}/>
+
+      {/* Ground hover glow */}
+      <ellipse cx={29} cy={66} rx={19} ry={5} fill={`url(#hg${id})`}/>
+
+      {/* ── BODY — seen from behind ── */}
+      <ellipse cx={29} cy={55} rx={9.5} ry={8.5} fill={`url(#hB${id})`}/>
+      <ellipse cx={29} cy={44} rx={5.5} ry={4}   fill={`url(#hB${id})`}/>
+      {/* Arms from behind */}
+      <ellipse cx={16.5} cy={54} rx={5} ry={3.2} fill={`url(#hB${id})`}
+        transform="rotate(20,16.5,54)"/>
+      <ellipse cx={41.5} cy={54} rx={5} ry={3.2} fill={`url(#hB${id})`}
+        transform="rotate(-20,41.5,54)"/>
+
+      {/* ── HEAD — back of cranium ── */}
+      <ellipse cx={29} cy={27} rx={21} ry={23} fill={`url(#hB${id})`}>
+        <animate attributeName="ry" values="23;23.6;23" dur="4s" repeatCount="indefinite"/>
+      </ellipse>
+
+      {/* Subtle back-of-head rim — shows the round volume */}
+      <ellipse cx={29} cy={13} rx={16} ry={9} fill="#1a5a5a" opacity="0.28"/>
+
+      {/* Very faint bioluminescent skin shimmer on back */}
+      <ellipse cx={29} cy={25} rx={10} ry={8} fill="#2dd4bf" opacity="0.06"
+        filter={`url(#sg${id})`}/>
+
+      {/* Nub visible from back */}
+      <HeadNub cx={29} cy={5} id={id}/>
+
+      {/* ── DORSAL BACK MARKING ── */}
+      <DorsalMark cx={29} cy={23} id={id}/>
+
+      {/* Subtle spine crease — very faint */}
+      <path d="M29,10 Q28.5,22 29,42"
+        stroke="#021818" strokeWidth="1.6" fill="none"
+        strokeLinecap="round" opacity="0.18"/>
+
+      {/* ── FEET — from behind, slightly dimmer ── */}
+      <ellipse cx={21} cy={63} rx={5.8} ry={2.8}
+        fill="#062820" stroke="#1a5a4a" strokeWidth="0.7" opacity="0.72"/>
+      <ellipse cx={37} cy={63} rx={5.8} ry={2.8}
+        fill="#062820" stroke="#1a5a4a" strokeWidth="0.7" opacity="0.72"/>
+      <ellipse cx={21} cy={64.5} rx={5.8} ry={1.6} fill="#2dd4bf" opacity="0.1"/>
+      <ellipse cx={37} cy={64.5} rx={5.8} ry={1.6} fill="#2dd4bf" opacity="0.1"/>
+    </svg>
+  )
+}
+
+// ─── FACING EAST ──────────────────────────────────────────────────────────────
+// Head points right. ONE eye. Full round body volume. ONE foot pad only.
+function FacingEast() {
+  const id = 'E'
+  return (
+    <svg width={58} height={70} viewBox="0 0 58 70" fill="none">
+      <LUMA_DEFS id={id}/>
+
+      {/* Ground hover glow — shifted slightly right */}
+      <ellipse cx={31} cy={66} rx={17} ry={4.5} fill={`url(#hg${id})`}/>
+
+      {/* ── BODY — full round, side view ── */}
+      <ellipse cx={29} cy={55} rx={8.5} ry={8.5} fill={`url(#bd${id})`}/>
+      <ellipse cx={31} cy={44} rx={5.5} ry={4}   fill={`url(#bd${id})`}/>
+      {/* ONE arm — trailing left side stub */}
+      <ellipse cx={21} cy={56} rx={4.5} ry={3}   fill={`url(#bd${id})`}
+        transform="rotate(14,21,56)"/>
+
+      {/* ── HEAD — round, large, points right ── */}
+      {/* Back half (left, darker) */}
+      <ellipse cx={24} cy={27} rx={17} ry={21} fill={`url(#hB${id})`}>
+        <animate attributeName="ry" values="21;21.6;21" dur="4s" repeatCount="indefinite"/>
+      </ellipse>
+      {/* Front half (right, brighter) */}
+      <ellipse cx={31} cy={26} rx={17} ry={20} fill={`url(#hF${id})`}>
+        <animate attributeName="ry" values="20;20.5;20" dur="4s" repeatCount="indefinite"/>
+      </ellipse>
+
+      {/* Cranium sheen */}
+      <ellipse cx={29} cy={13} rx={15} ry={9} fill={`url(#sh${id})`}/>
+
+      {/* Head nub */}
+      <HeadNub cx={29} cy={5} id={id}/>
+
+      {/* Dorsal mark peeking from back (left) — very dim */}
+      <g opacity="0.28">
+        <DorsalMark cx={18} cy={24} id={id}/>
+      </g>
+
+      {/* ── FACE — right/east side only ── */}
+      {/* ONE big round eye */}
+      <LumaEye cx={40} cy={26} rx={7} ry={6.8} id={id} blinkDur="3.6s"/>
+      {/* Back eye — invisible socket hint */}
+      <ellipse cx={19} cy={27} rx={2.8} ry={2.4} fill="#04000c" opacity="0.18"/>
+
+      {/* Cheek blush — right side only */}
+      <ellipse cx={47} cy={32} rx={4} ry={2.8} fill={`url(#ck${id})`}
+        opacity="0.8" filter={`url(#bf${id})`}/>
+
+      {/* Nose profile bump */}
+      <path d="M46,31 Q48,33.5 46,36"
+        stroke="#0a6655" strokeWidth="0.9" fill="none"
+        strokeLinecap="round" opacity="0.42"/>
+      {/* Mouth profile */}
+      <path d="M44,38.5 Q46,41 45,43.5"
+        stroke="#3decc8" strokeWidth="0.9" fill="none"
+        strokeLinecap="round" opacity="0.52"/>
+
+      {/* ── ONE FOOT PAD — leading (east/right) ── */}
+      <ellipse cx={36} cy={63} rx={6.2} ry={2.8}
+        fill="#062820" stroke="#2dd4bf" strokeWidth="0.75" opacity="0.92"/>
+      <ellipse cx={36} cy={64.5} rx={6.2} ry={1.6}
+        fill="#2dd4bf" opacity="0.3" filter={`url(#bf${id})`}/>
+      {/* Trailing foot stays fully hidden behind body */}
+    </svg>
+  )
+}
+
+// ─── FACING WEST ──────────────────────────────────────────────────────────────
+// Head points left. ONE eye. Full round body. ONE foot pad only.
+function FacingWest() {
+  const id = 'W'
+  return (
+    <svg width={58} height={70} viewBox="0 0 58 70" fill="none">
+      <LUMA_DEFS id={id}/>
+
+      {/* Ground hover glow — shifted slightly left */}
+      <ellipse cx={27} cy={66} rx={17} ry={4.5} fill={`url(#hg${id})`}/>
+
+      {/* ── BODY ── */}
+      <ellipse cx={29} cy={55} rx={8.5} ry={8.5} fill={`url(#bd${id})`}/>
+      <ellipse cx={27} cy={44} rx={5.5} ry={4}   fill={`url(#bd${id})`}/>
+      {/* ONE arm — trailing right side stub */}
+      <ellipse cx={37} cy={56} rx={4.5} ry={3}   fill={`url(#bd${id})`}
+        transform="rotate(-14,37,56)"/>
+
+      {/* ── HEAD — round, points left ── */}
+      {/* Back half (right, darker) */}
+      <ellipse cx={34} cy={27} rx={17} ry={21} fill={`url(#hB${id})`}>
+        <animate attributeName="ry" values="21;21.6;21" dur="4s" repeatCount="indefinite"/>
+      </ellipse>
+      {/* Front half (left, brighter) */}
+      <ellipse cx={27} cy={26} rx={17} ry={20} fill={`url(#hF${id})`}>
+        <animate attributeName="ry" values="20;20.5;20" dur="4s" repeatCount="indefinite"/>
+      </ellipse>
+
+      {/* Cranium sheen */}
+      <ellipse cx={29} cy={13} rx={15} ry={9} fill={`url(#sh${id})`}/>
+
+      {/* Head nub */}
+      <HeadNub cx={29} cy={5} id={id}/>
+
+      {/* Dorsal mark peeking from back (right) — very dim */}
+      <g opacity="0.28">
+        <DorsalMark cx={40} cy={24} id={id}/>
+      </g>
+
+      {/* ── FACE — left/west side only ── */}
+      {/* ONE big round eye */}
+      <LumaEye cx={18} cy={26} rx={7} ry={6.8} id={id} blinkDur="3.6s"/>
+      {/* Back eye socket hint */}
+      <ellipse cx={39} cy={27} rx={2.8} ry={2.4} fill="#04000c" opacity="0.18"/>
+
+      {/* Cheek blush — left side only */}
+      <ellipse cx={11} cy={32} rx={4} ry={2.8} fill={`url(#ck${id})`}
+        opacity="0.8" filter={`url(#bf${id})`}/>
+
+      {/* Nose profile bump */}
+      <path d="M12,31 Q10,33.5 12,36"
+        stroke="#0a6655" strokeWidth="0.9" fill="none"
+        strokeLinecap="round" opacity="0.42"/>
+      {/* Mouth profile */}
+      <path d="M14,38.5 Q12,41 13,43.5"
+        stroke="#3decc8" strokeWidth="0.9" fill="none"
+        strokeLinecap="round" opacity="0.52"/>
+
+      {/* ── ONE FOOT PAD — leading (west/left) ── */}
+      <ellipse cx={22} cy={63} rx={6.2} ry={2.8}
+        fill="#062820" stroke="#2dd4bf" strokeWidth="0.75" opacity="0.92"/>
+      <ellipse cx={22} cy={64.5} rx={6.2} ry={1.6}
+        fill="#2dd4bf" opacity="0.3" filter={`url(#bf${id})`}/>
+      {/* Trailing foot stays fully hidden */}
+    </svg>
+  )
+}
+
+// ─── CROUCHED — direction unknown, eyes closed, "?" floats ───────────────────
 function LumaCrouched({ size }) {
   return (
     <motion.div
       key="crouched"
       initial={{ opacity: 0, scale: 0.85 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.7, y: 8 }}
+      animate={{ opacity: 1, scale: 1   }}
+      exit={{    opacity: 0, scale: 0.8 }}
       transition={{ duration: 0.35 }}
     >
-      <svg
-        width={size}
-        height={size * 0.78}
-        viewBox="0 0 64 62"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
+      <svg width={size} height={size * 0.9} viewBox="0 0 58 62" fill="none">
         <defs>
-          <radialGradient id="cHelmetG" cx="50%" cy="60%" r="60%">
-            <stop offset="0%"  stopColor="#5eead4" stopOpacity="0.95"/>
-            <stop offset="40%" stopColor="#0e7490" stopOpacity="0.9"/>
-            <stop offset="100%" stopColor="#082f49" stopOpacity="1"/>
+          <radialGradient id="cH" cx="48%" cy="40%" r="60%">
+            <stop offset="0%"   stopColor="#3decc8" stopOpacity="0.92"/>
+            <stop offset="52%"  stopColor="#0a8070" stopOpacity="0.96"/>
+            <stop offset="100%" stopColor="#021e18" stopOpacity="1"/>
           </radialGradient>
-          <radialGradient id="cBodyG" cx="40%" cy="30%" r="70%">
-            <stop offset="0%"  stopColor="#1e3a4a"/>
-            <stop offset="100%" stopColor="#071018"/>
-          </radialGradient>
-          <radialGradient id="cVisorG" cx="50%" cy="60%" r="60%">
-            <stop offset="0%"  stopColor="#e0f7fa" stopOpacity="0.95"/>
-            <stop offset="50%" stopColor="#b2ebf2" stopOpacity="0.85"/>
-            <stop offset="100%" stopColor="#4dd0e1" stopOpacity="0.7"/>
-          </radialGradient>
-          <radialGradient id="cEyeG" cx="50%" cy="60%" r="55%">
-            <stop offset="0%"  stopColor="#ffffff"/>
-            <stop offset="100%" stopColor="#2dd4bf"/>
-          </radialGradient>
-          <filter id="cLumaGlow">
-            <feGaussianBlur stdDeviation="1.5" result="b"/>
+          <filter id="cG" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2.8" result="b"/>
             <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
-          <filter id="cStrongGlow">
-            <feGaussianBlur stdDeviation="2.5" result="b"/>
+          <filter id="cS" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="1.1" result="b"/>
             <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
         </defs>
 
-        {/* Ground shadow — wider when sitting */}
-        <ellipse cx={32} cy={60} rx={22} ry={5}
-          fill="rgba(0,0,0,0.55)" opacity="0.6"/>
+        {/* Hover glow */}
+        <ellipse cx={29} cy={58} rx={17} ry={4.5}
+          fill="#2dd4bf" opacity="0.13" filter="url(#cG)"/>
 
-        {/* Folded legs splayed out to sides */}
-        {/* Left leg — bent, knee up */}
-        <path d="M20,42 Q10,46 8,54 Q12,58 18,56 Q22,50 24,44 Z"
-          fill="#0e1c2a" stroke="#1a3a4a" strokeWidth="1.2"/>
-        <ellipse cx={12} cy={56} rx={6} ry={3} fill="#0a1420" stroke="#2dd4bf" strokeWidth="0.7"/>
+        {/* Crouched body blob */}
+        <ellipse cx={29} cy={40} rx={15} ry={11} fill="url(#cH)"/>
+        {/* Large head hunched forward */}
+        <ellipse cx={29} cy={25} rx={18} ry={17} fill="url(#cH)"/>
 
-        {/* Right leg — bent, knee up */}
-        <path d="M44,42 Q54,46 56,54 Q52,58 46,56 Q42,50 40,44 Z"
-          fill="#0e1c2a" stroke="#1a3a4a" strokeWidth="1.2"/>
-        <ellipse cx={52} cy={56} rx={6} ry={3} fill="#0a1420" stroke="#2dd4bf" strokeWidth="0.7"/>
+        {/* Arms curled in */}
+        <ellipse cx={14} cy={42} rx={5.5} ry={3.2} fill="url(#cH)" opacity="0.85"
+          transform="rotate(-22,14,42)"/>
+        <ellipse cx={44} cy={42} rx={5.5} ry={3.2} fill="url(#cH)" opacity="0.85"
+          transform="rotate(22,44,42)"/>
 
-        {/* Body — hunched/compressed */}
-        <rect x={20} y={34} width={24} height={18} rx={6}
-          fill="url(#cBodyG)" stroke="#1e4a5a" strokeWidth="1.5"/>
-        <line x1={24} y1={40} x2={40} y2={40} stroke="#1e4060" strokeWidth="0.7" opacity="0.7"/>
-        <line x1={24} y1={46} x2={40} y2={46} stroke="#1e4060" strokeWidth="0.7" opacity="0.7"/>
-        {/* Core reactor */}
-        <circle cx={32} cy={43} r={4} fill="#082f49" stroke="#2dd4bf" strokeWidth="0.9"/>
-        <circle cx={32} cy={43} r={2.5} fill="#2dd4bf" opacity="0.8" filter="url(#cLumaGlow)">
-          <animate attributeName="opacity" values="0.4;0.9;0.4" dur="2.2s" repeatCount="indefinite"/>
+        {/* Eyes closed — two gentle curved lines */}
+        <path d="M18,27 Q21.5,24.5 25,27"
+          stroke="#3decc8" strokeWidth="1.5" fill="none"
+          strokeLinecap="round" opacity="0.55"/>
+        <path d="M33,27 Q36.5,24.5 40,27"
+          stroke="#3decc8" strokeWidth="1.5" fill="none"
+          strokeLinecap="round" opacity="0.55"/>
+
+        {/* Faint bioluminescent flickers */}
+        <circle cx={25} cy={33} r={1.5} fill="#2dd4bf" opacity="0.2" filter="url(#cS)">
+          <animate attributeName="opacity" values="0.1;0.28;0.1" dur="2.5s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx={33} cy={31} r={1.2} fill="#2dd4bf" opacity="0.18" filter="url(#cS)">
+          <animate attributeName="opacity" values="0.1;0.22;0.1" dur="3.2s" repeatCount="indefinite"/>
         </circle>
 
-        {/* Arms — drooping forward, resting on ground */}
-        {/* Left arm */}
-        <path d="M20,36 Q10,40 9,50 Q12,54 16,52 Q18,46 22,42 Z"
-          fill="#0e1c2a" stroke="#1a3a4a" strokeWidth="1.2"/>
-        <circle cx={12} cy={52} r={3.5} fill="#071018" stroke="#2dd4bf" strokeWidth="0.8"/>
-        {/* Right arm */}
-        <path d="M44,36 Q54,40 55,50 Q52,54 48,52 Q46,46 42,42 Z"
-          fill="#0e1c2a" stroke="#1a3a4a" strokeWidth="1.2"/>
-        <circle cx={52} cy={52} r={3.5} fill="#071018" stroke="#2dd4bf" strokeWidth="0.8"/>
+        {/* Feet tucked */}
+        <ellipse cx={20} cy={53} rx={5.5} ry={2.4}
+          fill="#062820" stroke="#1a5a4a" strokeWidth="0.6" opacity="0.55"/>
+        <ellipse cx={38} cy={53} rx={5.5} ry={2.4}
+          fill="#062820" stroke="#1a5a4a" strokeWidth="0.6" opacity="0.55"/>
 
-        {/* Neck — short, tilting helmet forward */}
-        <rect x={27} y={28} width={10} height={8} rx={3}
-          fill="#0a1820" stroke="#1a3a4a" strokeWidth="1"/>
-
-        {/* Helmet — tilted down ~35° so visor faces ground */}
-        <g transform="translate(32, 20) rotate(35) translate(-32, -20)">
-          <circle cx={32} cy={20} r={18} fill="url(#cHelmetG)" stroke="#67e8f9" strokeWidth="1.5"/>
-          <circle cx={32} cy={20} r={16} fill="none" stroke="#0a2a3a" strokeWidth="2" opacity="0.4"/>
-
-          {/* Visor — now faces downward toward ground */}
-          <rect x={20} y={20} width={24} height={14} rx={6}
-            fill="url(#cVisorG)" stroke="#b2ebf2" strokeWidth="1"/>
-          <path d="M22,22 Q28,19 34,22" stroke="white" strokeWidth="1" fill="none" opacity="0.4" strokeLinecap="round"/>
-
-          {/* Eyes — dim, looking down */}
-          <circle cx={26} cy={25} r={3} fill="url(#cEyeG)" filter="url(#cLumaGlow)" opacity="0.6">
-            <animate attributeName="opacity" values="0.4;0.7;0.4" dur="3s" repeatCount="indefinite"/>
-          </circle>
-          <circle cx={38} cy={25} r={3} fill="url(#cEyeG)" filter="url(#cLumaGlow)" opacity="0.6">
-            <animate attributeName="opacity" values="0.4;0.7;0.4" dur="3s" repeatCount="indefinite"/>
-          </circle>
-          <circle cx={27} cy={25} r={1.2} fill="#082f49"/>
-          <circle cx={39} cy={25} r={1.2} fill="#082f49"/>
-
-          {/* Antenna — drooped forward too */}
-          <line x1={32} y1={2} x2={32} y2={8} stroke="#2dd4bf" strokeWidth="1.5" strokeLinecap="round" opacity="0.7"/>
-          <circle cx={32} cy={2} r={2} fill="#2dd4bf" filter="url(#cStrongGlow)" opacity="0.6">
-            <animate attributeName="opacity" values="0.3;0.7;0.3" dur="1.8s" repeatCount="indefinite"/>
-          </circle>
-        </g>
-
-        {/* Faint "?" question mark floating above to signal confusion */}
-        <motion.text
-          x={50} y={8}
-          textAnchor="middle"
-          fill="#2dd4bf"
-          fontSize={10}
-          fontFamily="monospace"
-          opacity={0.55}
-        >
-          <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2s" repeatCount="indefinite"/>
-          <animate attributeName="y" values="8;4;8" dur="2s" repeatCount="indefinite"/>
+        {/* Floating "?" */}
+        <text x={49} y={14} textAnchor="middle"
+          fill="#2dd4bf" fontSize={14} fontFamily="monospace" fontWeight="bold">
+          <animate attributeName="opacity" values="0.3;0.88;0.3" dur="1.8s" repeatCount="indefinite"/>
+          <animate attributeName="y"       values="14;9;14"       dur="1.8s" repeatCount="indefinite"/>
           ?
-        </motion.text>
+        </text>
       </svg>
     </motion.div>
   )
 }
 
-// ── Main LumaSprite ───────────────────────────────────────────────────────
-// Props:
-//   x, y        — grid position (integer col/row)
-//   facing      — 'north' | 'east' | 'south' | 'west'
-//   rotateDeg   — cumulative rotation in degrees (from useGameState).
-//                 Each TR adds +90, each TL adds -90, so Framer Motion
-//                 always animates the correct short arc.
-//   tileSize    — pixel size of one grid tile
-//   showFacing  — whether to reveal LUMA's direction (after SPT answered)
-export default function LumaSprite({ x, y, rotateDeg, tileSize, showFacing = false }) {
-  const size = tileSize * 0.78
+// ─── Standing LUMA — direction picker with smooth cross-fade ─────────────────
+// AnimatePresence mode="wait" with short opacity+scale transition.
+// Luma stays visible and continuous — no pop, no vanish.
+function LumaStanding({ size, facing }) {
+  const sprites = {
+    south: FacingSouth,
+    north: FacingNorth,
+    east:  FacingEast,
+    west:  FacingWest,
+  }
+  const Sprite = sprites[facing] ?? FacingSouth
+
+  return (
+    <motion.div
+      key={`standing-${facing}`}
+      initial={{ opacity: 0.5, scale: 0.93 }}
+      animate={{ opacity: 1,   scale: 1    }}
+      exit={{    opacity: 0.5, scale: 0.93 }}
+      transition={{ duration: 0.15, ease: 'easeOut' }}
+      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+    >
+      <div style={{
+        width:          size,
+        height:         size,
+        display:       'flex',
+        alignItems:    'center',
+        justifyContent:'center',
+      }}>
+        <Sprite/>
+      </div>
+    </motion.div>
+  )
+}
+
+// ─── Main export ───────────────────────────────────────────────────────────────
+export default function LumaSprite({
+  x, y,
+  facing     = 'south',
+  tileSize,
+  showFacing = false,
+}) {
+  const size = tileSize * 0.84
 
   return (
     <motion.div
       style={{
-        position: 'absolute',
-        width: tileSize,
-        height: tileSize,
-        top: 0,
-        left: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        position:      'absolute',
+        width:          tileSize,
+        height:         tileSize,
+        top:            0,
+        left:           0,
+        display:       'flex',
+        alignItems:    'center',
+        justifyContent:'center',
         pointerEvents: 'none',
-        zIndex: 10,
+        zIndex:         10,
       }}
       animate={{ x: x * tileSize, y: y * tileSize }}
       transition={{ type: 'spring', stiffness: 160, damping: 20 }}
     >
       {/* Ground shadow */}
       <motion.div
-        animate={{ scaleX: [1, 1.08, 1], opacity: [0.35, 0.5, 0.35] }}
-        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        animate={{ scaleX: [1, 1.07, 1], opacity: [0.18, 0.32, 0.18] }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
         style={{
-          position: 'absolute',
-          bottom: 6,
-          width: tileSize * 0.55,
-          height: 10,
+          position:     'absolute',
+          bottom:        2,
+          width:         tileSize * 0.54,
+          height:        10,
           borderRadius: '50%',
-          background: 'radial-gradient(ellipse, rgba(0,0,0,0.7) 0%, transparent 70%)',
+          background:   'radial-gradient(ellipse, rgba(0,0,0,0.5) 0%, transparent 70%)',
         }}
       />
 
-      {/* Ambient glow */}
+      {/* Bioluminescent ambient glow — green-teal, breathing */}
       <motion.div
-        animate={{ opacity: [0.3, 0.65, 0.3], scale: [0.85, 1.05, 0.85] }}
-        transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+        animate={{ opacity: [0.12, 0.42, 0.12], scale: [0.88, 1.07, 0.88] }}
+        transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut' }}
         style={{
-          position: 'absolute',
-          width: tileSize * 0.85,
-          height: tileSize * 0.85,
+          position:     'absolute',
+          width:         tileSize * 0.86,
+          height:        tileSize * 0.86,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(45,212,191,0.18) 0%, transparent 70%)',
+          background:   'radial-gradient(circle, rgba(52,211,153,0.22) 0%, transparent 68%)',
         }}
       />
 
-      {/* Toggle between crouched (SPT not answered) and standing (SPT answered) */}
+      {/* Sprite layer */}
       <div style={{ position: 'relative', zIndex: 1 }}>
-        {showFacing
-          ? <LumaStanding size={size} showFacing={showFacing} rotateDeg={rotateDeg} />
-          : <LumaCrouched size={size} />
-        }
+        <AnimatePresence mode="wait">
+          {showFacing
+            ? <LumaStanding key={`s-${facing}`} size={size} facing={facing}/>
+            : <LumaCrouched key="crouched"       size={size}/>
+          }
+        </AnimatePresence>
       </div>
     </motion.div>
   )

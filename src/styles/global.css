@@ -4,14 +4,19 @@
   box-sizing: border-box;
 }
 
+/* Base body — neutral dark background as fallback.
+   The App component overrides this with its own full-screen themed background. */
 body {
-  background-color: #0a0d14;
-  color: #e2e8f0;
+  background-color: #060d1a;
+  color: #e8edf5;
   font-family: 'Segoe UI', sans-serif;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Prevent any browser default gradients or bright spots */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
@@ -20,4 +25,31 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* ── Scrollbar styling ── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(45, 212, 191, 0.25);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(45, 212, 191, 0.45);
+}
+
+/* ── Button reset ── */
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Selection ── */
+::selection {
+  background: rgba(45, 212, 191, 0.25);
+  color: inherit;
 }

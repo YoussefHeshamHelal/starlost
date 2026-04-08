@@ -5,14 +5,15 @@ import { useGameState } from './hooks/useGameState'
 import GameGrid from './components/GameGrid'
 import CommandBuilder from './components/CommandBuilder'
 import { logGBI } from './logGBI'
+import { ThemeContext, useTheme, THEMES } from './context/theme'
 
 // ── Layout constants ──────────────────────────────────────────────────────────
-const HEADER_H = 48
+const HEADER_H = 56
 const GRID_PX  = 520   // 5 tiles × 104 px
-const PANEL_W  = 420   // right panel — wider
+const PANEL_W  = 420
 const GAP      = 32
 
-// ── CSS keyframe animations (injected once, run on compositor thread) ─────────
+// ── CSS keyframe animations ───────────────────────────────────────────────────
 const ANIM_STYLES = `
   @keyframes pulse-dot {
     0%, 100% { opacity: 0.2; transform: scale(0.8); }
@@ -41,29 +42,81 @@ const ANIM_STYLES = `
     0%, 100% { opacity: 0.5; }
     50%       { opacity: 1; }
   }
+  @keyframes theme-pulse {
+    0%, 100% { transform: scale(1); }
+    50%       { transform: scale(1.12); }
+  }
+  @keyframes star-drift {
+    0%   { opacity: 0; transform: translateY(0) scale(0.8); }
+    20%  { opacity: 0.7; }
+    80%  { opacity: 0.5; }
+    100% { opacity: 0; transform: translateY(-80px) scale(1.1); }
+  }
 `
 
-// ── Helmet Radio ─────────────────────────────────────────────────────────────
+// ── Theme Toggle Button ───────────────────────────────────────────────────────
+function ThemeToggle({ theme, onToggle }) {
+  const t = THEMES[theme]
+  return (
+    <motion.button
+      onClick={onToggle}
+      whileTap={{ scale: 0.93 }}
+      whileHover={{ scale: 1.05 }}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '8px 16px',
+        background: t.toggleBg,
+        border: `1.5px solid ${t.toggleBorder}`,
+        borderRadius: 24,
+        color: t.toggleText,
+        fontFamily: 'monospace', fontSize: 11, letterSpacing: 1.5,
+        cursor: 'pointer',
+        transition: 'all 0.3s',
+        fontWeight: 700,
+        boxShadow: theme === 'light'
+          ? '0 2px 10px rgba(20,184,166,0.18)'
+          : '0 2px 12px rgba(45,212,191,0.08)',
+      }}
+    >
+      <motion.span
+        key={t.toggleIcon}
+        initial={{ rotate: -30, opacity: 0 }}
+        animate={{ rotate: 0,   opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        style={{ fontSize: 14, lineHeight: 1 }}
+      >
+        {t.toggleIcon}
+      </motion.span>
+      <span>{t.toggleLabel} Mode</span>
+    </motion.button>
+  )
+}
+
+// ── Helmet Radio ──────────────────────────────────────────────────────────────
 const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain }) {
+  const theme = useTheme()
+  const t = THEMES[theme]
   return (
     <div style={{
-      background: radioIsUncertain ? 'rgba(14,10,4,0.92)' : 'rgba(8,14,24,0.9)',
-      border: `1px solid ${radioIsUncertain ? '#f59e0b55' : '#1e2a42'}`,
-      borderRadius: 8,
-      padding: '8px 20px',
+      background: radioIsUncertain ? t.radioUncBg : t.radioBg,
+      border: `1.5px solid ${radioIsUncertain ? t.radioUncBorder : t.radioBorder}`,
+      borderRadius: 10,
+      padding: '10px 20px',
       width: '100%',
-      backdropFilter: 'blur(4px)',
       flexShrink: 0,
       boxSizing: 'border-box',
       position: 'relative',
       transition: 'border-color 0.4s, background 0.4s',
+      boxShadow: theme === 'light'
+        ? '0 2px 16px rgba(20,184,166,0.12)'
+        : '0 2px 16px rgba(0,0,0,0.4)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
         <p style={{
-          fontSize: 8,
-          color: radioIsUncertain ? '#f59e0b' : '#2dd4bf',
-          fontFamily: 'monospace', letterSpacing: 3, margin: 0, opacity: 0.85,
-          transition: 'color 0.4s',
+          fontSize: 9,
+          color: radioIsUncertain ? '#f59e0b' : (theme === 'light' ? '#0d8a7c' : '#2dd4bf'),
+          fontFamily: 'monospace', letterSpacing: 3, margin: 0,
+          fontWeight: 800,
         }}>
           📡  LUMA HELMET RADIO
         </p>
@@ -72,21 +125,18 @@ const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
               {[0, 1, 2].map(i => (
-                <div
-                  key={i}
-                  style={{
-                    width: 4, height: 4, borderRadius: '50%', background: '#f59e0b',
-                    animation: `pulse-dot 1.2s ${i * 0.25}s ease-in-out infinite`,
-                  }}
-                />
+                <div key={i} style={{
+                  width: 4, height: 4, borderRadius: '50%', background: '#f59e0b',
+                  animation: `pulse-dot 1.2s ${i * 0.25}s ease-in-out infinite`,
+                }} />
               ))}
             </div>
             <div style={{
-              width: 18, height: 18, borderRadius: '50%',
+              width: 20, height: 20, borderRadius: '50%',
               background: 'rgba(245,158,11,0.15)',
               border: '1.5px solid #f59e0b',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 10, color: '#f59e0b', fontWeight: 900, fontFamily: 'monospace',
+              fontSize: 11, color: '#f59e0b', fontWeight: 900, fontFamily: 'monospace',
               animation: 'pulse-shadow 2s ease-in-out infinite',
             }}>?</div>
           </div>
@@ -94,10 +144,10 @@ const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain }) {
       </div>
 
       <p style={{
-        fontSize: 11,
-        color: radioIsUncertain ? '#d4a574' : '#94a3b8',
-        fontFamily: 'monospace', lineHeight: 1.5, fontStyle: 'italic', margin: 0,
-        transition: 'color 0.4s',
+        fontSize: 13,
+        color: radioIsUncertain ? t.radioUncText : t.radioText,
+        fontFamily: 'monospace', lineHeight: 1.55, fontStyle: 'italic', margin: 0,
+        fontWeight: 600,
       }}>
         "{report}"
       </p>
@@ -105,8 +155,8 @@ const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain }) {
       {radioIsUncertain && (
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0, height: 2,
-          borderRadius: '0 0 8px 8px',
-          background: 'linear-gradient(to right, transparent, #f59e0b44, transparent)',
+          borderRadius: '0 0 10px 10px',
+          background: 'linear-gradient(to right, transparent, #f59e0b55, transparent)',
           animation: 'pulse-bar 3s linear infinite',
         }} />
       )}
@@ -116,6 +166,8 @@ const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain }) {
 
 // ── Visor Flip button ─────────────────────────────────────────────────────────
 const VisorFlipButton = memo(function VisorFlipButton({ visorFlipCount, onVisorFlip, highlighted }) {
+  const theme = useTheme()
+  const t = THEMES[theme]
   const exhausted = visorFlipCount >= 3
   return (
     <button
@@ -123,31 +175,33 @@ const VisorFlipButton = memo(function VisorFlipButton({ visorFlipCount, onVisorF
       disabled={exhausted}
       style={{
         width: '100%',
-        padding: '10px 16px',
-        background: exhausted ? 'rgba(10,15,25,0.5)' : highlighted ? 'rgba(167,139,250,0.18)' : 'rgba(167,139,250,0.1)',
-        border: `1.5px solid ${exhausted ? '#1e2a3a' : '#a78bfa'}`,
+        padding: '11px 16px',
+        background: exhausted ? t.visorExhBg : t.visorBg,
+        border: `1.5px solid ${exhausted ? t.visorExhBorder : t.visorBorder}`,
         borderRadius: 10,
-        color: exhausted ? '#1e2a3a' : '#a78bfa',
+        color: exhausted ? t.visorExhText : t.visorText,
         cursor: exhausted ? 'not-allowed' : 'pointer',
-        fontFamily: 'monospace', fontSize: 11, letterSpacing: 1.5,
+        fontFamily: 'monospace', fontSize: 12, letterSpacing: 1.5,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         transition: 'all 0.2s', boxSizing: 'border-box',
         animation: highlighted && !exhausted ? 'pulse-visor 1.8s ease-in-out infinite' : 'none',
+        fontWeight: 700,
       }}
     >
       <span>👁  VISOR FLIP</span>
       {highlighted && !exhausted && (
         <span style={{
-          fontSize: 9, color: '#f59e0b', fontFamily: 'monospace', marginRight: 4,
-          animation: 'blink-try 1.2s ease-in-out infinite',
+          fontSize: 10, color: '#f59e0b', fontFamily: 'monospace', marginRight: 4,
+          animation: 'blink-try 1.2s ease-in-out infinite', fontWeight: 700,
         }}>
           try it!
         </span>
       )}
       <span style={{
-        background: exhausted ? 'transparent' : 'rgba(167,139,250,0.15)',
-        border: `1px solid ${exhausted ? '#1e2a3a' : '#a78bfa55'}`,
+        background: exhausted ? 'transparent' : 'rgba(167,139,250,0.18)',
+        border: `1px solid ${exhausted ? t.visorExhBorder : '#a78bfa66'}`,
         borderRadius: 20, padding: '2px 10px', fontSize: 10,
+        fontWeight: 700,
       }}>
         {3 - visorFlipCount} left
       </span>
@@ -171,9 +225,11 @@ const COMPASS_AREAS = `
 
 function DiamondButton({ option, isSelected, isCorrect, isWrong, disabled, onClick }) {
   const meta = ARROW_META[option] ?? { symbol: option, label: option, gridArea: 'center' }
-  const borderColor = isCorrect ? '#4ade80' : isWrong ? '#fb7185' : isSelected ? '#2dd4bf' : '#1e3a54'
-  const bgColor     = isCorrect ? 'rgba(74,222,128,0.18)' : isWrong ? 'rgba(251,113,133,0.14)' : isSelected ? 'rgba(45,212,191,0.12)' : 'rgba(10,22,38,0.9)'
-  const textColor   = isCorrect ? '#4ade80' : isWrong ? '#fb7185' : isSelected ? '#2dd4bf' : '#7094b0'
+  const theme = useTheme()
+  const t = THEMES[theme]
+  const borderColor = isCorrect ? '#4ade80' : isWrong ? '#fb7185' : isSelected ? '#14b8a6' : t.mcqBorderIdle
+  const bgColor     = isCorrect ? 'rgba(74,222,128,0.18)' : isWrong ? 'rgba(251,113,133,0.14)' : isSelected ? 'rgba(20,184,166,0.14)' : t.mcqBg
+  const textColor   = isCorrect ? '#4ade80' : isWrong ? '#fb7185' : isSelected ? (theme === 'light' ? '#0a5c55' : '#2dd4bf') : t.mcqTextIdle
 
   return (
     <div style={{ gridArea: meta.gridArea, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 90, height: 90 }}>
@@ -197,8 +253,8 @@ function DiamondButton({ option, isSelected, isCorrect, isWrong, disabled, onCli
           alignItems: 'center', justifyContent: 'center',
           gap: 2, pointerEvents: 'none', lineHeight: 1,
         }}>
-          <span style={{ fontSize: 20, color: textColor, fontWeight: 700, lineHeight: 1 }}>{meta.symbol}</span>
-          <span style={{ fontSize: 8, letterSpacing: 0.8, color: textColor, fontFamily: 'monospace', opacity: 0.85 }}>{meta.label}</span>
+          <span style={{ fontSize: 22, color: textColor, fontWeight: 700, lineHeight: 1 }}>{meta.symbol}</span>
+          <span style={{ fontSize: 9, letterSpacing: 0.8, color: textColor, fontFamily: 'monospace', fontWeight: 700 }}>{meta.label}</span>
           {isCorrect && <span style={{ fontSize: 9, color: '#4ade80', lineHeight: 1 }}>✓</span>}
           {isWrong   && <span style={{ fontSize: 9, color: '#fb7185', lineHeight: 1 }}>✗</span>}
         </div>
@@ -209,21 +265,30 @@ function DiamondButton({ option, isSelected, isCorrect, isWrong, disabled, onCli
 
 // ── SPT Question panel ────────────────────────────────────────────────────────
 const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, sptCorrect, visorFlipCount, onVisorFlip, radioIsUncertain, showVisorFlip }) {
+  const theme = useTheme()
+  const t = THEMES[theme]
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       style={{
-        background: 'rgba(8,14,24,0.95)',
-        border: '1.5px solid #2dd4bf',
-        borderRadius: 12,
+        background: t.sptBg,
+        border: `1.5px solid ${t.sptBorder}`,
+        borderRadius: 14,
         padding: '20px 24px 24px',
         width: '100%',
         boxSizing: 'border-box',
         display: 'flex', flexDirection: 'column', gap: 16,
+        boxShadow: theme === 'light'
+          ? '0 4px 28px rgba(20,184,166,0.14)'
+          : '0 4px 28px rgba(0,0,0,0.5)',
       }}
     >
-      <p style={{ fontSize: 9, color: '#2dd4bf', fontFamily: 'monospace', letterSpacing: 3, margin: 0 }}>
+      <p style={{
+        fontSize: 10,
+        color: theme === 'light' ? '#0d8a7c' : '#2dd4bf',
+        fontFamily: 'monospace', letterSpacing: 3, margin: 0, fontWeight: 800,
+      }}>
         PHASE 1 — IDENTIFY
       </p>
 
@@ -239,15 +304,16 @@ const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, s
         <p style={{
           margin: '-8px 0 0 0',
           color: '#f59e0b',
-          fontSize: 10, fontFamily: 'monospace',
+          fontSize: 11, fontFamily: 'monospace',
           textAlign: 'center', letterSpacing: 1,
           animation: 'fade-in-hint 0.4s 0.5s ease both',
+          fontWeight: 700,
         }}>
           LUMA seems unsure… maybe peek through her helmet?
         </p>
       )}
 
-      <p style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.5, margin: 0 }}>
+      <p style={{ fontSize: 14, color: t.textPrimary, lineHeight: 1.55, margin: 0, fontWeight: 600 }}>
         {question.prompt}
       </p>
 
@@ -264,10 +330,10 @@ const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, s
         <div style={{
           gridArea: 'center',
           width: 22, height: 22, borderRadius: '50%',
-          border: '1.5px solid #2dd4bf33',
+          border: `1.5px solid ${theme === 'light' ? '#14b8a666' : '#2dd4bf44'}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#2dd4bf33' }}/>
+          <div style={{ width: 5, height: 5, borderRadius: '50%', background: theme === 'light' ? '#14b8a666' : '#2dd4bf44' }}/>
         </div>
         {question.options.map(option => {
           const isSelected = sptAnswer === option
@@ -284,12 +350,12 @@ const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, s
       </div>
 
       {sptAnswer && !sptCorrect && (
-        <p style={{ margin: 0, color: '#fb7185', fontSize: 11, fontFamily: 'monospace', textAlign: 'center', animation: 'fade-in-hint 0.2s ease both' }}>
+        <p style={{ margin: 0, color: '#fb7185', fontSize: 12, fontFamily: 'monospace', textAlign: 'center', animation: 'fade-in-hint 0.2s ease both', fontWeight: 700 }}>
           Not quite — use the radio clue to find LUMA's facing.
         </p>
       )}
       {sptCorrect && (
-        <p style={{ margin: 0, color: '#4ade80', fontSize: 11, fontFamily: 'monospace', textAlign: 'center', letterSpacing: 1, animation: 'fade-in-hint 0.2s ease both' }}>
+        <p style={{ margin: 0, color: '#10b981', fontSize: 12, fontFamily: 'monospace', textAlign: 'center', letterSpacing: 1, animation: 'fade-in-hint 0.2s ease both', fontWeight: 700 }}>
           ✓ Correct! Now guide LUMA home.
         </p>
       )}
@@ -299,15 +365,17 @@ const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, s
 
 // ── Prediction Prompt ─────────────────────────────────────────────────────────
 const PredictionBanner = memo(function PredictionBanner({ predictionTile, predictionResult }) {
+  const theme = useTheme()
+  const t = THEMES[theme]
   const hasResult = predictionResult !== null
   const hasTile   = predictionTile !== null
 
-  let borderColor = '#38bdf8'
+  let borderColor = t.predBorder
   let message
   let subMessage
 
   if (hasResult && predictionResult === 'correct') {
-    borderColor = '#4ade80'
+    borderColor = '#10b981'
     message = '✓ Perfect prediction!'
     subMessage = 'You knew exactly where LUMA would end up.'
   } else if (hasResult && predictionResult === 'wrong') {
@@ -315,11 +383,9 @@ const PredictionBanner = memo(function PredictionBanner({ predictionTile, predic
     message = '✗ Not quite…'
     subMessage = `LUMA ended up at a different tile. What changed your plan?`
   } else if (hasTile) {
-    borderColor = '#38bdf8'
     message = `Prediction set: [${predictionTile.x}, ${predictionTile.y}]`
     subMessage = 'Now execute your program — let\'s see if you\'re right!'
   } else {
-    borderColor = '#38bdf8'
     message = 'Tap a grid tile to predict where LUMA will end up.'
     subMessage = 'You must predict before you can run the program.'
   }
@@ -330,22 +396,22 @@ const PredictionBanner = memo(function PredictionBanner({ predictionTile, predic
       animate={{ opacity: 1, y: 0 }}
       style={{
         background: hasResult
-          ? predictionResult === 'correct' ? 'rgba(74,222,128,0.06)' : 'rgba(251,113,133,0.06)'
-          : 'rgba(56,189,248,0.06)',
-        border: `1.5px solid ${borderColor}44`,
+          ? predictionResult === 'correct' ? 'rgba(16,185,129,0.09)' : 'rgba(251,113,133,0.09)'
+          : t.predBg,
+        border: `1.5px solid ${borderColor}55`,
         borderLeft: `3px solid ${borderColor}`,
-        borderRadius: 8,
+        borderRadius: 10,
         padding: '10px 14px',
         boxSizing: 'border-box',
       }}
     >
-      <p style={{ fontSize: 10, color: borderColor, fontFamily: 'monospace', letterSpacing: 1, margin: '0 0 3px 0', fontWeight: 600 }}>
+      <p style={{ fontSize: 10, color: borderColor, fontFamily: 'monospace', letterSpacing: 1, margin: '0 0 3px 0', fontWeight: 800 }}>
         🎯  PREDICTION CHALLENGE
       </p>
-      <p style={{ fontSize: 11, color: borderColor, fontFamily: 'monospace', margin: '0 0 2px 0' }}>
+      <p style={{ fontSize: 12, color: borderColor, fontFamily: 'monospace', margin: '0 0 2px 0', fontWeight: 700 }}>
         {message}
       </p>
-      <p style={{ fontSize: 10, color: '#475569', fontFamily: 'monospace', margin: 0 }}>
+      <p style={{ fontSize: 11, color: t.predSub, fontFamily: 'monospace', margin: 0, fontWeight: 600 }}>
         {subMessage}
       </p>
     </motion.div>
@@ -354,6 +420,8 @@ const PredictionBanner = memo(function PredictionBanner({ predictionTile, predic
 
 // ── Missed Fragments Alert ────────────────────────────────────────────────────
 function MissedFragmentsAlert({ onDismiss }) {
+  const theme = useTheme()
+  const t = THEMES[theme]
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.85, y: 20 }}
@@ -363,14 +431,14 @@ function MissedFragmentsAlert({ onDismiss }) {
       style={{
         position: 'fixed', inset: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 80, background: 'rgba(4,8,16,0.82)', backdropFilter: 'blur(6px)',
+        zIndex: 80, background: t.overlayBg, backdropFilter: 'blur(8px)',
       }}
     >
       <div style={{
-        background: 'rgba(10,18,32,0.98)',
-        border: '2px solid #f59e0b', borderRadius: 20,
-        padding: '36px 44px', maxWidth: 420, textAlign: 'center',
-        boxShadow: '0 0 60px rgba(245,158,11,0.25), 0 0 0 1px #f59e0b33',
+        background: t.alertCardBg,
+        border: `2px solid ${t.alertBorder}`, borderRadius: 20,
+        padding: '36px 44px', maxWidth: 440, textAlign: 'center',
+        boxShadow: `0 0 60px rgba(245,158,11,0.28), 0 0 0 1px ${t.alertBorder}44`,
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
       }}>
         <motion.div
@@ -380,13 +448,13 @@ function MissedFragmentsAlert({ onDismiss }) {
         >⚠️</motion.div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <h2 style={{ fontSize: 18, color: '#f59e0b', fontFamily: 'monospace', letterSpacing: 2, margin: 0 }}>
+          <h2 style={{ fontSize: 19, color: '#f59e0b', fontFamily: 'monospace', letterSpacing: 2, margin: 0, fontWeight: 800 }}>
             MISSING FRAGMENTS
           </h2>
-          <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6, margin: 0 }}>
+          <p style={{ fontSize: 14, color: t.textPrimary, lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
             LUMA reached the ship core, but there are still ship fragments scattered on the planet!
           </p>
-          <p style={{ fontSize: 12, color: '#64748b', margin: 0, fontStyle: 'italic' }}>
+          <p style={{ fontSize: 13, color: t.textSecondary, margin: 0, fontStyle: 'italic' }}>
             Collect all fragments before returning to the ship core.
           </p>
         </div>
@@ -395,12 +463,13 @@ function MissedFragmentsAlert({ onDismiss }) {
           whileTap={{ scale: 0.97 }}
           onClick={onDismiss}
           style={{
-            padding: '12px 32px',
-            background: 'rgba(245,158,11,0.12)',
-            border: '1.5px solid #f59e0b',
+            padding: '13px 32px',
+            background: 'rgba(245,158,11,0.13)',
+            border: '2px solid #f59e0b',
             borderRadius: 10, color: '#f59e0b',
-            fontFamily: 'monospace', fontSize: 12, letterSpacing: 2,
+            fontFamily: 'monospace', fontSize: 13, letterSpacing: 2,
             cursor: 'pointer',
+            fontWeight: 800,
           }}
         >
           GOT IT — RESET &amp; RETRY
@@ -412,6 +481,8 @@ function MissedFragmentsAlert({ onDismiss }) {
 
 // ── Success Screen ────────────────────────────────────────────────────────────
 function SuccessScreen({ levelId, onNext }) {
+  const theme = useTheme()
+  const t = THEMES[theme]
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.85, y: 20 }}
@@ -421,14 +492,14 @@ function SuccessScreen({ levelId, onNext }) {
       style={{
         position: 'fixed', inset: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 80, background: 'rgba(4,8,16,0.82)', backdropFilter: 'blur(6px)',
+        zIndex: 80, background: t.overlayBg, backdropFilter: 'blur(8px)',
       }}
     >
       <div style={{
-        background: 'rgba(10,18,32,0.98)',
-        border: '2px solid #2dd4bf', borderRadius: 20,
-        padding: '36px 44px', maxWidth: 420, textAlign: 'center',
-        boxShadow: '0 0 60px rgba(45,212,191,0.2), 0 0 0 1px #2dd4bf33',
+        background: t.successCardBg,
+        border: `2px solid ${t.successBorder}`, borderRadius: 20,
+        padding: '36px 44px', maxWidth: 440, textAlign: 'center',
+        boxShadow: `0 0 60px rgba(20,184,166,0.25), 0 0 0 1px ${t.successBorder}44`,
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
       }}>
         <motion.div
@@ -438,10 +509,14 @@ function SuccessScreen({ levelId, onNext }) {
         >🚀</motion.div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <h2 style={{ fontSize: 20, color: '#2dd4bf', fontFamily: 'monospace', letterSpacing: 3, margin: 0 }}>
+          <h2 style={{
+            fontSize: 22,
+            color: theme === 'light' ? '#0a5c55' : '#2dd4bf',
+            fontFamily: 'monospace', letterSpacing: 3, margin: 0, fontWeight: 800,
+          }}>
             LEVEL {levelId} COMPLETE
           </h2>
-          <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6, margin: 0 }}>
+          <p style={{ fontSize: 14, color: t.textPrimary, lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
             LUMA made it back to the ship core! Great navigating.
           </p>
         </div>
@@ -450,12 +525,14 @@ function SuccessScreen({ levelId, onNext }) {
           whileTap={{ scale: 0.97 }}
           onClick={onNext}
           style={{
-            padding: '14px 36px',
-            background: 'rgba(45,212,191,0.12)',
-            border: '1.5px solid #2dd4bf',
-            borderRadius: 10, color: '#2dd4bf',
-            fontFamily: 'monospace', fontSize: 12, letterSpacing: 2,
+            padding: '14px 38px',
+            background: theme === 'light' ? 'rgba(20,184,166,0.13)' : 'rgba(45,212,191,0.13)',
+            border: `2px solid ${theme === 'light' ? '#14b8a6' : '#2dd4bf'}`,
+            borderRadius: 10,
+            color: theme === 'light' ? '#0a5c55' : '#2dd4bf',
+            fontFamily: 'monospace', fontSize: 13, letterSpacing: 2,
             cursor: 'pointer',
+            fontWeight: 800,
           }}
         >
           NEXT LEVEL →
@@ -474,10 +551,10 @@ const STRATEGY_CARDS = [
     subtitle: 'Embody',
     description: 'I pictured myself standing right where LUMA was, and felt which way I was facing.',
     quote: '"I thought about your view."',
-    color: '#a78bfa',
-    bg: 'rgba(167,139,250,0.08)',
-    border: '#a78bfa',
-    glow: 'rgba(167,139,250,0.3)',
+    color: '#8b5cf6',
+    bg: 'rgba(139,92,246,0.09)',
+    border: '#8b5cf6',
+    glow: 'rgba(139,92,246,0.3)',
     stars: ['⭐','✨','💜'],
   },
   {
@@ -487,10 +564,10 @@ const STRATEGY_CARDS = [
     subtitle: 'Rotate',
     description: 'I spun the map around in my head until it matched the way LUMA was looking.',
     quote: '"I turned the map."',
-    color: '#2dd4bf',
-    bg: 'rgba(45,212,191,0.08)',
-    border: '#2dd4bf',
-    glow: 'rgba(45,212,191,0.3)',
+    color: '#0d9488',
+    bg: 'rgba(20,184,166,0.09)',
+    border: '#14b8a6',
+    glow: 'rgba(20,184,166,0.3)',
     stars: ['⭐','✨','💚'],
   },
   {
@@ -500,8 +577,8 @@ const STRATEGY_CARDS = [
     subtitle: 'Landmarks',
     description: 'I found the rocks and ship parts nearby to figure out which direction LUMA was facing.',
     quote: '"I saw the tall rock."',
-    color: '#f59e0b',
-    bg: 'rgba(245,158,11,0.08)',
+    color: '#d97706',
+    bg: 'rgba(245,158,11,0.09)',
     border: '#f59e0b',
     glow: 'rgba(245,158,11,0.3)',
     stars: ['⭐','✨','🧡'],
@@ -523,6 +600,8 @@ function FloatingStar({ emoji, delay, x, duration }) {
 
 function StrategyCard({ card, selected, onSelect }) {
   const isSelected = selected === card.id
+  const theme = useTheme()
+  const t = THEMES[theme]
   return (
     <motion.div
       whileHover={{ y: -6, scale: 1.02 }}
@@ -530,13 +609,17 @@ function StrategyCard({ card, selected, onSelect }) {
       onClick={() => onSelect(card.id)}
       style={{
         flex: 1, minWidth: 0, position: 'relative',
-        background: isSelected ? card.bg : 'rgba(8,14,24,0.92)',
-        border: `2.5px solid ${isSelected ? card.border : '#1e2a42'}`,
+        background: isSelected ? card.bg : t.stratCardBg,
+        border: `2.5px solid ${isSelected ? card.border : t.stratCardBd}`,
         borderRadius: 20,
         padding: '28px 20px 24px',
         cursor: 'pointer',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
-        boxShadow: isSelected ? `0 0 40px ${card.glow}, 0 0 0 1px ${card.border}44` : '0 4px 24px rgba(0,0,0,0.4)',
+        boxShadow: isSelected
+          ? `0 0 40px ${card.glow}, 0 0 0 1px ${card.border}44`
+          : theme === 'light'
+            ? '0 4px 28px rgba(20,184,166,0.12)'
+            : '0 4px 24px rgba(0,0,0,0.5)',
         transition: 'border-color 0.2s, background 0.2s, box-shadow 0.2s',
         overflow: 'hidden', textAlign: 'center', userSelect: 'none',
       }}
@@ -564,22 +647,22 @@ function StrategyCard({ card, selected, onSelect }) {
         {card.emoji}
       </motion.div>
       <div style={{
-        background: isSelected ? `${card.border}22` : 'rgba(255,255,255,0.04)',
-        border: `1px solid ${isSelected ? card.border : '#1e2a42'}`,
+        background: isSelected ? `${card.border}22` : (theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'),
+        border: `1px solid ${isSelected ? card.border : t.stratCardBd}`,
         borderRadius: 20, padding: '3px 14px',
-        fontSize: 9, fontFamily: 'monospace', letterSpacing: 2,
-        color: isSelected ? card.color : '#334155',
-        fontWeight: 700, position: 'relative', zIndex: 1, transition: 'all 0.2s',
+        fontSize: 10, fontFamily: 'monospace', letterSpacing: 2,
+        color: isSelected ? card.color : t.textMuted,
+        fontWeight: 800, position: 'relative', zIndex: 1, transition: 'all 0.2s',
       }}>
         {card.subtitle.toUpperCase()}
       </div>
-      <p style={{ fontSize: 15, fontWeight: 800, color: isSelected ? card.color : '#94a3b8', lineHeight: 1.3, margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s' }}>
+      <p style={{ fontSize: 16, fontWeight: 800, color: isSelected ? card.color : t.textPrimary, lineHeight: 1.3, margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s' }}>
         {card.title}
       </p>
-      <p style={{ fontSize: 12, color: isSelected ? '#cbd5e1' : '#475569', lineHeight: 1.55, margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s' }}>
+      <p style={{ fontSize: 13, color: isSelected ? (theme === 'light' ? '#1a3a38' : '#c8d8e8') : t.textSecondary, lineHeight: 1.55, margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s', fontWeight: 500 }}>
         {card.description}
       </p>
-      <p style={{ fontSize: 11, color: isSelected ? card.color : '#1e3a54', fontFamily: 'monospace', fontStyle: 'italic', margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s' }}>
+      <p style={{ fontSize: 12, color: isSelected ? card.color : t.textMuted, fontFamily: 'monospace', fontStyle: 'italic', margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s', fontWeight: isSelected ? 700 : 500 }}>
         {card.quote}
       </p>
       <motion.div
@@ -590,7 +673,7 @@ function StrategyCard({ card, selected, onSelect }) {
           width: 32, height: 32, borderRadius: '50%',
           background: card.border,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 16, color: '#040810', fontWeight: 900,
+          fontSize: 16, color: theme === 'light' ? '#fff' : '#040810', fontWeight: 900,
           position: 'relative', zIndex: 1,
           boxShadow: `0 0 20px ${card.glow}`,
         }}
@@ -599,22 +682,16 @@ function StrategyCard({ card, selected, onSelect }) {
   )
 }
 
-// ── FIX: StrategyCardScreen now accepts levelId and participantId so it can
-//         log the strategyCard GBI itself when the child confirms their choice.
 function StrategyCardScreen({ levelId, participantId, onDone }) {
   const [selected, setSelected] = useState(null)
   const [confirmed, setConfirmed] = useState(false)
+  const theme = useTheme()
+  const t = THEMES[theme]
 
   const handleConfirm = () => {
     if (!selected) return
     setConfirmed(true)
-
-    // ── Log the strategy card choice as a GBI ────────────────────────────────
-    // We log it here rather than in App because this is the exact moment the
-    // child commits to a choice.  The snapshot only contains the card choice;
-    // the rest of the level GBIs were already logged on the SuccessScreen.
     logGBI(participantId, levelId, { strategyCard: selected })
-
     setTimeout(() => onDone(selected), 1200)
   }
 
@@ -628,8 +705,7 @@ function StrategyCardScreen({ levelId, participantId, onDone }) {
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         zIndex: 90,
-        background: 'radial-gradient(ellipse at 50% 0%, rgba(167,139,250,0.07) 0%, rgba(4,8,16,0.97) 60%)',
-        backdropFilter: 'blur(8px)',
+        background: t.stratBg,
         padding: '24px 32px',
         boxSizing: 'border-box',
         overflow: 'hidden',
@@ -659,33 +735,41 @@ function StrategyCardScreen({ levelId, participantId, onDone }) {
           style={{
             width: 64, height: 64, borderRadius: '50%',
             background: 'radial-gradient(circle at 35% 35%, #2dd4bf, #0f7a6e)',
-            border: '3px solid #2dd4bf',
+            border: '3px solid #14b8a6',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 30, flexShrink: 0,
-            boxShadow: '0 0 24px rgba(45,212,191,0.4)',
+            boxShadow: '0 0 24px rgba(20,184,166,0.4)',
           }}
         >🤖</motion.div>
 
         <div style={{
-          background: 'rgba(8,14,24,0.95)',
-          border: '1.5px solid #2dd4bf44',
-          borderRadius: '0 16px 16px 16px',
-          padding: '14px 20px', position: 'relative',
-          boxShadow: '0 4px 20px rgba(45,212,191,0.1)',
+          background: t.panelBg,
+          border: `1.5px solid ${t.panelBorder}66`,
+          borderRadius: 14,
+          padding: '16px 20px',
+          position: 'relative',
+          boxShadow: theme === 'light'
+            ? '0 4px 20px rgba(20,184,166,0.12)'
+            : '0 4px 24px rgba(0,0,0,0.4)',
         }}>
           <div style={{
-            position: 'absolute', top: 0, left: -10,
+            position: 'absolute', left: -10, top: '50%', transform: 'translateY(-50%)',
             width: 0, height: 0,
-            borderTop: '10px solid #2dd4bf44',
-            borderLeft: '10px solid transparent',
+            borderTop: '10px solid transparent',
+            borderBottom: '10px solid transparent',
+            borderRight: `10px solid ${t.panelBorder}66`,
           }}/>
-          <p style={{ fontSize: 9, color: '#2dd4bf', fontFamily: 'monospace', letterSpacing: 2, margin: '0 0 6px 0', opacity: 0.8 }}>
+          <p style={{
+            fontSize: 10,
+            color: theme === 'light' ? '#0d8a7c' : '#2dd4bf',
+            fontFamily: 'monospace', letterSpacing: 2, margin: '0 0 6px 0', fontWeight: 800,
+          }}>
             LUMA SAYS
           </p>
-          <p style={{ fontSize: 15, color: '#e2e8f0', lineHeight: 1.5, margin: 0, fontWeight: 600 }}>
+          <p style={{ fontSize: 16, color: t.textPrimary, lineHeight: 1.5, margin: 0, fontWeight: 800 }}>
             Awesome work on Level {levelId}! 🎉
           </p>
-          <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.5, margin: '6px 0 0 0' }}>
+          <p style={{ fontSize: 14, color: t.textSecondary, lineHeight: 1.5, margin: '6px 0 0 0', fontWeight: 500 }}>
             How did you figure out which way I was facing? Pick the card that matches how <em>you</em> thought about it!
           </p>
         </div>
@@ -716,16 +800,20 @@ function StrategyCardScreen({ levelId, participantId, onDone }) {
               onClick={handleConfirm}
               disabled={!selected}
               style={{
-                padding: '14px 48px',
-                background: selected ? `linear-gradient(135deg, rgba(45,212,191,0.18), rgba(45,212,191,0.08))` : 'rgba(10,15,25,0.5)',
-                border: `2px solid ${selected ? '#2dd4bf' : '#1e2a3a'}`,
+                padding: '15px 52px',
+                background: selected
+                  ? (theme === 'light'
+                    ? 'linear-gradient(135deg, rgba(20,184,166,0.20), rgba(20,184,166,0.10))'
+                    : 'linear-gradient(135deg, rgba(45,212,191,0.18), rgba(45,212,191,0.08))')
+                  : (theme === 'light' ? 'rgba(200,230,228,0.4)' : 'rgba(8,12,22,0.5)'),
+                border: `2px solid ${selected ? (theme === 'light' ? '#14b8a6' : '#2dd4bf') : t.panelBorderDim}`,
                 borderRadius: 14,
-                color: selected ? '#2dd4bf' : '#1e2a3a',
-                fontFamily: 'monospace', fontSize: 13, letterSpacing: 2.5,
+                color: selected ? (theme === 'light' ? '#0a5c55' : '#2dd4bf') : t.textDim,
+                fontFamily: 'monospace', fontSize: 14, letterSpacing: 2.5,
                 cursor: selected ? 'pointer' : 'not-allowed',
                 transition: 'all 0.2s',
-                boxShadow: selected ? '0 0 30px rgba(45,212,191,0.15)' : 'none',
-                fontWeight: 700,
+                boxShadow: selected ? `0 0 30px rgba(20,184,166,0.20)` : 'none',
+                fontWeight: 800,
               }}
             >
               {selected ? '✓  THAT\'S MY STRATEGY!' : 'PICK A CARD TO CONTINUE'}
@@ -739,7 +827,7 @@ function StrategyCardScreen({ levelId, participantId, onDone }) {
               style={{ fontSize: 40, display: 'flex', alignItems: 'center', gap: 12 }}
             >
               <span>🎊</span>
-              <span style={{ fontSize: 18, color: '#4ade80', fontFamily: 'monospace', letterSpacing: 2 }}>GREAT CHOICE!</span>
+              <span style={{ fontSize: 19, color: '#10b981', fontFamily: 'monospace', letterSpacing: 2, fontWeight: 800 }}>GREAT CHOICE!</span>
               <span>🎊</span>
             </motion.div>
           )}
@@ -752,8 +840,8 @@ function StrategyCardScreen({ levelId, participantId, onDone }) {
           style={{
             position: 'absolute', bottom: 16, right: 20,
             background: 'transparent', border: 'none',
-            color: '#1e2a42', fontSize: 9, fontFamily: 'monospace',
-            cursor: 'pointer', letterSpacing: 1,
+            color: t.textMuted, fontSize: 10, fontFamily: 'monospace',
+            cursor: 'pointer', letterSpacing: 1, fontWeight: 600,
           }}
         >
           skip →
@@ -766,6 +854,8 @@ function StrategyCardScreen({ levelId, participantId, onDone }) {
 // ── Level Screen ──────────────────────────────────────────────────────────────
 function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard }) {
   const [animSpeed, setAnimSpeed] = useState(50)
+  const theme = useTheme()
+  const t = THEMES[theme]
 
   const {
     luma, phase,
@@ -804,8 +894,6 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
   const panelW = levelConfig.skipIdentify ? GRID_PX : PANEL_W
   const totalW = GRID_PX + GAP + panelW
 
-  // ── FIX: Log all GBIs (except strategyCard) here on level completion.
-  //         strategyCard is logged inside StrategyCardScreen.
   const handleSuccessNext = () => {
     const snapshot = getGBISnapshot()
     logGBI(participantId, levelConfig.id, snapshot)
@@ -823,6 +911,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
       gap: 12,
       boxSizing: 'border-box',
       overflow: 'hidden',
+      // Ensure no background that could show a bright spot
+      background: 'transparent',
     }}>
       {/* ── Title bar ── */}
       <div style={{
@@ -831,21 +921,31 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
         flexShrink: 0,
       }}>
         <div>
-          <p style={{ fontSize: 8, color: '#2dd4bf', fontFamily: 'monospace', letterSpacing: 3, marginBottom: 2, opacity: 0.7 }}>
+          <p style={{
+            fontSize: 10,
+            color: t.levelLabel,
+            fontFamily: 'monospace', letterSpacing: 3, marginBottom: 3,
+            fontWeight: 800,
+          }}>
             LEVEL {levelConfig.id} — {levelConfig.world?.toUpperCase()}
           </p>
-          <h2 style={{ fontSize: 18, fontWeight: 900, color: '#e2e8f0', letterSpacing: 1, margin: 0 }}>
+          <h2 style={{
+            fontSize: 20, fontWeight: 900,
+            color: t.levelTitle,
+            letterSpacing: 1, margin: 0,
+          }}>
             {levelConfig.name}
           </h2>
         </div>
         {!levelConfig.skipIdentify && (
           <div style={{
-            padding: '4px 14px',
-            background: phase === 'identify' ? 'rgba(45,212,191,0.07)' : 'rgba(245,158,11,0.07)',
-            border: `1px solid ${phase === 'identify' ? '#2dd4bf44' : '#f59e0b44'}`,
+            padding: '5px 16px',
+            background: phase === 'identify' ? t.identBadgeBg : t.devBadgeBg,
+            border: `1.5px solid ${phase === 'identify' ? t.identBadgeBd : t.devBadgeBd}`,
             borderRadius: 20,
-            fontSize: 9, fontFamily: 'monospace', letterSpacing: 2,
-            color: phase === 'identify' ? '#2dd4bf' : '#f59e0b',
+            fontSize: 10, fontFamily: 'monospace', letterSpacing: 2,
+            color: phase === 'identify' ? t.identBadgeTx : t.devBadgeTx,
+            fontWeight: 800,
           }}>
             {phase === 'identify' ? 'PHASE 1 — IDENTIFY'
              : phase === 'develop' ? 'PHASE 2 — DEVELOP'
@@ -854,7 +954,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
         )}
       </div>
 
-      {/* ── Helmet radio — hidden when noRadio flag is set (Level 1) ── */}
+      {/* ── Helmet radio ── */}
       {!levelConfig.noRadio && (
         <div style={{ width: totalW, flexShrink: 0 }}>
           <HelmetRadio report={helmetReport} radioIsUncertain={radioIsUncertain} />
@@ -974,16 +1074,20 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
 }
 
 // ── Root ──────────────────────────────────────────────────────────────────────
-// PARTICIPANT_ID: replace this constant with your actual participant ID system
-// before the real study. For now, every session uses 'child_01' as a placeholder.
 const PARTICIPANT_ID = 'child_01'
 
 export default function App() {
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0)
   const [appPhase, setAppPhase] = useState('playing')
+  const [theme, setTheme] = useState('light')
 
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light')
+  }, [])
+
+  const t = THEMES[theme]
   const level = LEVELS[currentLevelIndex]
-  //         because logging is now done inside StrategyCardScreen.
+
   const handleLevelComplete = () => {
     if (currentLevelIndex < LEVELS.length - 1)
       setCurrentLevelIndex(i => i + 1)
@@ -1000,68 +1104,102 @@ export default function App() {
   }
 
   return (
-    <div style={{
-      width: '100vw', height: '100vh', overflow: 'hidden',
-      background: 'radial-gradient(ellipse at 50% -10%, rgba(45,212,191,0.05) 0%, #040810 55%)',
-    }}>
-      <style>{ANIM_STYLES}</style>
-      <motion.header
-        initial={{ opacity: 0, y: -16 }}
-        animate={{ opacity: 1, y: 0 }}
-        style={{
-          position: 'fixed', top: 0, left: 0, right: 0,
-          height: HEADER_H, padding: '0 28px',
-          background: 'rgba(4,8,16,0.97)',
-          borderBottom: '1px solid #0f1c2e',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          zIndex: 50, backdropFilter: 'blur(10px)', boxSizing: 'border-box',
-        }}
-      >
-        <h1 style={{ fontSize: 15, fontWeight: 900, color: '#2dd4bf', letterSpacing: 6, fontFamily: 'monospace', margin: 0 }}>
-          STARLOST
-        </h1>
-        <p style={{ fontSize: 9, color: '#1e2a42', fontFamily: 'monospace', letterSpacing: 2, margin: 0 }}>
-          Help LUMA find the way home.
-        </p>
-      </motion.header>
+    <ThemeContext.Provider value={theme}>
+      <div style={{
+        width: '100vw', height: '100vh', overflow: 'hidden',
+        background: t.appBg,
+        transition: 'background 0.5s ease',
+      }}>
+        <style>{ANIM_STYLES}</style>
 
-      <AnimatePresence mode="wait">
-        {appPhase === 'playing' && (
-          <motion.div
-            key={`level-${level.id}`}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.35 }}
-            style={{ width: '100%', height: '100%' }}
-          >
-            <LevelScreen
-              key={level.id}
-              levelConfig={level}
-              participantId={PARTICIPANT_ID}
-              onComplete={handleLevelComplete}
-              onStrategyCard={handleShowStrategyCard}
-            />
-          </motion.div>
-        )}
+        {/* ── Header ── */}
+        <motion.header
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0,
+            height: HEADER_H, padding: '0 24px',
+            background: t.headerBg,
+            borderBottom: `1.5px solid ${t.headerBorder}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            zIndex: 50,
+            boxSizing: 'border-box',
+            transition: 'background 0.5s, border-color 0.5s',
+            // No radial glow / bright spot — clean solid shadow only
+            boxShadow: theme === 'light'
+              ? '0 2px 12px rgba(20,184,166,0.10)'
+              : '0 2px 20px rgba(0,0,0,0.6)',
+          }}
+        >
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              style={{ fontSize: 22 }}
+            >🚀</motion.div>
+            <h1 style={{
+              fontSize: 17, fontWeight: 900, color: t.headerTitle,
+              letterSpacing: 6, fontFamily: 'monospace', margin: 0,
+              transition: 'color 0.5s',
+            }}>
+              STARLOST
+            </h1>
+          </div>
 
-        {appPhase === 'strategy-card' && (
-          <motion.div
-            key="strategy-card"
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.4 }}
-            style={{ width: '100%', height: '100%' }}
-          >
-            <StrategyCardScreen
-              levelId={level.id}
-              participantId={PARTICIPANT_ID}
-              onDone={handleStrategyCardDone}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+          {/* Center tagline */}
+          <p style={{
+            fontSize: 11, color: t.headerSub,
+            fontFamily: 'monospace', letterSpacing: 2, margin: 0,
+            transition: 'color 0.5s',
+            fontWeight: 700,
+          }}>
+            Help LUMA find the way home.
+          </p>
+
+          {/* Theme toggle */}
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+        </motion.header>
+
+        {/* ── Game screens ── */}
+        <AnimatePresence mode="wait">
+          {appPhase === 'playing' && (
+            <motion.div
+              key={`level-${level.id}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.35 }}
+              style={{ width: '100%', height: '100%' }}
+            >
+              <LevelScreen
+                key={level.id}
+                levelConfig={level}
+                participantId={PARTICIPANT_ID}
+                onComplete={handleLevelComplete}
+                onStrategyCard={handleShowStrategyCard}
+              />
+            </motion.div>
+          )}
+
+          {appPhase === 'strategy-card' && (
+            <motion.div
+              key="strategy-card"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.4 }}
+              style={{ width: '100%', height: '100%' }}
+            >
+              <StrategyCardScreen
+                levelId={level.id}
+                participantId={PARTICIPANT_ID}
+                onDone={handleStrategyCardDone}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </ThemeContext.Provider>
   )
 }

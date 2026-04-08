@@ -1,7 +1,9 @@
 // GameGrid.jsx
+import { useContext } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import LumaSprite from './LumaSprite'
 import CrashSiteBackground from './CrashSiteBackground'
+import { ThemeContext } from '../context/theme'
 
 const DEFAULT_TILE_SIZE = 104
 
@@ -949,6 +951,9 @@ export default function GameGrid({
   // effectiveLevel: merged level with generated walls/objects (from useGameState)
   effectiveLevel,
 }) {
+  const theme = useContext(ThemeContext)
+  const isLight = theme === 'light'
+
   // Use effectiveLevel if provided, otherwise fall back to levelConfig
   const activeLevel = effectiveLevel ?? levelConfig
   const { grid, walls = [], objects = [], goal } = activeLevel
@@ -969,9 +974,16 @@ export default function GameGrid({
     predictionResult === 'wrong'   ? '#fb7185' :
     '#38bdf8'
 
+  // Theme-specific label colors
+  const scanLabelColor  = isLight ? '#0d9488' : '#2dd4bf'
+  const coordLabelColor = isLight ? '#0d6e66' : '#64748b'
+  const gridBoxShadow   = isLight
+    ? '0 4px 32px rgba(20,184,166,0.18), 0 0 0 2px #14b8a644'
+    : '0 0 60px rgba(45,212,191,0.08), 0 0 0 1.5px #1e2a42'
+
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
-      <div style={{ fontSize:9, color:'#2dd4bf', fontFamily:'monospace', letterSpacing:3, opacity:0.5 }}>
+      <div style={{ fontSize:9, color: scanLabelColor, fontFamily:'monospace', letterSpacing:3, opacity: isLight ? 0.9 : 0.5, fontWeight: isLight ? 700 : 400 }}>
         ◈ ORBITAL SCAN — CRASH SITE W1
       </div>
 
@@ -985,6 +997,7 @@ export default function GameGrid({
               background:'rgba(56,189,248,0.08)',
               border:'1px solid #38bdf822',
               borderRadius:6, padding:'4px 12px',
+              fontWeight: 700,
             }}
           >
             🎯 TAP A TILE TO SET YOUR PREDICTION
@@ -995,7 +1008,7 @@ export default function GameGrid({
       <div style={{
         position:'relative', width: gridWidth, height: gridHeight,
         borderRadius: 12, overflow: 'hidden',
-        boxShadow:'0 0 60px rgba(45,212,191,0.08), 0 0 0 1.5px #1e2a42',
+        boxShadow: gridBoxShadow,
         cursor: predictionModeActive ? 'crosshair' : 'default',
       }}>
         <CrashSiteBackground width={gridWidth} height={gridHeight} cols={cols} rows={rows} />
@@ -1042,7 +1055,7 @@ export default function GameGrid({
                       position:'absolute', top:'50%', left:'50%',
                       transform:'translate(-50%,-50%)',
                       fontSize:10, color: predictionHighlight,
-                      fontFamily:'monospace',
+                      fontFamily:'monospace', fontWeight: 700,
                     }}>
                       {predictionResult === 'correct' ? '✓' : predictionResult === 'wrong' ? '✗' : '?'}
                     </span>
@@ -1089,7 +1102,7 @@ export default function GameGrid({
         )}
 
         <div style={{ position:'absolute', inset:0, zIndex:7, pointerEvents:'none' }}>
-          <LumaSprite x={luma.x} y={luma.y} rotateDeg={luma.rotateDeg ?? 0} tileSize={TILE_SIZE} showFacing={sptCorrect || !!levelConfig.skipIdentify} />
+          <LumaSprite x={luma.x} y={luma.y} facing={luma.facing} rotateDeg={luma.rotateDeg ?? 0} tileSize={TILE_SIZE} showFacing={sptCorrect || !!levelConfig.skipIdentify} />
         </div>
 
         <AnimatePresence>
@@ -1107,7 +1120,7 @@ export default function GameGrid({
         </AnimatePresence>
       </div>
 
-      <div style={{ fontSize:9, color:'#1e3040', fontFamily:'monospace', letterSpacing:2 }}>
+      <div style={{ fontSize:9, color: coordLabelColor, fontFamily:'monospace', letterSpacing:2, fontWeight: isLight ? 600 : 400 }}>
         LUMA [{luma.x},{luma.y}]{sptCorrect ? ` · ${luma.facing.toUpperCase()}` : ' · FACING UNKNOWN'}
       </div>
     </div>
