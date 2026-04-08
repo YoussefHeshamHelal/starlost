@@ -427,6 +427,11 @@ function PaletteBtn({ cmd, onAdd, disabled, theme }) {
   const isLight = theme === 'light'
   const color = isLight ? m.color : m.darkColor
   const chipBg = isLight ? m.bg : m.darkBg
+  const tutorialId = cmd === 'F'
+    ? 'command-forward'
+    : cmd === 'TL' || cmd === 'TR'
+      ? 'command-turn'
+      : undefined
   return (
     <motion.button
       whileTap={{ scale: 0.94 }}
@@ -437,6 +442,7 @@ function PaletteBtn({ cmd, onAdd, disabled, theme }) {
         e.dataTransfer.effectAllowed = 'copy'
       }}
       disabled={disabled}
+      data-tutorial-id={tutorialId}
       style={{
         flex: 1, padding: '10px 4px',
         background: chipBg,
@@ -492,7 +498,7 @@ export default function CommandBuilder({
   }
 
   return (
-    <div style={{
+    <div data-tutorial-id="command-builder" style={{
       display: 'flex',
       flexDirection: 'column',
       gap: 10,
@@ -525,6 +531,7 @@ export default function CommandBuilder({
           whileTap={{ scale: 0.96 }}
           onClick={onVisorFlip}
           disabled={visorFlipCount >= 3}
+          data-tutorial-id="visor-flip-button"
           style={{
             width: '100%',
             padding: '9px 12px',
@@ -577,7 +584,7 @@ export default function CommandBuilder({
       </AnimatePresence>
 
       {/* ── COMMAND PALETTE ── */}
-      <div style={{ flexShrink: 0 }}>
+      <div style={{ flexShrink: 0 }} data-tutorial-id="command-palette">
         <p style={{ fontSize:11, color: t.subLabel, fontFamily:'monospace', letterSpacing:1, marginBottom:7, fontWeight: 800 }}>
           TAP OR DRAG TO ADD
         </p>
@@ -631,6 +638,7 @@ export default function CommandBuilder({
 
         {/* Scrollable container */}
         <div
+          data-tutorial-id="sequence-area"
           style={{
             flex: 1,
             minHeight: 0,
@@ -683,6 +691,7 @@ export default function CommandBuilder({
             whileTap={{ scale: 0.97 }}
             onClick={onReset}
             disabled={isRunning}
+            data-tutorial-id="reset-button"
             style={{
               width: '100%',
               padding: '11px 0',
@@ -708,6 +717,7 @@ export default function CommandBuilder({
         whileTap={{ scale: 0.97 }}
         onClick={onRun}
         disabled={isDisabled}
+        data-tutorial-id="run-button"
         style={{
           width: '100%',
           padding: '13px 0',

@@ -980,10 +980,13 @@ export default function GameGrid({
   const gridBoxShadow   = isLight
     ? '0 4px 32px rgba(20,184,166,0.18), 0 0 0 2px #14b8a644'
     : '0 0 60px rgba(45,212,191,0.08), 0 0 0 1.5px #1e2a42'
+  const firstRock = walls[0] ?? objects.find(objectItem => objectItem.type === 'rock') ?? null
+  const shipParts = objects.filter(objectItem => objectItem.type === 'ship_part')
+  const firstShipFragment = shipParts.find((part, index) => !collectedParts.has(index)) ?? null
 
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
-      <div style={{ fontSize:9, color: scanLabelColor, fontFamily:'monospace', letterSpacing:3, opacity: isLight ? 0.9 : 0.5, fontWeight: isLight ? 700 : 400 }}>
+      <div data-tutorial-id="grid-label" style={{ fontSize:9, color: scanLabelColor, fontFamily:'monospace', letterSpacing:3, opacity: isLight ? 0.9 : 0.5, fontWeight: isLight ? 700 : 400 }}>
         ◈ ORBITAL SCAN — CRASH SITE W1
       </div>
 
@@ -1005,7 +1008,7 @@ export default function GameGrid({
         )}
       </AnimatePresence>
 
-      <div style={{
+      <div data-tutorial-id="grid-panel" style={{
         position:'relative', width: gridWidth, height: gridHeight,
         borderRadius: 12, overflow: 'hidden',
         boxShadow: gridBoxShadow,
@@ -1023,6 +1026,13 @@ export default function GameGrid({
               <div
                 key={`${col}-${row}`}
                 onClick={() => predictionModeActive && onTileClick && onTileClick(col, row)}
+                data-tutorial-id={
+                  luma.x === col && luma.y === row ? 'luma-marker'
+                  : isGoal ? 'goal-marker'
+                  : firstRock && firstRock.x === col && firstRock.y === row ? 'rock-tile'
+                  : firstShipFragment && firstShipFragment.x === col && firstShipFragment.y === row ? 'ship-fragment-tile'
+                  : undefined
+                }
                 style={{
                   position:'absolute', left: col * TILE_SIZE, top: row * TILE_SIZE,
                   width: TILE_SIZE, height: TILE_SIZE, zIndex: 2,
@@ -1094,11 +1104,13 @@ export default function GameGrid({
         )}
 
         {levelConfig.fog && (
-          <FogOverlay
-            gridWidth={gridWidth} gridHeight={gridHeight}
-            cols={cols} rows={rows}
-            luma={luma} sptCorrect={sptCorrect}
-          />
+          <div data-tutorial-id="fog-area" style={{ position:'absolute', inset:0, zIndex:6, pointerEvents:'none' }}>
+            <FogOverlay
+              gridWidth={gridWidth} gridHeight={gridHeight}
+              cols={cols} rows={rows}
+              luma={luma} sptCorrect={sptCorrect}
+            />
+          </div>
         )}
 
         <div style={{ position:'absolute', inset:0, zIndex:7, pointerEvents:'none' }}>
@@ -1120,7 +1132,7 @@ export default function GameGrid({
         </AnimatePresence>
       </div>
 
-      <div style={{ fontSize:9, color: coordLabelColor, fontFamily:'monospace', letterSpacing:2, fontWeight: isLight ? 600 : 400 }}>
+      <div data-tutorial-id="luma-coords" style={{ fontSize:9, color: coordLabelColor, fontFamily:'monospace', letterSpacing:2, fontWeight: isLight ? 600 : 400 }}>
         LUMA [{luma.x},{luma.y}]{sptCorrect ? ` · ${luma.facing.toUpperCase()}` : ' · FACING UNKNOWN'}
       </div>
     </div>

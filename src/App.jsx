@@ -1,9 +1,15 @@
-import { useState, useCallback, memo } from 'react'
+import { useState, useCallback, useEffect, useMemo, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LEVELS } from './data/levels'
+import {
+  getFeatureTutorialSteps,
+  getLevelTutorialSteps,
+  getTutorialFeatureKeys,
+} from './data/tutorials'
 import { useGameState } from './hooks/useGameState'
 import GameGrid from './components/GameGrid'
 import CommandBuilder from './components/CommandBuilder'
+import TutorialOverlay from './components/TutorialOverlay'
 import { logGBI } from './logGBI'
 import { ThemeContext, useTheme, THEMES } from './context/theme'
 
@@ -97,7 +103,7 @@ const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain }) {
   const theme = useTheme()
   const t = THEMES[theme]
   return (
-    <div style={{
+    <div data-tutorial-id="radio-panel" style={{
       background: radioIsUncertain ? t.radioUncBg : t.radioBg,
       border: `1.5px solid ${radioIsUncertain ? t.radioUncBorder : t.radioBorder}`,
       borderRadius: 10,
@@ -271,6 +277,7 @@ const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, s
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
+      data-tutorial-id="spt-panel"
       style={{
         background: t.sptBg,
         border: `1.5px solid ${t.sptBorder}`,
@@ -495,7 +502,7 @@ function SuccessScreen({ levelId, onNext }) {
         zIndex: 80, background: t.overlayBg, backdropFilter: 'blur(8px)',
       }}
     >
-      <div style={{
+      <div data-tutorial-id="success-card" style={{
         background: t.successCardBg,
         border: `2px solid ${t.successBorder}`, borderRadius: 20,
         padding: '36px 44px', maxWidth: 440, textAlign: 'center',
@@ -851,9 +858,52 @@ function StrategyCardScreen({ levelId, participantId, onDone }) {
   )
 }
 
+const TUTORIAL_LEVELS_KEY = 'starlost:tutorial:levels'
+const TUTORIAL_FEATURES_KEY = 'starlost:tutorial:features'
+
+function readTutorialSessionSet(key) {
+  try {
+    const raw = sessionStorage.getItem(key)
+    if (!raw) return new Set()
+    const parsed = JSON.parse(raw)
+    return new Set(Array.isArray(parsed) ? parsed : [])
+  } catch {
+    return new Set()
+  }
+}
+
+function writeTutorialSessionSet(key, values) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(Array.from(values)))
+  } catch {
+    // Ignore storage failures and keep the tutorial usable in-memory.
+  }
+}
+
+function markTutorialPlanSeen(plan, levelId) {
+  const levelSteps = plan.filter(step => step.scope === 'level')
+  if (levelSteps.length > 0) {
+    const seenLevels = readTutorialSessionSet(TUTORIAL_LEVELS_KEY)
+    seenLevels.add(String(levelId))
+    writeTutorialSessionSet(TUTORIAL_LEVELS_KEY, seenLevels)
+  }
+
+  const featureSteps = plan.filter(step => step.scope === 'feature')
+  if (featureSteps.length > 0) {
+    const seenFeatures = readTutorialSessionSet(TUTORIAL_FEATURES_KEY)
+    featureSteps.forEach(step => {
+      if (step.featureKey) seenFeatures.add(step.featureKey)
+    })
+    writeTutorialSessionSet(TUTORIAL_FEATURES_KEY, seenFeatures)
+  }
+}
+
+
 // ── Level Screen ──────────────────────────────────────────────────────────────
 function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard }) {
   const [animSpeed, setAnimSpeed] = useState(50)
+  const [tutorialSteps, setTutorialSteps] = useState([])
+  const [tutorialIndex, setTutorialIndex] = useState(0)
   const theme = useTheme()
   const t = THEMES[theme]
 
@@ -872,11 +922,144 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
     effectiveLevel, getGBISnapshot,
   } = useGameState(levelConfig, animSpeed)
 
+  const tutorialContext = useMemo(() => ({
+    phase,
+    sequence,
+    isRunning,
+    needsReset,
+    visorActive,
+    sptAnswer,
+    sptCorrect,
+    visorFlipCount,
+    collectedPartsCount: collectedParts.size,
+    predictionTile,
+    predictionResult,
+    levelConfig,
+    effectiveLevel,
+  }), [
+    collectedParts,
+    effectiveLevel,
+    isRunning,
+    levelConfig,
+    needsReset,
+    phase,
+    predictionResult,
+    predictionTile,
+    sequence,
+    sptAnswer,
+    sptCorrect,
+    visorActive,
+    visorFlipCount,
+  ])
+
+  const tutorialFeatureKeys = useMemo(
+    () => getTutorialFeatureKeys(levelConfig, effectiveLevel),
+    [effectiveLevel, levelConfig]
+  )
+
+  const currentTutorialStep = tutorialSteps[tutorialIndex] ?? null
+
+  const closeTutorial = useCallback(() => {
+    setTutorialSteps([])
+    setTutorialIndex(0)
+  }, [])
+
+  const startTutorial = useCallback((steps, { persist = false } = {}) => {
+    if (!steps.length) {
+      closeTutorial()
+      return
+    }
+    if (persist) markTutorialPlanSeen(steps, levelConfig.id)
+    setTutorialSteps(steps)
+    setTutorialIndex(0)
+  }, [closeTutorial, levelConfig.id])
+
+  useEffect(() => {
+    const seenLevels = readTutorialSessionSet(TUTORIAL_LEVELS_KEY)
+    const seenFeatures = readTutorialSessionSet(TUTORIAL_FEATURES_KEY)
+
+    let nextTutorialPlan = []
+
+    if (levelConfig.id === 1) {
+      if (!seenLevels.has(String(levelConfig.id))) {
+        nextTutorialPlan = getLevelTutorialSteps(levelConfig.id)
+      }
+    } else {
+      const unseenFeatureKeys = tutorialFeatureKeys.filter(featureKey => !seenFeatures.has(featureKey))
+      nextTutorialPlan = getFeatureTutorialSteps(unseenFeatureKeys)
+    }
+
+    const timer = window.setTimeout(() => {
+      if (nextTutorialPlan.length > 0) {
+        startTutorial(nextTutorialPlan, { persist: true })
+      } else {
+        closeTutorial()
+      }
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [closeTutorial, levelConfig.id, startTutorial, tutorialFeatureKeys])
+
+  useEffect(() => {
+    if (!currentTutorialStep) return
+
+    if (currentTutorialStep.closeWhen?.(tutorialContext)) {
+      const timer = window.setTimeout(() => {
+        closeTutorial()
+      }, 0)
+
+      return () => window.clearTimeout(timer)
+    }
+
+    if (currentTutorialStep.completeWhen?.(tutorialContext)) {
+      const timer = window.setTimeout(() => {
+        setTutorialIndex(index => {
+          const nextIndex = index + 1
+          if (nextIndex >= tutorialSteps.length) {
+            closeTutorial()
+            return 0
+          }
+          return nextIndex
+        })
+      }, 220)
+
+      return () => window.clearTimeout(timer)
+    }
+  }, [closeTutorial, currentTutorialStep, tutorialContext, tutorialSteps.length])
+
   const handleReorder = useCallback((newSeq) => {
     if (setSequence) setSequence(newSeq)
   }, [setSequence])
 
   const handleVisorClose = useCallback(() => closeVisor(), [closeVisor])
+  const handleAnswerSPT = useCallback((answer) => answerSPT(answer), [answerSPT])
+  const handleFlipVisor = useCallback(() => flipVisor(), [flipVisor])
+  const handleAddCommand = useCallback((cmd) => addCommand(cmd), [addCommand])
+  const handleRunSequence = useCallback(() => runSequence(), [runSequence])
+  const handleResetLuma = useCallback(() => resetLuma(), [resetLuma])
+  const canReplayTutorial = levelConfig.id !== 4 || phase === 'develop'
+  const handleReplayTutorial = useCallback(() => {
+    if (!canReplayTutorial) return
+
+    const replayPlan = levelConfig.id === 1
+      ? getLevelTutorialSteps(levelConfig.id)
+      : getFeatureTutorialSteps(tutorialFeatureKeys)
+
+    startTutorial(replayPlan, { persist: false })
+  }, [canReplayTutorial, levelConfig.id, startTutorial, tutorialFeatureKeys])
+  const handleTutorialNext = useCallback(() => {
+    setTutorialIndex(index => {
+      const nextIndex = index + 1
+      if (nextIndex >= tutorialSteps.length) {
+        closeTutorial()
+        return 0
+      }
+      return nextIndex
+    })
+  }, [closeTutorial, tutorialSteps.length])
+  const handleTutorialBack = useCallback(() => {
+    setTutorialIndex(index => Math.max(0, index - 1))
+  }, [])
 
   const predictionModeActive =
     levelConfig.predictionPrompt &&
@@ -920,7 +1103,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         flexShrink: 0,
       }}>
-        <div>
+        <div data-tutorial-id="level-title">
           <p style={{
             fontSize: 10,
             color: t.levelLabel,
@@ -929,16 +1112,39 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
           }}>
             LEVEL {levelConfig.id} — {levelConfig.world?.toUpperCase()}
           </p>
-          <h2 style={{
-            fontSize: 20, fontWeight: 900,
-            color: t.levelTitle,
-            letterSpacing: 1, margin: 0,
-          }}>
-            {levelConfig.name}
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <h2 style={{
+              fontSize: 20, fontWeight: 900,
+              color: t.levelTitle,
+              letterSpacing: 1, margin: 0,
+            }}>
+              {levelConfig.name}
+            </h2>
+            <button
+              onClick={handleReplayTutorial}
+              disabled={!canReplayTutorial}
+              style={{
+                padding: '8px 14px',
+                borderRadius: 999,
+                border: `1.5px solid ${theme === 'light' ? '#85d9eb' : '#1f4d61'}`,
+                background: theme === 'light'
+                  ? 'rgba(255,255,255,0.74)'
+                  : 'rgba(6,12,22,0.8)',
+                color: canReplayTutorial
+                  ? (theme === 'light' ? '#14557f' : '#d8fdfa')
+                  : (theme === 'light' ? '#8ba5ba' : '#6c8598'),
+                fontSize: 11,
+                fontWeight: 800,
+                cursor: canReplayTutorial ? 'pointer' : 'not-allowed',
+                opacity: canReplayTutorial ? 1 : 0.6,
+              }}
+            >
+              Replay Tutorial
+            </button>
+          </div>
         </div>
         {!levelConfig.skipIdentify && (
-          <div style={{
+          <div data-tutorial-id="phase-badge" style={{
             padding: '5px 16px',
             background: phase === 'identify' ? t.identBadgeBg : t.devBadgeBg,
             border: `1.5px solid ${phase === 'identify' ? t.identBadgeBd : t.devBadgeBd}`,
@@ -1007,11 +1213,11 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
               >
                 <SPTQuestion
                   question={levelConfig.sptQuestion}
-                  onAnswer={answerSPT}
+                  onAnswer={handleAnswerSPT}
                   sptAnswer={sptAnswer}
                   sptCorrect={sptCorrect}
                   visorFlipCount={visorFlipCount}
-                  onVisorFlip={flipVisor}
+                  onVisorFlip={handleFlipVisor}
                   radioIsUncertain={radioIsUncertain}
                   showVisorFlip={!levelConfig.noVisorFlip}
                 />
@@ -1027,26 +1233,28 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
                 style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}
               >
                 {levelConfig.predictionPrompt && (
-                  <PredictionBanner
-                    predictionTile={predictionTile}
-                    predictionResult={predictionResult}
-                    levelConfig={levelConfig}
-                  />
+                  <div data-tutorial-id="prediction-banner">
+                    <PredictionBanner
+                      predictionTile={predictionTile}
+                      predictionResult={predictionResult}
+                      levelConfig={levelConfig}
+                    />
+                  </div>
                 )}
                 <CommandBuilder
                   sequence={sequence}
                   isRunning={isRunning}
                   isMirrored={isMirrored}
-                  onAdd={addCommand}
+                  onAdd={handleAddCommand}
                   onRemove={removeLastCommand}
                   onClear={clearSequence}
-                  onRun={runSequence}
+                  onRun={handleRunSequence}
                   visorFlipCount={visorFlipCount}
-                  onVisorFlip={flipVisor}
+                  onVisorFlip={handleFlipVisor}
                   phase={phase}
                   onReorder={handleReorder}
                   needsReset={needsReset}
-                  onReset={resetLuma}
+                  onReset={handleResetLuma}
                   panelWidth={panelW}
                   runBlocked={runBlocked}
                   speed={animSpeed}
@@ -1069,6 +1277,17 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
           <MissedFragmentsAlert onDismiss={dismissMissedFragments} />
         )}
       </AnimatePresence>
+      {currentTutorialStep && (!currentTutorialStep.showWhen || currentTutorialStep.showWhen(tutorialContext)) && (
+        <TutorialOverlay
+          step={currentTutorialStep}
+          stepIndex={tutorialIndex}
+          totalSteps={tutorialSteps.length}
+          onBack={handleTutorialBack}
+          onNext={handleTutorialNext}
+          onSkip={closeTutorial}
+          canGoBack={tutorialIndex > 0}
+        />
+      )}
     </div>
   )
 }
