@@ -74,7 +74,7 @@ function ThemeToggle({ theme, onToggle }) {
         transition: 'all 0.3s',
         fontWeight: 700,
         boxShadow: theme === 'light'
-          ? '0 2px 10px rgba(20,184,166,0.18)'
+          ? '0 10px 22px rgba(54,131,201,0.16), inset 0 1px 0 rgba(255,255,255,0.65)'
           : '0 2px 12px rgba(45,212,191,0.08)',
       }}
     >
@@ -108,13 +108,13 @@ const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain }) {
       position: 'relative',
       transition: 'border-color 0.4s, background 0.4s',
       boxShadow: theme === 'light'
-        ? '0 2px 16px rgba(20,184,166,0.12)'
+        ? '0 14px 28px rgba(55,117,182,0.10), 0 6px 18px rgba(69,214,226,0.14)'
         : '0 2px 16px rgba(0,0,0,0.4)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
         <p style={{
           fontSize: 9,
-          color: radioIsUncertain ? '#f59e0b' : (theme === 'light' ? '#0d8a7c' : '#2dd4bf'),
+          color: radioIsUncertain ? '#f59e0b' : (theme === 'light' ? '#1579ac' : '#2dd4bf'),
           fontFamily: 'monospace', letterSpacing: 3, margin: 0,
           fontWeight: 800,
         }}>
@@ -280,13 +280,13 @@ const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, s
         boxSizing: 'border-box',
         display: 'flex', flexDirection: 'column', gap: 16,
         boxShadow: theme === 'light'
-          ? '0 4px 28px rgba(20,184,166,0.14)'
+          ? '0 18px 34px rgba(71,140,206,0.12), 0 8px 22px rgba(56,201,221,0.14)'
           : '0 4px 28px rgba(0,0,0,0.5)',
       }}
     >
       <p style={{
         fontSize: 10,
-        color: theme === 'light' ? '#0d8a7c' : '#2dd4bf',
+        color: theme === 'light' ? '#1579ac' : '#2dd4bf',
         fontFamily: 'monospace', letterSpacing: 3, margin: 0, fontWeight: 800,
       }}>
         PHASE 1 — IDENTIFY
@@ -330,10 +330,10 @@ const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, s
         <div style={{
           gridArea: 'center',
           width: 22, height: 22, borderRadius: '50%',
-          border: `1.5px solid ${theme === 'light' ? '#14b8a666' : '#2dd4bf44'}`,
+          border: `1.5px solid ${theme === 'light' ? '#38c9dd66' : '#2dd4bf44'}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <div style={{ width: 5, height: 5, borderRadius: '50%', background: theme === 'light' ? '#14b8a666' : '#2dd4bf44' }}/>
+          <div style={{ width: 5, height: 5, borderRadius: '50%', background: theme === 'light' ? '#38c9dd66' : '#2dd4bf44' }}/>
         </div>
         {question.options.map(option => {
           const isSelected = sptAnswer === option
@@ -438,7 +438,7 @@ function MissedFragmentsAlert({ onDismiss }) {
         background: t.alertCardBg,
         border: `2px solid ${t.alertBorder}`, borderRadius: 20,
         padding: '36px 44px', maxWidth: 440, textAlign: 'center',
-        boxShadow: `0 0 60px rgba(245,158,11,0.28), 0 0 0 1px ${t.alertBorder}44`,
+        boxShadow: `0 18px 38px rgba(245,158,11,0.18), 0 10px 24px rgba(255,153,51,0.16), 0 0 0 1px ${t.alertBorder}44`,
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
       }}>
         <motion.div
@@ -464,7 +464,7 @@ function MissedFragmentsAlert({ onDismiss }) {
           onClick={onDismiss}
           style={{
             padding: '13px 32px',
-            background: 'rgba(245,158,11,0.13)',
+            background: 'linear-gradient(135deg, rgba(255,196,93,0.18), rgba(255,234,185,0.10))',
             border: '2px solid #f59e0b',
             borderRadius: 10, color: '#f59e0b',
             fontFamily: 'monospace', fontSize: 13, letterSpacing: 2,
@@ -499,7 +499,7 @@ function SuccessScreen({ levelId, onNext }) {
         background: t.successCardBg,
         border: `2px solid ${t.successBorder}`, borderRadius: 20,
         padding: '36px 44px', maxWidth: 440, textAlign: 'center',
-        boxShadow: `0 0 60px rgba(20,184,166,0.25), 0 0 0 1px ${t.successBorder}44`,
+        boxShadow: `0 18px 38px rgba(32,201,151,0.18), 0 10px 24px rgba(47,201,223,0.14), 0 0 0 1px ${t.successBorder}44`,
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
       }}>
         <motion.div
@@ -511,7 +511,7 @@ function SuccessScreen({ levelId, onNext }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <h2 style={{
             fontSize: 22,
-            color: theme === 'light' ? '#0a5c55' : '#2dd4bf',
+            color: theme === 'light' ? '#124b73' : '#2dd4bf',
             fontFamily: 'monospace', letterSpacing: 3, margin: 0, fontWeight: 800,
           }}>
             LEVEL {levelId} COMPLETE
@@ -526,10 +526,10 @@ function SuccessScreen({ levelId, onNext }) {
           onClick={onNext}
           style={{
             padding: '14px 38px',
-            background: theme === 'light' ? 'rgba(20,184,166,0.13)' : 'rgba(45,212,191,0.13)',
-            border: `2px solid ${theme === 'light' ? '#14b8a6' : '#2dd4bf'}`,
+            background: theme === 'light' ? 'linear-gradient(135deg, rgba(45,201,223,0.18), rgba(139,92,246,0.10))' : 'rgba(45,212,191,0.13)',
+            border: `2px solid ${theme === 'light' ? '#2fc9df' : '#2dd4bf'}`,
             borderRadius: 10,
-            color: theme === 'light' ? '#0a5c55' : '#2dd4bf',
+            color: theme === 'light' ? '#124b73' : '#2dd4bf',
             fontFamily: 'monospace', fontSize: 13, letterSpacing: 2,
             cursor: 'pointer',
             fontWeight: 800,
@@ -618,7 +618,7 @@ function StrategyCard({ card, selected, onSelect }) {
         boxShadow: isSelected
           ? `0 0 40px ${card.glow}, 0 0 0 1px ${card.border}44`
           : theme === 'light'
-            ? '0 4px 28px rgba(20,184,166,0.12)'
+            ? '0 16px 32px rgba(74,144,226,0.12), 0 8px 22px rgba(55,201,223,0.14)'
             : '0 4px 24px rgba(0,0,0,0.5)',
         transition: 'border-color 0.2s, background 0.2s, box-shadow 0.2s',
         overflow: 'hidden', textAlign: 'center', userSelect: 'none',
@@ -647,7 +647,7 @@ function StrategyCard({ card, selected, onSelect }) {
         {card.emoji}
       </motion.div>
       <div style={{
-        background: isSelected ? `${card.border}22` : (theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'),
+        background: isSelected ? `${card.border}22` : (theme === 'light' ? 'rgba(219,236,248,0.68)' : 'rgba(255,255,255,0.05)'),
         border: `1px solid ${isSelected ? card.border : t.stratCardBd}`,
         borderRadius: 20, padding: '3px 14px',
         fontSize: 10, fontFamily: 'monospace', letterSpacing: 2,
@@ -659,7 +659,7 @@ function StrategyCard({ card, selected, onSelect }) {
       <p style={{ fontSize: 16, fontWeight: 800, color: isSelected ? card.color : t.textPrimary, lineHeight: 1.3, margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s' }}>
         {card.title}
       </p>
-      <p style={{ fontSize: 13, color: isSelected ? (theme === 'light' ? '#1a3a38' : '#c8d8e8') : t.textSecondary, lineHeight: 1.55, margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s', fontWeight: 500 }}>
+      <p style={{ fontSize: 13, color: isSelected ? (theme === 'light' ? '#1f4266' : '#c8d8e8') : t.textSecondary, lineHeight: 1.55, margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s', fontWeight: 500 }}>
         {card.description}
       </p>
       <p style={{ fontSize: 12, color: isSelected ? card.color : t.textMuted, fontFamily: 'monospace', fontStyle: 'italic', margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s', fontWeight: isSelected ? 700 : 500 }}>
@@ -748,9 +748,9 @@ function StrategyCardScreen({ levelId, participantId, onDone }) {
           borderRadius: 14,
           padding: '16px 20px',
           position: 'relative',
-          boxShadow: theme === 'light'
-            ? '0 4px 20px rgba(20,184,166,0.12)'
-            : '0 4px 24px rgba(0,0,0,0.4)',
+            boxShadow: theme === 'light'
+              ? '0 14px 28px rgba(73,137,203,0.14), 0 6px 18px rgba(55,201,221,0.12)'
+              : '0 4px 24px rgba(0,0,0,0.4)',
         }}>
           <div style={{
             position: 'absolute', left: -10, top: '50%', transform: 'translateY(-50%)',
@@ -761,7 +761,7 @@ function StrategyCardScreen({ levelId, participantId, onDone }) {
           }}/>
           <p style={{
             fontSize: 10,
-            color: theme === 'light' ? '#0d8a7c' : '#2dd4bf',
+            color: theme === 'light' ? '#1579ac' : '#2dd4bf',
             fontFamily: 'monospace', letterSpacing: 2, margin: '0 0 6px 0', fontWeight: 800,
           }}>
             LUMA SAYS
@@ -803,16 +803,16 @@ function StrategyCardScreen({ levelId, participantId, onDone }) {
                 padding: '15px 52px',
                 background: selected
                   ? (theme === 'light'
-                    ? 'linear-gradient(135deg, rgba(20,184,166,0.20), rgba(20,184,166,0.10))'
+                    ? 'linear-gradient(135deg, rgba(45,201,223,0.20), rgba(139,92,246,0.12))'
                     : 'linear-gradient(135deg, rgba(45,212,191,0.18), rgba(45,212,191,0.08))')
-                  : (theme === 'light' ? 'rgba(200,230,228,0.4)' : 'rgba(8,12,22,0.5)'),
-                border: `2px solid ${selected ? (theme === 'light' ? '#14b8a6' : '#2dd4bf') : t.panelBorderDim}`,
+                  : (theme === 'light' ? 'rgba(223,234,245,0.72)' : 'rgba(8,12,22,0.5)'),
+                border: `2px solid ${selected ? (theme === 'light' ? '#2fc9df' : '#2dd4bf') : t.panelBorderDim}`,
                 borderRadius: 14,
-                color: selected ? (theme === 'light' ? '#0a5c55' : '#2dd4bf') : t.textDim,
+                color: selected ? (theme === 'light' ? '#124b73' : '#2dd4bf') : t.textDim,
                 fontFamily: 'monospace', fontSize: 14, letterSpacing: 2.5,
                 cursor: selected ? 'pointer' : 'not-allowed',
                 transition: 'all 0.2s',
-                boxShadow: selected ? `0 0 30px rgba(20,184,166,0.20)` : 'none',
+                boxShadow: selected ? `0 14px 28px rgba(47,201,223,0.20)` : 'none',
                 fontWeight: 800,
               }}
             >
@@ -1127,7 +1127,7 @@ export default function App() {
             transition: 'background 0.5s, border-color 0.5s',
             // No radial glow / bright spot — clean solid shadow only
             boxShadow: theme === 'light'
-              ? '0 2px 12px rgba(20,184,166,0.10)'
+              ? '0 14px 28px rgba(69,131,199,0.12), inset 0 1px 0 rgba(255,255,255,0.72)'
               : '0 2px 20px rgba(0,0,0,0.6)',
           }}
         >

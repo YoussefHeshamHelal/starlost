@@ -124,6 +124,7 @@ const LumaEye = ({
   rx = 7.8, ry = 7.5,
   id = '',
   blinkDur = '3.8s',
+  showLowerHighlight = true,
 }) => (
   <g filter={`url(#ef${id})`}>
     <ellipse cx={cx} cy={cy} rx={rx + 2.2} ry={ry + 2} fill={`url(#es${id})`}/>
@@ -139,10 +140,12 @@ const LumaEye = ({
       cx={cx - rx * 0.27} cy={cy - ry * 0.28}
       rx={rx * 0.32} ry={ry * 0.28}
       fill="white" opacity="0.97"/>
-    <ellipse
-      cx={cx + rx * 0.18} cy={cy + ry * 0.16}
-      rx={rx * 0.13} ry={ry * 0.11}
-      fill="white" opacity="0.52"/>
+    {showLowerHighlight && (
+      <ellipse
+        cx={cx + rx * 0.18} cy={cy + ry * 0.16}
+        rx={rx * 0.13} ry={ry * 0.11}
+        fill="white" opacity="0.52"/>
+    )}
     <circle cx={cx - rx * 0.08} cy={cy - ry * 0.44} r={rx * 0.08} fill="white" opacity="0.72"/>
     <ellipse cx={cx} cy={cy} rx={rx} ry={ry}
       fill="none" stroke="#14002e" strokeWidth="0.6" opacity="0.5"/>
@@ -187,11 +190,11 @@ const Cheeks = ({ lx, ly, rx, ry, id = '' }) => (
 )
 
 // ─── Tiny smile ─────────────────────────────────────────────────────────────────
-const Smile = ({ cx, cy, w = 6 }) => (
+const Smile = ({ cx, cy, w = 7.2 }) => (
   <path
-    d={`M${cx - w / 2},${cy} Q${cx},${cy + 2.6} ${cx + w / 2},${cy}`}
-    stroke="#3decc8" strokeWidth="1.1" fill="none"
-    strokeLinecap="round" opacity="0.75"/>
+    d={`M${cx - w / 2},${cy - 0.1} Q${cx},${cy + 2.9} ${cx + w / 2},${cy - 0.1}`}
+    stroke="#3decc8" strokeWidth="1.2" fill="none"
+    strokeLinecap="round" strokeLinejoin="round" opacity="0.78"/>
 )
 
 // ─── Suit foot pad ──────────────────────────────────────────────────────────────
@@ -345,18 +348,15 @@ function FacingEast() {
       </ellipse>
 
       {/* ── FACE east side — ONE large eye ── */}
-      <LumaEye cx={42} cy={25} rx={7.5} ry={7.2} id={id} blinkDur="3.6s"/>
-      {/* Cheek blush east */}
-      <ellipse cx={49} cy={32} rx={4} ry={3} fill={`url(#ck${id})`}
-        opacity="0.8" filter={`url(#bf${id})`}/>
+      <LumaEye cx={42} cy={25} rx={7.5} ry={7.2} id={id} blinkDur="3.6s" showLowerHighlight={false}/>
       {/* Nose profile */}
       <path d="M47,30.5 Q50,33 47,35.5"
         stroke="#0a6050" strokeWidth="0.9" fill="none"
         strokeLinecap="round" opacity="0.4"/>
       {/* Mouth profile */}
-      <path d="M44,38 Q47,40.5 45,43"
-        stroke="#3decc8" strokeWidth="0.9" fill="none"
-        strokeLinecap="round" opacity="0.5"/>
+      <path d="M38.3,36.8 Q43.6,39.9 40.2,38.5"
+        stroke="#3decc8" strokeWidth="1.15" fill="none"
+        strokeLinecap="round" strokeLinejoin="round" opacity="0.64"/>
 
       {/* ── HELMET DOME side ── */}
       {/* Back dome half */}
@@ -413,15 +413,13 @@ function FacingWest() {
       </ellipse>
 
       {/* ONE eye — west side */}
-      <LumaEye cx={18} cy={25} rx={7.5} ry={7.2} id={id} blinkDur="3.6s"/>
-      <ellipse cx={11} cy={32} rx={4} ry={3} fill={`url(#ck${id})`}
-        opacity="0.8" filter={`url(#bf${id})`}/>
+      <LumaEye cx={18} cy={25} rx={7.5} ry={7.2} id={id} blinkDur="3.6s" showLowerHighlight={false}/>
       <path d="M13,30.5 Q10,33 13,35.5"
         stroke="#0a6050" strokeWidth="0.9" fill="none"
         strokeLinecap="round" opacity="0.4"/>
-      <path d="M16,38 Q13,40.5 15,43"
-        stroke="#3decc8" strokeWidth="0.9" fill="none"
-        strokeLinecap="round" opacity="0.5"/>
+      <path d="M21.7,36.8 Q16.4,39.9 19.8,38.5"
+        stroke="#3decc8" strokeWidth="1.15" fill="none"
+        strokeLinecap="round" strokeLinejoin="round" opacity="0.64"/>
 
       {/* Helmet dome west */}
       <ellipse cx={35} cy={27} rx={20} ry={23} fill="#0840601a"/>
@@ -485,62 +483,110 @@ function LumaCrouched({ size }) {
         </defs>
 
         {/* Ground glow */}
-        <ellipse cx={30} cy={60} rx={18} ry={4.5} fill="#34d399" opacity="0.12" filter="url(#cG)"/>
+        <ellipse cx={31} cy={60} rx={20} ry={4.8} fill="#34d399" opacity="0.12" filter="url(#cG)"/>
 
-        {/* Suit body crouched */}
-        <ellipse cx={30} cy={44} rx={13} ry={10} fill="url(#cSu)"/>
-        {/* Arms curled */}
-        <ellipse cx={14} cy={45} rx={5.5} ry={3.5} fill="url(#cSu)" opacity="0.85"
-          transform="rotate(-20,14,45)"/>
-        <ellipse cx={46} cy={45} rx={5.5} ry={3.5} fill="url(#cSu)" opacity="0.85"
-          transform="rotate(20,46,45)"/>
-        {/* Green hands */}
-        <ellipse cx={10} cy={48} rx={3.5} ry={2.6} fill="url(#cSk)"/>
-        <ellipse cx={50} cy={48} rx={3.5} ry={2.6} fill="url(#cSk)"/>
+        {/* Rear leg and planted foot */}
+        <path
+          d="M21,47 C18,49 17,52 18.5,55.5 C19.7,58 21.8,58.8 24,58.2 C25.5,57.8 26.1,56.6 25.4,55
+             C24.1,51.9 24.8,49.2 27.2,46.8"
+          fill="url(#cSu)" opacity="0.92"/>
+        <ellipse cx={22.6} cy={57.6} rx={6.4} ry={2.7}
+          fill="#0e1e28" stroke="#40d8f8" strokeWidth="0.75" opacity="0.78"
+          transform="rotate(-8,22.6,57.6)"/>
 
-        {/* Chest panel */}
-        <rect x={23} y={41} width={10} height={7} rx={1.8} fill="#101820" opacity="0.8"/>
-        <circle cx={26} cy={44} r={1.1} fill="#f87171" opacity="0.7"/>
-        <circle cx={30} cy={44} r={1.1} fill="#fbbf24" opacity="0.7"/>
+        {/* Front leg and forward foot */}
+        <path
+          d="M34.5,46.2 C39,48.4 41.8,51.2 42.4,54.8 C42.8,57.2 41.7,58.5 39.6,58.7
+             C36.8,59 34.2,57.8 33.1,55.2 C32.2,53.1 32.6,50.5 34.5,46.2"
+          fill="url(#cSu)"/>
+        <ellipse cx={39.4} cy={58.2} rx={7.2} ry={2.8}
+          fill="#0e1e28" stroke="#40d8f8" strokeWidth="0.8" opacity="0.88"
+          transform="rotate(7,39.4,58.2)"/>
+
+        {/* Hips / lower torso anchor */}
+        <ellipse cx={30.2} cy={46.6} rx={10.2} ry={7.7}
+          fill="url(#cSu)" transform="rotate(-10,30.2,46.6)"/>
+
+        {/* Upper torso leaning forward */}
+        <path
+          d="M20.8,41.8 C22.2,36.8 26.5,33.8 32.6,34.3 C37.8,34.7 41.2,37.5 41.6,41.9
+             C42.1,46.7 39.2,49.7 33.1,50 C25.5,50.4 19.6,47.2 20.8,41.8 Z"
+          fill="url(#cSu)"/>
+
+        {/* Protective shoulders */}
+        <ellipse cx={24} cy={39.2} rx={4.8} ry={3.7} fill="url(#cSu)"
+          transform="rotate(-28,24,39.2)"/>
+        <ellipse cx={36.5} cy={40} rx={4.8} ry={3.8} fill="url(#cSu)"
+          transform="rotate(26,36.5,40)"/>
+
+        {/* Arms tucked close with slight asymmetry */}
+        <ellipse cx={19.6} cy={46.2} rx={5.9} ry={3.2} fill="url(#cSu)" opacity="0.94"
+          transform="rotate(-34,19.6,46.2)"/>
+        <ellipse cx={39.8} cy={45.5} rx={6.1} ry={3.1} fill="url(#cSu)" opacity="0.92"
+          transform="rotate(24,39.8,45.5)"/>
+
+        {/* Green hands near knee/body */}
+        <ellipse cx={16.1} cy={49.1} rx={3.3} ry={2.5} fill="url(#cSk)"
+          transform="rotate(-18,16.1,49.1)"/>
+        <ellipse cx={43.8} cy={47.8} rx={3.4} ry={2.5} fill="url(#cSk)"
+          transform="rotate(14,43.8,47.8)"/>
+
+        {/* Chest panel angled with the lean */}
+        <g transform="rotate(-10,30.5,43.5)">
+          <rect x={25.5} y={40} width={10} height={7} rx={1.8} fill="#101820" opacity="0.82"/>
+          <circle cx={28.2} cy={43.2} r={1.1} fill="#f87171" opacity="0.72"/>
+          <circle cx={31.8} cy={43.2} r={1.1} fill="#fbbf24" opacity="0.72"/>
+          <rect x={27.3} y={45.2} width={6.2} height={1.2} rx={0.6} fill="#60c8f8" opacity="0.3"/>
+        </g>
 
         {/* Alien head skin — hunched forward */}
-        <ellipse cx={30} cy={24} rx={17} ry={19} fill="url(#cSk)"/>
+        <ellipse cx={31.2} cy={26} rx={17} ry={19} fill="url(#cSk)"
+          transform="rotate(13,31.2,26)"/>
 
         {/* Eyes closed */}
-        <path d="M17,26 Q21,23 25,26"
-          stroke="#3decc8" strokeWidth="1.5" fill="none"
-          strokeLinecap="round" opacity="0.55"/>
-        <path d="M35,26 Q39,23 43,26"
-          stroke="#3decc8" strokeWidth="1.5" fill="none"
-          strokeLinecap="round" opacity="0.55"/>
+        <g transform="rotate(13,31.2,26)">
+          <ellipse cx={21.9} cy={27.5} rx={8.1} ry={7.6} fill="#06000f" opacity="0.92"/>
+          <ellipse cx={40.2} cy={28.4} rx={7.8} ry={7.3} fill="#06000f" opacity="0.92"/>
+
+          <ellipse cx={22.3} cy={27.8} rx={6.2} ry={6.5} fill="#5b21b6"/>
+          <ellipse cx={40.1} cy={28.7} rx={6.0} ry={6.2} fill="#5b21b6"/>
+
+          <ellipse cx={22.5} cy={29.7} rx={2.1} ry={2.5} fill="#030008"/>
+          <ellipse cx={40.2} cy={30.4} rx={2.0} ry={2.4} fill="#030008"/>
+
+          <ellipse cx={20.5} cy={24.8} rx={1.8} ry={1.4} fill="white" opacity="0.9"/>
+          <ellipse cx={38.4} cy={25.8} rx={1.7} ry={1.3} fill="white" opacity="0.9"/>
+          <ellipse cx={24.4} cy={30.2} rx={0.8} ry={0.6} fill="white" opacity="0.45"/>
+          <ellipse cx={42} cy={31} rx={0.8} ry={0.6} fill="white" opacity="0.45"/>
+
+          <path d="M17.6,21.7 Q21.7,19.7 25.4,21.2"
+            stroke="#0a6050" strokeWidth="0.85" fill="none"
+            strokeLinecap="round" opacity="0.38"/>
+          <path d="M35.6,22.7 Q39.2,20.9 42.8,22.3"
+            stroke="#0a6050" strokeWidth="0.85" fill="none"
+            strokeLinecap="round" opacity="0.38"/>
+
+          <path d="M27.2,38 Q30.3,35 33.4,37.9"
+            stroke="#3decc8" strokeWidth="1.08" fill="none"
+            strokeLinecap="round" strokeLinejoin="round" opacity="0.68"/>
+        </g>
 
         {/* Helmet dome crouched */}
-        <ellipse cx={30} cy={24} rx={20} ry={22} fill="url(#cHg)"/>
-        <ellipse cx={30} cy={24} rx={20} ry={22}
-          fill="none" stroke="#1888c8" strokeWidth="1.1" opacity="0.4"/>
-        <ellipse cx={30} cy={24} rx={20} ry={22} fill="url(#cHs)"/>
+        <ellipse cx={31.2} cy={26} rx={20} ry={22} fill="url(#cHg)"
+          transform="rotate(13,31.2,26)"/>
+        <ellipse cx={31.2} cy={26} rx={20} ry={22}
+          fill="none" stroke="#1888c8" strokeWidth="1.1" opacity="0.4"
+          transform="rotate(13,31.2,26)"/>
+        <ellipse cx={31.2} cy={26} rx={20} ry={22} fill="url(#cHs)"
+          transform="rotate(13,31.2,26)"/>
 
         {/* Bioluminescent flickers on skin */}
-        <circle cx={26} cy={30} r={1.4} fill="#2dd4bf" opacity="0.18" filter="url(#cB)">
+        <circle cx={27.3} cy={31.5} r={1.4} fill="#2dd4bf" opacity="0.18" filter="url(#cB)">
           <animate attributeName="opacity" values="0.1;0.26;0.1" dur="2.5s" repeatCount="indefinite"/>
         </circle>
-        <circle cx={34} cy={28} r={1.1} fill="#2dd4bf" opacity="0.15" filter="url(#cB)">
+        <circle cx={35.8} cy={29.4} r={1.1} fill="#2dd4bf" opacity="0.15" filter="url(#cB)">
           <animate attributeName="opacity" values="0.1;0.20;0.1" dur="3.1s" repeatCount="indefinite"/>
         </circle>
-
-        {/* Feet tucked */}
-        <ellipse cx={20} cy={56} rx={5.8} ry={2.6}
-          fill="#0e1e28" stroke="#40d8f8" strokeWidth="0.7" opacity="0.55"/>
-        <ellipse cx={40} cy={56} rx={5.8} ry={2.6}
-          fill="#0e1e28" stroke="#40d8f8" strokeWidth="0.7" opacity="0.55"/>
-
-        {/* Floating "?" */}
-        <text x={50} y={13} textAnchor="middle"
-          fill="#2dd4bf" fontSize={14} fontFamily="monospace" fontWeight="bold">
-          <animate attributeName="opacity" values="0.3;0.88;0.3" dur="1.8s" repeatCount="indefinite"/>
-          <animate attributeName="y"       values="13;8;13"       dur="1.8s" repeatCount="indefinite"/>
-          ?
-        </text>
       </svg>
     </motion.div>
   )

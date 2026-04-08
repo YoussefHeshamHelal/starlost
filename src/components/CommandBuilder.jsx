@@ -6,42 +6,42 @@ import { ThemeContext } from '../context/theme'
 
 const THEMES_CMD = {
   light: {
-    panelBg:       'rgba(255,255,255,0.98)',
-    panelBorder:   '#14b8a6',
-    phaseLabel:    '#0d8a7c',
-    subLabel:      '#2a6b63',
-    scrollBg:      'rgba(236,252,250,1)',
-    scrollBgHover: 'rgba(216,248,244,1)',
-    scrollBorder:  '#c0e8e4',
-    scrollBorderDrag:'#14b8a688',
-    emptyText:     '#6bb8b2',
-    emptyArrow:    '#a5e8e0',
-    btnBorder:     '#c0e8e4',
-    btnColor:      '#2a6b63',
-    btnDisabled:   '#a5e8e0',
-    railBg:        '#dfeae9',
-    railBorder:    '#b8d8d4',
-    tickColor:     '#5a9a96',
-    speedLabelClr: '#2a6b63',
-    visorBg:       'rgba(242,238,255,1)',
-    visorBorder:   '#7c3aed',
-    visorText:     '#4c1d95',
-    visorExhBg:    'rgba(237,233,254,0.6)',
-    visorExhBd:    '#c4b5fd',
-    visorExhTx:    '#8b7bbb',
-    mirrorBg:      'rgba(251,113,133,0.07)',
-    mirrorBorder:  '#fb718555',
+    panelBg:       'linear-gradient(180deg, rgba(255,255,255,0.99), rgba(235,248,255,0.98) 55%, rgba(243,237,255,0.96))',
+    panelBorder:   '#2fc9df',
+    phaseLabel:    '#1377aa',
+    subLabel:      '#4b6d8a',
+    scrollBg:      'linear-gradient(180deg, rgba(228,250,255,0.98), rgba(244,245,255,0.96))',
+    scrollBgHover: 'linear-gradient(180deg, rgba(216,247,255,0.98), rgba(236,241,255,0.96))',
+    scrollBorder:  '#bddff2',
+    scrollBorderDrag:'#2fc9df88',
+    emptyText:     '#7190a9',
+    emptyArrow:    '#acdff0',
+    btnBorder:     '#b7dbef',
+    btnColor:      '#355978',
+    btnDisabled:   '#b7c8d8',
+    railBg:        '#dbe7f4',
+    railBorder:    '#b8cfe6',
+    tickColor:     '#64809a',
+    speedLabelClr: '#355978',
+    visorBg:       'linear-gradient(135deg, rgba(244,238,255,0.98), rgba(232,246,255,0.96))',
+    visorBorder:   '#8b5cf6',
+    visorText:     '#5b31b7',
+    visorExhBg:    'linear-gradient(135deg, rgba(240,236,255,0.76), rgba(236,242,255,0.64))',
+    visorExhBd:    '#d2c2ff',
+    visorExhTx:    '#9987c2',
+    mirrorBg:      'linear-gradient(135deg, rgba(255,214,224,0.42), rgba(255,240,243,0.22))',
+    mirrorBorder:  '#fb718577',
     mirrorText:    '#be123c',
-    programLabel:  '#1a4a45',
-    programCount:  '#5a9a96',
-    resetBg:       'linear-gradient(135deg, rgba(251,113,133,0.12), rgba(251,113,133,0.06))',
-    runBgActive:   'linear-gradient(135deg, rgba(20,184,166,0.16), rgba(20,184,166,0.08))',
-    runBgDisabled: 'rgba(220,238,236,0.7)',
-    runBorderActive: '#14b8a6',
-    runBorderDisabled: '#b2d8d4',
-    runColorActive: '#0a5c55',
-    runColorDisabled: '#b2c8c4',
-    targetCmdColor: '#0d8a7c',
+    programLabel:  '#173f66',
+    programCount:  '#60809d',
+    resetBg:       'linear-gradient(135deg, rgba(255,178,195,0.22), rgba(255,237,242,0.12))',
+    runBgActive:   'linear-gradient(135deg, rgba(45,201,223,0.20), rgba(139,92,246,0.12))',
+    runBgDisabled: 'rgba(222,233,244,0.82)',
+    runBorderActive: '#2fc9df',
+    runBorderDisabled: '#bfd1e4',
+    runColorActive: '#124b73',
+    runColorDisabled: '#a2b3c5',
+    targetCmdColor: '#1377aa',
   },
   dark: {
     // DARK MODE: everything dark, text bright and readable
@@ -85,9 +85,9 @@ const THEMES_CMD = {
 }
 
 const CMD_META = {
-  F:  { label: 'FORWARD',    icon: '↑', color: '#14b8a6', darkColor: '#2dd4bf', bg: 'rgba(20,184,166,0.11)',  darkBg: 'rgba(45,212,191,0.20)', lightBorderLeft: '#14b8a6' },
-  TL: { label: 'TURN LEFT',  icon: '↺', color: '#7c3aed', darkColor: '#a78bfa', bg: 'rgba(124,58,237,0.09)', darkBg: 'rgba(167,139,250,0.22)', lightBorderLeft: '#7c3aed' },
-  TR: { label: 'TURN RIGHT', icon: '↻', color: '#d97706', darkColor: '#f59e0b', bg: 'rgba(217,119,6,0.09)',  darkBg: 'rgba(245,158,11,0.20)', lightBorderLeft: '#d97706' },
+  F:  { label: 'FORWARD',    icon: '↑', color: '#14b8d4', darkColor: '#2dd4bf', bg: 'rgba(20,184,212,0.12)',  darkBg: 'rgba(45,212,191,0.20)', lightBorderLeft: '#14b8d4' },
+  TL: { label: 'TURN LEFT',  icon: '↺', color: '#8b5cf6', darkColor: '#a78bfa', bg: 'rgba(139,92,246,0.11)', darkBg: 'rgba(167,139,250,0.22)', lightBorderLeft: '#8b5cf6' },
+  TR: { label: 'TURN RIGHT', icon: '↻', color: '#f59e0b', darkColor: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  darkBg: 'rgba(245,158,11,0.20)', lightBorderLeft: '#f59e0b' },
 }
 
 const CHIP_HEIGHT = 36
@@ -126,7 +126,7 @@ function SpeedBar({ speed, onSpeedChange, theme }) {
   }, [])
 
   const fillPct = ((speed - 10) / 90) * 100
-  const trackColor = speed < 40 ? '#f59e0b' : speed < 75 ? (theme === 'light' ? '#14b8a6' : '#2dd4bf') : '#10b981'
+  const trackColor = speed < 40 ? '#f59e0b' : speed < 75 ? (theme === 'light' ? '#14b8d4' : '#2dd4bf') : '#10b981'
 
   const tickLabels = [
     { label: 'SLOW', speedVal: 10  },
@@ -143,7 +143,7 @@ function SpeedBar({ speed, onSpeedChange, theme }) {
         <span style={{
           fontSize: 11, fontFamily: 'monospace', fontWeight: 800,
           color: trackColor,
-          background: `rgba(${speed < 40 ? '245,158,11' : speed < 75 ? (theme === 'light' ? '20,184,166' : '45,212,191') : '16,185,129'},0.13)`,
+          background: `rgba(${speed < 40 ? '245,158,11' : speed < 75 ? (theme === 'light' ? '20,184,212' : '45,212,191') : '16,185,129'},0.13)`,
           border: `1px solid ${trackColor}55`,
           borderRadius: 5, padding: '2px 7px',
           minWidth: 40, textAlign: 'center',
@@ -356,9 +356,9 @@ function DraggableStrip({ sequence, isRunning, onReorder, onInsertAt, theme }) {
             {paletteInsertAt === i && dragIndex === null && (
               <div style={{
                 position: 'absolute', top: -2, left: 0, right: 0, height: 3,
-                background: isLight ? '#14b8a6' : '#2dd4bf',
+                background: isLight ? '#14b8d4' : '#2dd4bf',
                 opacity: 0.9, borderRadius: 2, zIndex: 60,
-                boxShadow: `0 0 8px ${isLight ? '#14b8a6' : '#2dd4bf'}`,
+                boxShadow: `0 0 8px ${isLight ? '#14b8d4' : '#2dd4bf'}`,
               }}/>
             )}
 
@@ -412,9 +412,9 @@ function DraggableStrip({ sequence, isRunning, onReorder, onInsertAt, theme }) {
         <div style={{
           position: 'absolute', left: 0, right: 0,
           top: sequence.length * CHIP_HEIGHT - 2,
-          height: 3, background: theme === 'light' ? '#14b8a6' : '#2dd4bf',
+          height: 3, background: theme === 'light' ? '#14b8d4' : '#2dd4bf',
           opacity: 0.9, borderRadius: 2, zIndex: 60,
-          boxShadow: `0 0 8px ${theme === 'light' ? '#14b8a6' : '#2dd4bf'}`,
+          boxShadow: `0 0 8px ${theme === 'light' ? '#14b8d4' : '#2dd4bf'}`,
         }}/>
       )}
     </div>
@@ -446,7 +446,7 @@ function PaletteBtn({ cmd, onAdd, disabled, theme }) {
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
         fontFamily: 'monospace', transition: 'background 0.15s',
         opacity: disabled ? 0.35 : 1,
-        boxShadow: isLight && !disabled ? `0 2px 8px ${color}22` : 'none',
+        boxShadow: isLight && !disabled ? `0 10px 18px ${color}1f, inset 0 1px 0 rgba(255,255,255,0.45)` : 'none',
       }}
     >
       <span style={{ fontSize: 20 }}>{m.icon}</span>
@@ -506,7 +506,7 @@ export default function CommandBuilder({
       boxSizing: 'border-box',
       overflow: 'hidden',
       boxShadow: theme === 'light'
-        ? '0 4px 28px rgba(20,184,166,0.12)'
+        ? '0 18px 40px rgba(74,144,226,0.12), 0 10px 24px rgba(45,201,223,0.14), inset 0 1px 0 rgba(255,255,255,0.7)'
         : '0 4px 32px rgba(0,0,0,0.6)',
     }}>
 
@@ -542,8 +542,8 @@ export default function CommandBuilder({
         >
           <span>👁  VISOR FLIP</span>
           <span style={{
-            background: visorFlipCount >= 3 ? 'transparent' : 'rgba(139,92,246,0.18)',
-            border: `1px solid ${visorFlipCount >= 3 ? t.visorExhBd : '#8b5cf666'}`,
+            background: visorFlipCount >= 3 ? 'transparent' : 'rgba(139,92,246,0.16)',
+            border: `1px solid ${visorFlipCount >= 3 ? t.visorExhBd : '#8b5cf688'}`,
             borderRadius: 20, padding: '2px 8px', fontSize: 10,
             fontWeight: 800,
           }}>
@@ -605,7 +605,7 @@ export default function CommandBuilder({
               disabled={isRunning || sequence.length === 0}
               style={{
                 padding:'3px 10px', background:'transparent',
-                border:`1.5px solid ${t.btnBorder}`, borderRadius:4,
+                border:`1.5px solid ${t.btnBorder}`, borderRadius:6,
                 color: sequence.length === 0 ? t.btnDisabled : t.btnColor,
                 cursor: isRunning || sequence.length === 0 ? 'not-allowed' : 'pointer',
                 fontSize:13, fontFamily:'monospace',
@@ -618,7 +618,7 @@ export default function CommandBuilder({
               disabled={isRunning || sequence.length === 0}
               style={{
                 padding:'3px 10px', background:'transparent',
-                border:`1.5px solid ${t.btnBorder}`, borderRadius:4,
+                border:`1.5px solid ${t.btnBorder}`, borderRadius:6,
                 color: sequence.length === 0 ? t.btnDisabled : t.btnColor,
                 cursor: isRunning || sequence.length === 0 ? 'not-allowed' : 'pointer',
                 fontSize:13, fontFamily:'monospace',
@@ -637,15 +637,15 @@ export default function CommandBuilder({
             overflowY: 'auto',
             overflowX: 'hidden',
             background: dragOver
-              ? (theme === 'light' ? 'rgba(20,184,166,0.06)' : 'rgba(45,212,191,0.04)')
+              ? (theme === 'light' ? 'linear-gradient(180deg, rgba(210,248,255,0.98), rgba(239,240,255,0.96))' : 'rgba(45,212,191,0.04)')
               : t.scrollBg,
             border: `1.5px ${dragOver
-              ? `dashed ${theme === 'light' ? '#14b8a666' : '#2dd4bf55'}`
+              ? `dashed ${theme === 'light' ? '#2fc9df88' : '#2dd4bf55'}`
               : `solid ${t.scrollBorder}`}`,
             borderRadius: 8,
             transition: 'border 0.2s, background 0.2s',
             scrollbarWidth: 'thin',
-            scrollbarColor: theme === 'light' ? '#14b8a644 #e8f6f4' : '#2dd4bf44 #0a1828',
+            scrollbarColor: theme === 'light' ? '#2fc9df55 #e8f4fb' : '#2dd4bf44 #0a1828',
           }}
         >
           {sequence.length === 0 ? (
@@ -655,7 +655,7 @@ export default function CommandBuilder({
               onDrop={handleDropOnEmptyZone}
               style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height: '100%', gap:6 }}
             >
-              <div style={{ fontSize:18, opacity: theme === 'light' ? 0.25 : 0.18, color: theme === 'light' ? '#14b8a6' : '#5a8890' }}>↓</div>
+              <div style={{ fontSize:18, opacity: theme === 'light' ? 0.28 : 0.18, color: theme === 'light' ? '#14b8d4' : '#5a8890' }}>↓</div>
               <p style={{ color: t.emptyText, fontSize:12, fontFamily:'monospace', letterSpacing:1, userSelect:'none', fontWeight: 700 }}>
                 drag commands here
               </p>
