@@ -545,10 +545,9 @@ function ZoneContent({ tile, zone, W, H }) {
 // Shows a true first-person helmet-cam: left side-content bleeds in from the
 // left edge, right from the right edge, and the front is the full-width center.
 // Kid-friendly labels with big emojis make it clear what LUMA can see.
-function VisorView({ ahead, leftTile, rightTile, luma, gridWidth, gridHeight, onClose }) {
+function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose }) {
   const W = gridWidth
   const H = gridHeight
-  const dirLabel = { north:'UP ↑', east:'RIGHT →', south:'DOWN ↓', west:'LEFT ←' }
 
   // ── Horizon/sky colors based on what's ahead ──────────────────────────────
   const aheadAccent =
@@ -873,12 +872,6 @@ function VisorView({ ahead, leftTile, rightTile, luma, gridWidth, gridHeight, on
         }}>
           <span style={{ fontSize: 8, color: '#2dd4bf', fontFamily: 'monospace', letterSpacing: 3 }}>
             👁 LUMA'S HELMET CAM
-          </span>
-          <span style={{
-            fontSize: 7, color: '#94a3b8',
-            fontFamily: 'monospace', letterSpacing: 1,
-          }}>
-            FACING {dirLabel[luma.facing]}
           </span>
         </div>
       </div>
