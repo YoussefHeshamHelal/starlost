@@ -244,14 +244,26 @@ export function generateLevel2Layout(facing = 'north') {
     ],
   }
 
-  return generateSingleRockLayout({
-    lumaStart: L2_START,
-    goal: L2_GOAL,
-    facing,
-    targetLength: 4,
+  const allowedRockPool = [
+    { x: 1, y: 1 },
+    { x: 2, y: 2 },
+  ]
+
+  for (const rock of shuffle(allowedRockPool)) {
+    const walls = [{ x: rock.x, y: rock.y }]
+    const solution = computeOptimalSolution(L2_START, L2_GOAL, walls, [], facing)
+
+    if (solution && solution.length === 4) {
+      return { walls, objects: [], solution }
+    }
+  }
+
+  const fallbackSolution = computeOptimalSolution(L2_START, L2_GOAL, [], [], facing)
+  return {
+    walls: [],
     objects: [],
-    pathCellsByFacing,
-  })
+    solution: fallbackSolution,
+  }
 }
 
 export function generateLevel3Layout(facing = 'north') {

@@ -1126,7 +1126,7 @@ export default function GameGrid({
       </div>
 
       <div data-tutorial-id="luma-coords" style={{ fontSize:9, color: coordLabelColor, fontFamily:'monospace', letterSpacing:2, fontWeight: isLight ? 600 : 400 }}>
-        LUMA [{luma.x},{luma.y}]{sptCorrect ? ` · ${luma.facing.toUpperCase()}` : ' · FACING UNKNOWN'}
+        LUMA [{luma.x},{luma.y}] · {luma.facing.toUpperCase()}
       </div>
     </div>
   )
