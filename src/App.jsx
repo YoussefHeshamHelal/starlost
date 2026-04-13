@@ -1081,8 +1081,11 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
   const handleSuccessNext = () => {
     const snapshot = getGBISnapshot()
     logGBI(participantId, levelConfig.id, snapshot)
+    if (levelConfig.strategyCardAfter) {
+      onStrategyCard(levelConfig.id)
+      return
+    }
     onComplete()
-    if (levelConfig.strategyCardAfter) onStrategyCard()
   }
 
   return (
@@ -1299,6 +1302,7 @@ const PARTICIPANT_ID = 'child_01'
 export default function App() {
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0)
   const [appPhase, setAppPhase] = useState('playing')
+  const [strategyCardLevelId, setStrategyCardLevelId] = useState(null)
   const [theme, setTheme] = useState('light')
 
   const toggleTheme = useCallback(() => {
@@ -1313,12 +1317,14 @@ export default function App() {
       setCurrentLevelIndex(i => i + 1)
   }
 
-  const handleShowStrategyCard = () => {
+  const handleShowStrategyCard = (completedLevelId) => {
+    setStrategyCardLevelId(completedLevelId)
     setAppPhase('strategy-card')
   }
 
   const handleStrategyCardDone = () => {
     setAppPhase('playing')
+    setStrategyCardLevelId(null)
     if (currentLevelIndex < LEVELS.length - 1)
       setCurrentLevelIndex(i => i + 1)
   }
@@ -1412,7 +1418,7 @@ export default function App() {
               style={{ width: '100%', height: '100%' }}
             >
               <StrategyCardScreen
-                levelId={level.id}
+                levelId={strategyCardLevelId ?? level.id}
                 participantId={PARTICIPANT_ID}
                 onDone={handleStrategyCardDone}
               />

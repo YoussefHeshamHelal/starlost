@@ -74,7 +74,7 @@ export const LEVEL_TUTORIALS = {
       targetId: 'level-title',
       placement: 'bottom',
       title: 'More puzzles are coming',
-      body: 'Later you will use clues, turns, visor peeks, fog, and ship pieces too.',
+      body: 'Later you will use turns, radio clues, and ship fragments too.',
       nextLabel: 'I\'m ready',
     }),
     levelStep('level-1-run', {
@@ -99,6 +99,15 @@ export const LEVEL_TUTORIALS = {
 }
 
 export const FEATURE_TUTORIALS = {
+  'luma-confused': [
+    featureStep('luma-confused-intro', 'luma-confused', {
+      targetId: 'luma-marker',
+      placement: 'right',
+      title: 'LUMA feels turned around',
+      body: 'LUMA is confused and does not know which way she is facing. Help her figure it out.',
+      nextLabel: 'I can help',
+    }),
+  ],
   'helmet-radio': [
     featureStep('helmet-radio-intro', 'helmet-radio', {
       targetId: 'radio-panel',
@@ -211,14 +220,15 @@ export const FEATURE_TUTORIALS = {
 }
 
 const LEVEL_FEATURE_ORDER = {
-  2: ['helmet-radio', 'identify-phase', 'facing-question', 'rock-obstacle', 'turn-commands'],
-  3: ['uncertain-radio', 'visor-flip', 'ship-fragments', 'collect-all-fragments'],
-  4: ['fog', 'prediction'],
+  2: ['rock-obstacle', 'turn-commands'],
+  3: ['luma-confused', 'helmet-radio', 'identify-phase', 'facing-question'],
+  4: ['ship-fragments', 'collect-all-fragments'],
 }
 
 export function getTutorialFeatureKeys(levelConfig, effectiveLevel) {
   const ordered = LEVEL_FEATURE_ORDER[levelConfig.id] ?? []
   return ordered.filter((featureKey) => {
+    if (featureKey === 'luma-confused') return levelConfig.id === 3
     if (featureKey === 'helmet-radio') return !levelConfig.noRadio
     if (featureKey === 'identify-phase') return !levelConfig.skipIdentify
     if (featureKey === 'facing-question') return Boolean(levelConfig.sptQuestion)
