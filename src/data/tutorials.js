@@ -222,7 +222,7 @@ export const FEATURE_TUTORIALS = {
 const LEVEL_FEATURE_ORDER = {
   2: ['rock-obstacle', 'turn-commands'],
   3: ['luma-confused', 'helmet-radio', 'identify-phase', 'facing-question'],
-  4: ['ship-fragments', 'collect-all-fragments'],
+  5: ['ship-fragments', 'collect-all-fragments'],
 }
 
 export function getTutorialFeatureKeys(levelConfig, effectiveLevel) {

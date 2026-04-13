@@ -4,6 +4,7 @@ import {
   generateLevel2Layout,
   generateLevel3Layout,
   generateLevel4Layout,
+  generateLevel5Layout,
 } from '../data/levels'
 
 const DIRECTIONS = ['north', 'east', 'south', 'west']
@@ -194,6 +195,7 @@ function generateLayout(generatorKey, facing) {
     case 'level2': return generateLevel2Layout(facing)
     case 'level3': return generateLevel3Layout(facing)
     case 'level4': return generateLevel4Layout(facing)
+    case 'level5': return generateLevel5Layout(facing)
     default: return { walls: [], objects: [], solution: null }
   }
 }

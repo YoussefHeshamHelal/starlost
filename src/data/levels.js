@@ -6,7 +6,8 @@
 //   L1: fixed, 3 commands, no rocks, no fragments, no identify
 //   L2: randomized, 4 commands, 1 rock, no identify, no fragments
 //   L3: randomized, 5 commands, 1 rock, identify starts, no fragments
-//   L4: randomized, 6 commands, 1 rock, 1 fragment, strategy card after
+//   L4: randomized, 7 commands, 2 rocks, identify practice, no fragments
+//   L5: randomized, 7 commands, 2 rocks, 1 fragment, strategy card after
 //
 // There is no hard command limit. targetCommands is a best-path hint only.
 
@@ -25,8 +26,11 @@ const L2_GOAL = { x: 3, y: 1 }
 const L3_START = { x: 1, y: 3 }
 const L3_GOAL = { x: 4, y: 2 }
 
-const L4_START = { x: 1, y: 4 }
-const L4_GOAL = { x: 4, y: 2 }
+const L4_START = { x: 1, y: 3 }
+const L4_GOAL = { x: 4, y: 1 }
+
+const L5_START = { x: 1, y: 3 }
+const L5_GOAL = { x: 4, y: 1 }
 
 const DIRECTIONS = ['north', 'east', 'south', 'west']
 const MOVE_DELTAS = {
@@ -219,6 +223,31 @@ function generateSingleRockLayout({
   }
 }
 
+function buildPathTilesFromSolution(start, facing, solution) {
+  const tiles = []
+  let currentPos = { ...start }
+  let currentFacing = facing
+
+  solution.forEach((command) => {
+    if (command === 'TL') {
+      const facingIndex = DIRECTIONS.indexOf(currentFacing)
+      currentFacing = DIRECTIONS[(facingIndex + 3) % 4]
+      return
+    }
+
+    if (command === 'TR') {
+      const facingIndex = DIRECTIONS.indexOf(currentFacing)
+      currentFacing = DIRECTIONS[(facingIndex + 1) % 4]
+      return
+    }
+
+    currentPos = stepTile(currentPos, currentFacing)
+    tiles.push({ ...currentPos })
+  })
+
+  return tiles
+}
+
 export function generateLevel1Layout() {
   return {
     walls: [],
@@ -293,68 +322,143 @@ export function generateLevel3Layout(facing = 'north') {
 }
 
 export function generateLevel4Layout(facing = 'north') {
-  const pathCellsByFacing = {
-    north: [
-      { x: 1, y: 3 },
-      { x: 1, y: 2 },
-      { x: 2, y: 2 },
-      { x: 3, y: 2 },
-      { x: 4, y: 2 },
-    ],
-    east: [
-      { x: 2, y: 4 },
-      { x: 3, y: 4 },
-      { x: 4, y: 4 },
-      { x: 4, y: 3 },
-      { x: 4, y: 2 },
-    ],
-  }
+  const adjacentRockPool = shuffle([
+    { x: 1, y: 2 },
+    { x: 2, y: 3 },
+    { x: 1, y: 4 },
+    { x: 0, y: 3 },
+  ])
+  const routeRockPool = shuffle([
+    { x: 3, y: 1 },
+    { x: 3, y: 2 },
+    { x: 4, y: 2 },
+  ])
 
-  const pathCells = pathCellsForFacing(pathCellsByFacing, facing)
-  const fragmentCandidates = pathCells.slice(1, -1)
+  for (const adjacentRock of adjacentRockPool) {
+    for (const routeRock of routeRockPool) {
+      const walls = [
+        { x: adjacentRock.x, y: adjacentRock.y },
+        { x: routeRock.x, y: routeRock.y },
+      ]
 
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
-    const chosenFragment = shuffle(fragmentCandidates)[0]
-    if (!chosenFragment) break
+      for (const candidateFacing of DIRECTIONS) {
+        const solution = computeOptimalSolution(
+          L4_START,
+          L4_GOAL,
+          walls,
+          [],
+          candidateFacing
+        )
 
-    const objects = [{
-      type: 'ship_part',
-      x: chosenFragment.x,
-      y: chosenFragment.y,
-    }]
-
-    const layout = generateSingleRockLayout({
-      lumaStart: L4_START,
-      goal: L4_GOAL,
-      facing,
-      targetLength: 6,
-      objects,
-      pathCellsByFacing,
-    })
-
-    if (
-      layout.solution &&
-      layout.solution.length === 6 &&
-      layout.walls.length === 1 &&
-      layout.objects.length === 1
-    ) {
-      return layout
+        if (solution && solution.length === 7) {
+          return { walls, objects: [], solution, lumaFacing: candidateFacing }
+        }
+      }
     }
   }
 
-  const fallbackFragment = fragmentCandidates[0]
-  const fallbackObjects = fallbackFragment
-    ? [{ type: 'ship_part', x: fallbackFragment.x, y: fallbackFragment.y }]
-    : []
+  const fallbackWalls = [
+    { x: 1, y: 2 },
+    { x: 3, y: 1 },
+  ]
+  const fallbackFacing = 'north'
+  const fallbackSolution = computeOptimalSolution(
+    L4_START,
+    L4_GOAL,
+    fallbackWalls,
+    [],
+    fallbackFacing
+  )
 
-  return generateSingleRockLayout({
-    lumaStart: L4_START,
-    goal: L4_GOAL,
-    facing,
-    targetLength: 6,
+  return {
+    walls: fallbackWalls,
+    objects: [],
+    solution: fallbackSolution,
+    lumaFacing: fallbackFacing,
+  }
+}
+
+export function generateLevel5Layout(facing = 'north') {
+  const adjacentRockPool = shuffle([
+    { x: 1, y: 2 },
+    { x: 2, y: 3 },
+    { x: 1, y: 4 },
+    { x: 0, y: 3 },
+  ])
+  const routeRockPool = shuffle([
+    { x: 3, y: 1 },
+    { x: 3, y: 2 },
+    { x: 4, y: 2 },
+  ])
+
+  for (const adjacentRock of adjacentRockPool) {
+    for (const routeRock of routeRockPool) {
+      const walls = [
+        { x: adjacentRock.x, y: adjacentRock.y },
+        { x: routeRock.x, y: routeRock.y },
+      ]
+
+      for (const candidateFacing of DIRECTIONS) {
+        const baseSolution = computeOptimalSolution(
+          L5_START,
+          L5_GOAL,
+          walls,
+          [],
+          candidateFacing
+        )
+
+        if (!baseSolution || baseSolution.length !== 7) {
+          continue
+        }
+
+        const fragmentCandidates = shuffle(
+          buildPathTilesFromSolution(L5_START, candidateFacing, baseSolution).filter(
+            (tile) => !(tile.x === L5_GOAL.x && tile.y === L5_GOAL.y)
+          )
+        )
+
+        for (const chosenFragment of fragmentCandidates) {
+          const objects = [{
+            type: 'ship_part',
+            x: chosenFragment.x,
+            y: chosenFragment.y,
+          }]
+          const solution = computeOptimalSolution(
+            L5_START,
+            L5_GOAL,
+            walls,
+            objects,
+            candidateFacing
+          )
+
+          if (solution && solution.length === 7) {
+            return { walls, objects, solution, lumaFacing: candidateFacing }
+          }
+        }
+      }
+    }
+  }
+
+  const fallbackWalls = [
+    { x: 1, y: 2 },
+    { x: 3, y: 1 },
+  ]
+  const fallbackObjects = [{ type: 'ship_part', x: 2, y: 3 }]
+  const fallbackFacing = 'north'
+  const fallbackSolution = computeOptimalSolution(
+    L5_START,
+    L5_GOAL,
+    fallbackWalls,
+    fallbackObjects,
+    fallbackFacing
+  )
+
+  return {
+    walls: fallbackWalls,
     objects: fallbackObjects,
-    pathCellsByFacing,
-  })
+    solution: fallbackSolution,
+    lumaFacing: fallbackFacing,
+  }
 }
 
 export const LEVELS = [
@@ -440,7 +544,7 @@ export const LEVELS = [
   },
   {
     id: 4,
-    name: 'Fragment Route',
+    name: 'Identify Practice',
     world: 'crash-site',
     tutorial: false,
     grid: { cols: COLS, rows: ROWS },
@@ -460,12 +564,42 @@ export const LEVELS = [
     predictionPrompt: false,
     mirrorControls: false,
     echoPosition: null,
-    strategyCardAfter: true,
+    strategyCardAfter: false,
     noVisorFlip: true,
     skipIdentify: false,
     noRadio: false,
     layoutGenerator: 'level4',
-    targetCommands: 6,
+    targetCommands: 7,
+    uncertainRadio: false,
+  },
+  {
+    id: 5,
+    name: 'Fragment Route',
+    world: 'crash-site',
+    tutorial: false,
+    grid: { cols: COLS, rows: ROWS },
+    lumaStart: { ...L5_START },
+    lumaFacing: 'random-NE',
+    goal: { ...L5_GOAL },
+    walls: [],
+    objects: [],
+    fog: false,
+    sptQuestion: {
+      prompt: 'Which direction is LUMA facing?',
+      options: ['↑ Up', '→ Right', '↓ Down', '← Left'],
+      correct: null,
+    },
+    solution: null,
+    decompositionPrompt: false,
+    predictionPrompt: false,
+    mirrorControls: false,
+    echoPosition: null,
+    strategyCardAfter: true,
+    noVisorFlip: true,
+    skipIdentify: false,
+    noRadio: false,
+    layoutGenerator: 'level5',
+    targetCommands: 7,
     uncertainRadio: false,
   },
 ]
