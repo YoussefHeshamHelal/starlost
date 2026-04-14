@@ -413,7 +413,9 @@ export function generateLevel5Layout(facing = 'north') {
 
         const fragmentCandidates = shuffle(
           buildPathTilesFromSolution(L5_START, candidateFacing, baseSolution).filter(
-            (tile) => !(tile.x === L5_GOAL.x && tile.y === L5_GOAL.y)
+            (tile) =>
+              !(tile.x === L5_GOAL.x && tile.y === L5_GOAL.y) &&
+              Math.abs(tile.x - L5_START.x) + Math.abs(tile.y - L5_START.y) > 1
           )
         )
 

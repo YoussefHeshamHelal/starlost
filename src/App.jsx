@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, memo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LEVELS } from './data/levels'
 import {
@@ -9,6 +9,7 @@ import {
 import { useGameState } from './hooks/useGameState'
 import GameGrid from './components/GameGrid'
 import CommandBuilder from './components/CommandBuilder'
+import HomePage from './components/HomePage'
 import TutorialOverlay from './components/TutorialOverlay'
 import { logGBI } from './logGBI'
 import { ThemeContext, useTheme, THEMES } from './context/theme'
@@ -18,6 +19,9 @@ const HEADER_H = 56
 const GRID_PX  = 520   // 5 tiles × 104 px
 const PANEL_W  = 420
 const GAP      = 32
+const PLAYABLE_LEVELS = 5
+const LEVEL_SCREEN_DESIGN_W = GRID_PX + GAP + PANEL_W
+const LEVEL_SCREEN_DESIGN_H = 730
 
 // ── CSS keyframe animations ───────────────────────────────────────────────────
 const ANIM_STYLES = `
@@ -58,7 +62,12 @@ const ANIM_STYLES = `
     80%  { opacity: 0.5; }
     100% { opacity: 0; transform: translateY(-80px) scale(1.1); }
   }
+  @keyframes selector-twinkle {
+    0%, 100% { opacity: 0.25; transform: scale(0.9); }
+    50% { opacity: 0.9; transform: scale(1.15); }
+  }
 `
+
 
 // ── Theme Toggle Button ───────────────────────────────────────────────────────
 function ThemeToggle({ theme, onToggle }) {
@@ -689,7 +698,7 @@ function StrategyCard({ card, selected, onSelect }) {
   )
 }
 
-function StrategyCardScreen({ levelId, participantId, onDone }) {
+function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER_H }) {
   const [selected, setSelected] = useState(null)
   const [confirmed, setConfirmed] = useState(false)
   const theme = useTheme()
@@ -708,7 +717,11 @@ function StrategyCardScreen({ levelId, participantId, onDone }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       style={{
-        position: 'fixed', inset: 0,
+        position: 'fixed',
+        top: topOffset,
+        left: 0,
+        right: 0,
+        bottom: 0,
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         zIndex: 90,
@@ -900,12 +913,14 @@ function markTutorialPlanSeen(plan, levelId) {
 
 
 // ── Level Screen ──────────────────────────────────────────────────────────────
-function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard }) {
+function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, onGoHome, topOffset = HEADER_H }) {
   const [animSpeed, setAnimSpeed] = useState(50)
   const [tutorialSteps, setTutorialSteps] = useState([])
   const [tutorialIndex, setTutorialIndex] = useState(0)
+  const [contentScale, setContentScale] = useState(1)
   const theme = useTheme()
   const t = THEMES[theme]
+  const outerRef = useRef(null)
 
   const {
     luma, phase,
@@ -1076,8 +1091,41 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
 
   const runBlocked = levelConfig.predictionPrompt && predictionTile === null && predictionResult === null
 
-  const panelW = levelConfig.skipIdentify ? GRID_PX : PANEL_W
+  const panelW = PANEL_W
   const totalW = GRID_PX + GAP + panelW
+
+  // Design height varies by level: levels without radio/identify have less vertical content
+  const designH = levelConfig.noRadio ? 670 : LEVEL_SCREEN_DESIGN_H
+
+  useEffect(() => {
+    const measureLayout = () => {
+      const outerEl = outerRef.current
+      if (!outerEl) return
+
+      const availableWidth = outerEl.clientWidth - 8
+      const availableHeight = outerEl.clientHeight - 8
+
+      const nextScale = Math.min(
+        1,
+        availableWidth / LEVEL_SCREEN_DESIGN_W,
+        availableHeight / designH
+      )
+
+      setContentScale((current) =>
+        Math.abs(current - nextScale) > 0.01 ? nextScale : current
+      )
+    }
+
+    const frame = window.requestAnimationFrame(measureLayout)
+    window.addEventListener('resize', measureLayout)
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('resize', measureLayout)
+    }
+  }, [
+    topOffset, designH,
+  ])
 
   const handleSuccessNext = () => {
     const snapshot = getGBISnapshot()
@@ -1090,11 +1138,12 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
   }
 
   return (
-    <div style={{
+    <div ref={outerRef} style={{
       position: 'fixed',
-      top: HEADER_H, left: 0, right: 0, bottom: 0,
+      top: topOffset, left: 0, right: 0, bottom: 0,
       display: 'flex', flexDirection: 'column',
       alignItems: 'center',
+      justifyContent: 'flex-start',
       padding: '14px 24px 14px',
       gap: 12,
       boxSizing: 'border-box',
@@ -1103,6 +1152,17 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
       background: 'transparent',
     }}>
       {/* ── Title bar ── */}
+      <div
+        style={{
+          width: totalW,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+          flexShrink: 0,
+          transform: `scale(${contentScale})`,
+          transformOrigin: 'top center',
+        }}
+      >
       <div style={{
         width: totalW,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -1125,6 +1185,23 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
             }}>
               {levelConfig.name}
             </h2>
+            <button
+              onClick={onGoHome}
+              style={{
+                padding: '8px 14px',
+                borderRadius: 999,
+                border: `1.5px solid ${theme === 'light' ? '#f3b372' : '#7a4d1c'}`,
+                background: theme === 'light'
+                  ? 'rgba(255,247,235,0.82)'
+                  : 'rgba(27,17,8,0.72)',
+                color: theme === 'light' ? '#93510f' : '#ffd59a',
+                fontSize: 11,
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              ← Home
+            </button>
             <button
               onClick={handleReplayTutorial}
               disabled={!canReplayTutorial}
@@ -1175,7 +1252,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
       {/* ── Main play area ── */}
       <div style={{
         flex: 1, width: totalW,
-        display: 'flex', gap: GAP, alignItems: levelConfig.id === 1 || phase === 'identify' ? 'center' : 'flex-start',
+        display: 'flex', gap: GAP, alignItems: phase === 'identify' ? 'center' : 'flex-start',
         minHeight: 0, overflow: 'hidden',
       }}>
         <div style={{
@@ -1201,8 +1278,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
 
         {/* Right panel */}
         <div style={{
-          flex: '0 0 auto', width: levelConfig.skipIdentify ? GRID_PX : PANEL_W,
-          height: levelConfig.id >= 2 && phase === 'develop' ? '100%' : GRID_PX,
+          flex: '0 0 auto', width: PANEL_W,
+          height: phase === 'develop' ? '100%' : GRID_PX,
           display: 'flex', flexDirection: 'column',
           justifyContent: phase === 'identify' ? 'center' : 'flex-start',
           minHeight: 0, overflow: 'hidden',
@@ -1273,6 +1350,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard })
           </AnimatePresence>
         </div>
       </div>
+      </div>
 
       <AnimatePresence>
         {phase === 'success' && (
@@ -1302,7 +1380,8 @@ const PARTICIPANT_ID = 'child_01'
 
 export default function App() {
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0)
-  const [appPhase, setAppPhase] = useState('playing')
+  const [levelSessionKey, setLevelSessionKey] = useState(0)
+  const [appPhase, setAppPhase] = useState('home')
   const [strategyCardLevelId, setStrategyCardLevelId] = useState(null)
   const [theme, setTheme] = useState('light')
 
@@ -1312,6 +1391,20 @@ export default function App() {
 
   const t = THEMES[theme]
   const level = LEVELS[currentLevelIndex]
+  const gameTopOffset = HEADER_H
+
+  const handleSelectLevel = useCallback((levelNumber) => {
+    if (levelNumber < 1 || levelNumber > PLAYABLE_LEVELS) return
+    setCurrentLevelIndex(levelNumber - 1)
+    setLevelSessionKey(key => key + 1)
+    setStrategyCardLevelId(null)
+    setAppPhase('playing')
+  }, [])
+
+  const handleGoHome = useCallback(() => {
+    setAppPhase('home')
+    setStrategyCardLevelId(null)
+  }, [])
 
   const handleLevelComplete = () => {
     if (currentLevelIndex < LEVELS.length - 1)
@@ -1390,9 +1483,25 @@ export default function App() {
 
         {/* ── Game screens ── */}
         <AnimatePresence mode="wait">
+          {appPhase === 'home' && (
+            <motion.div
+              key="home"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.35 }}
+              style={{ width: '100%', height: '100%' }}
+            >
+              <HomePage
+                headerHeight={HEADER_H}
+                onSelectLevel={handleSelectLevel}
+              />
+            </motion.div>
+          )}
+
           {appPhase === 'playing' && (
             <motion.div
-              key={`level-${level.id}`}
+              key={`level-${level.id}-${levelSessionKey}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
@@ -1400,11 +1509,13 @@ export default function App() {
               style={{ width: '100%', height: '100%' }}
             >
               <LevelScreen
-                key={level.id}
+                key={`${level.id}-${levelSessionKey}`}
                 levelConfig={level}
                 participantId={PARTICIPANT_ID}
                 onComplete={handleLevelComplete}
                 onStrategyCard={handleShowStrategyCard}
+                onGoHome={handleGoHome}
+                topOffset={gameTopOffset}
               />
             </motion.div>
           )}
@@ -1422,6 +1533,7 @@ export default function App() {
                 levelId={strategyCardLevelId ?? level.id}
                 participantId={PARTICIPANT_ID}
                 onDone={handleStrategyCardDone}
+                topOffset={gameTopOffset}
               />
             </motion.div>
           )}
