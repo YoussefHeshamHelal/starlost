@@ -207,14 +207,34 @@ function PaletteButton({ code, disabled, onAdd, theme, tutorialId, repeatDefault
 }
 
 function RepeatCounter({ command, color, onChange }) {
+  const [inputValue, setInputValue] = useState(String(command.times))
   const buttonStyle = { width: 20, height: 16, borderRadius: 6, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.72)', color, cursor: 'pointer', padding: 0, fontWeight: 900, fontFamily: 'monospace' }
+
+  const updateTimes = (times) => {
+    const nextTimes = clampRepeatTimes(times)
+    setInputValue(String(nextTimes))
+    onChange({ ...command, times: nextTimes })
+  }
+
+  const handleInputChange = (event) => {
+    const rawValue = event.target.value.replace(/\D/g, '')
+    if (rawValue === '') {
+      setInputValue('')
+      return
+    }
+
+    const nextTimes = clampRepeatTimes(rawValue)
+    setInputValue(String(nextTimes))
+    onChange({ ...command, times: nextTimes })
+  }
+
   return (
     <div data-tutorial-id="repeat-block-counter" onPointerDown={(event) => event.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', background: `${color}12`, border: `1px solid ${color}33`, borderRadius: 10 }}>
       <span style={{ fontSize: 8, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800, color }}>REPEAT</span>
-      <input type="number" min={1} max={9} value={command.times} onChange={(event) => onChange({ ...command, times: clampRepeatTimes(event.target.value) })} style={{ width: 40, padding: '3px 5px', borderRadius: 8, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.82)', color, fontFamily: 'monospace', fontSize: 12, fontWeight: 800, textAlign: 'center' }} />
+      <input type="text" inputMode="numeric" value={inputValue} onChange={handleInputChange} onBlur={() => inputValue === '' && setInputValue(String(command.times))} style={{ width: 40, padding: '3px 5px', borderRadius: 8, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.82)', color, fontFamily: 'monospace', fontSize: 12, fontWeight: 800, textAlign: 'center' }} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <button type="button" style={buttonStyle} onClick={() => onChange({ ...command, times: clampRepeatTimes(command.times + 1) })}>+</button>
-        <button type="button" style={buttonStyle} onClick={() => onChange({ ...command, times: clampRepeatTimes(command.times - 1) })}>-</button>
+        <button type="button" style={buttonStyle} onClick={() => updateTimes(command.times + 1)}>+</button>
+        <button type="button" style={buttonStyle} onClick={() => updateTimes(command.times - 1)}>-</button>
       </div>
     </div>
   )

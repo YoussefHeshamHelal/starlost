@@ -1,5 +1,5 @@
 const MIN_REPEAT_TIMES = 1
-const MAX_REPEAT_TIMES = 9
+const MAX_REPEAT_TIMES = 100
 
 function cloneNestedCommands(commands = []) {
   return commands.map((command) => {
