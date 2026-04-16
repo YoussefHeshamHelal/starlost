@@ -184,14 +184,14 @@ export const FEATURE_TUTORIALS = {
   'repeat-intro': [
     featureStep('repeat-intro', 'repeat-intro', {
       targetId: 'command-repeat',
-      placement: 'left',
+      placement: 'top',
       title: 'Repeat helps with patterns',
-      body: 'If the same little path happens again, use REPEAT so LUMA can do those blocks again.',
+      body: 'If you notice a path repeating, use REPEAT so LUMA can do those blocks again.',
       nextLabel: 'Show me',
     }),
     featureStep('repeat-add-block', 'repeat-intro', {
       targetId: 'command-repeat',
-      placement: 'left',
+      placement: 'top',
       title: 'Add one Repeat block',
       body: 'Tap REPEAT first, then put the pattern you want inside the block.',
       requiresAction: true,
@@ -203,7 +203,6 @@ export const FEATURE_TUTORIALS = {
       placement: 'top',
       title: 'Tune the Repeat block',
       body: 'Change the number at the top to choose how many times LUMA repeats the blocks inside.',
-      waitForTarget: true,
       nextLabel: 'Got it',
     }),
   ],

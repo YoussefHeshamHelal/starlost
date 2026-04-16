@@ -989,7 +989,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   useEffect(() => {
     const seenLevels = readTutorialSessionSet(TUTORIAL_LEVELS_KEY)
     const seenFeatures = readTutorialSessionSet(TUTORIAL_FEATURES_KEY)
-    const level5TutorialReady = levelConfig.id !== 5 || phase === 'develop'
+    const featureTutorialReady =
+      (levelConfig.id !== 5 && levelConfig.id !== 7) || phase === 'develop'
 
     let nextTutorialPlan = []
 
@@ -997,7 +998,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
       if (!seenLevels.has(String(levelConfig.id))) {
         nextTutorialPlan = getLevelTutorialSteps(levelConfig.id)
       }
-    } else if (level5TutorialReady) {
+    } else if (featureTutorialReady) {
       const unseenFeatureKeys = tutorialFeatureKeys.filter(featureKey => !seenFeatures.has(featureKey))
       nextTutorialPlan = getFeatureTutorialSteps(unseenFeatureKeys)
     }
@@ -1051,7 +1052,9 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   const handleRunSequence = useCallback(() => runSequence(), [runSequence])
   const handleResetLuma = useCallback(() => resetLuma(), [resetLuma])
   const canReplayTutorial =
-    levelConfig.id !== 4 && (levelConfig.id !== 5 || phase === 'develop')
+    levelConfig.id !== 4 &&
+    (levelConfig.id !== 5 || phase === 'develop') &&
+    (levelConfig.id !== 7 || phase === 'develop')
   const handleReplayTutorial = useCallback(() => {
     if (!canReplayTutorial) return
 

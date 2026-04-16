@@ -121,6 +121,11 @@ function insertCommandAtPath(sequence, parentPath, index, command) {
   })
 }
 
+function adjustPathAfterTopLevelRemoval(path, removedIndex) {
+  if (path.length === 0 || removedIndex >= path[0]) return path
+  return [path[0] - 1, ...path.slice(1)]
+}
+
 function getMeta(command, theme) {
   const base = isRepeatCommand(command) ? META.REPEAT : META[command]
   const color = theme === 'light' ? base.color : base.darkColor
@@ -248,7 +253,7 @@ function CommandChip({ command, index, depth, path, theme, isRunning, onDelete }
   )
 }
 
-function StaticSequence({ sequence, parentPath, depth, theme, isRunning, onDelete, onUpdateRepeat, onDropIntoRepeat, onNestedPaletteHoverChange }) {
+function StaticSequence({ sequence, parentPath, depth, theme, isRunning, onDelete, onUpdateRepeat, onDropIntoRepeat, onNestedPaletteHoverChange, activeRepeatDropPath }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: ITEM_GAP }}>
       {sequence.map((command, index) => {
@@ -266,6 +271,7 @@ function StaticSequence({ sequence, parentPath, depth, theme, isRunning, onDelet
             onUpdateRepeat={onUpdateRepeat}
             onDropIntoRepeat={onDropIntoRepeat}
             onNestedPaletteHoverChange={onNestedPaletteHoverChange}
+            activeRepeatDropPath={activeRepeatDropPath}
           >
             <StaticSequence
               sequence={command.commands ?? []}
@@ -277,6 +283,7 @@ function StaticSequence({ sequence, parentPath, depth, theme, isRunning, onDelet
               onUpdateRepeat={onUpdateRepeat}
               onDropIntoRepeat={onDropIntoRepeat}
               onNestedPaletteHoverChange={onNestedPaletteHoverChange}
+              activeRepeatDropPath={activeRepeatDropPath}
             />
           </RepeatCard>
         ) : (
@@ -296,10 +303,11 @@ function StaticSequence({ sequence, parentPath, depth, theme, isRunning, onDelet
   )
 }
 
-function RepeatCard({ command, index, depth, path, theme, isRunning, onDelete, onUpdateRepeat, onDropIntoRepeat, onNestedPaletteHoverChange, children }) {
+function RepeatCard({ command, index, depth, path, theme, isRunning, onDelete, onUpdateRepeat, onDropIntoRepeat, onNestedPaletteHoverChange, activeRepeatDropPath, children }) {
   const meta = getMeta(command, theme)
   const [isDragOver, setIsDragOver] = useState(false)
   const childCount = command.commands?.length ?? 0
+  const isDropActive = isDragOver || activeRepeatDropPath === JSON.stringify(path)
 
   return (
     <div style={{ position: 'relative', marginLeft: depth * 12, padding: '8px 34px 10px 10px', background: meta.bg, border: `1.5px solid ${meta.color}66`, borderRadius: 14 }}>
@@ -319,6 +327,8 @@ function RepeatCard({ command, index, depth, path, theme, isRunning, onDelete, o
 
           <div
             onDragOver={(event) => {
+              const raw = event.dataTransfer.getData('cmd')
+              if (raw === 'REPEAT') return
               event.preventDefault()
               event.stopPropagation()
               setIsDragOver(true)
@@ -339,10 +349,11 @@ function RepeatCard({ command, index, depth, path, theme, isRunning, onDelete, o
               setIsDragOver(false)
               onNestedPaletteHoverChange?.(false)
               const raw = event.dataTransfer.getData('cmd')
-              if (!raw) return
+              if (!raw || raw === 'REPEAT') return
               onDropIntoRepeat(path, raw)
             }}
-            style={{ minHeight: 92, padding: '10px', borderRadius: 12, background: isDragOver ? (theme === 'light' ? 'rgba(216,247,255,0.96)' : 'rgba(45,212,191,0.07)') : (theme === 'light' ? 'rgba(255,255,255,0.68)' : 'rgba(3,7,14,0.72)'), border: `1.5px ${isDragOver ? `dashed ${meta.color}88` : `solid ${meta.color}33`}`, display: 'flex', flexDirection: 'column', gap: 6 }}
+            data-repeat-drop-path={JSON.stringify(path)}
+            style={{ minHeight: 92, padding: '10px', borderRadius: 12, background: isDropActive ? (theme === 'light' ? 'rgba(216,247,255,0.96)' : 'rgba(45,212,191,0.07)') : (theme === 'light' ? 'rgba(255,255,255,0.68)' : 'rgba(3,7,14,0.72)'), border: `1.5px ${isDropActive ? `dashed ${meta.color}88` : `solid ${meta.color}33`}`, display: 'flex', flexDirection: 'column', gap: 6 }}
           >
             {childCount === 0 ? (
               <div style={{ flex: 1, minHeight: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -362,6 +373,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
   const [ghostY, setGhostY] = useState(0)
   const [insertAt, setInsertAt] = useState(null)
   const [paletteInsertAt, setPaletteInsertAt] = useState(null)
+  const [activeRepeatDropPath, setActiveRepeatDropPath] = useState(null)
   const [layout, setLayout] = useState({ heights: [], tops: [], totalHeight: CHIP_HEIGHT })
   const stripRef = useRef(null)
   const itemRefs = useRef([])
@@ -422,10 +434,37 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
     const delta = event.clientY - startYRef.current
     setGhostY(Math.max(0, Math.min(maxTop, startTopRef.current + delta)))
     setInsertAt(computeInsert(pointerYInStrip))
+    const dropTarget = document
+      .elementFromPoint(event.clientX, event.clientY)
+      ?.closest('[data-repeat-drop-path]')
+    setActiveRepeatDropPath(
+      dropTarget && !isRepeatCommand(sequence[index])
+        ? dropTarget.getAttribute('data-repeat-drop-path')
+        : null
+    )
   }, [computeInsert, dragIndex, layout.totalHeight])
 
-  const handlePointerUp = useCallback((_, index) => {
+  const handlePointerUp = useCallback((event, index) => {
     if (dragIndex !== index) return
+    const dropTarget = document
+      .elementFromPoint(event.clientX, event.clientY)
+      ?.closest('[data-repeat-drop-path]')
+
+    if (dropTarget && !isRepeatCommand(sequence[dragIndex])) {
+      const targetPath = JSON.parse(dropTarget.getAttribute('data-repeat-drop-path') ?? '[]')
+      const moved = sequence[dragIndex]
+      const withoutMoved = sequence.filter((_, commandIndex) => commandIndex !== dragIndex)
+      const adjustedTargetPath = adjustPathAfterTopLevelRemoval(targetPath, dragIndex)
+      onReorder(updateRepeatAtPath(withoutMoved, adjustedTargetPath, (repeatCommand) => ({
+        ...repeatCommand,
+        commands: [...(repeatCommand.commands ?? []), moved],
+      })))
+      setDragIndex(null)
+      setInsertAt(null)
+      setActiveRepeatDropPath(null)
+      return
+    }
+
     if (insertAt !== null) {
       const adjustedIndex = dragIndex < insertAt ? insertAt - 1 : insertAt
       if (adjustedIndex !== dragIndex) {
@@ -437,6 +476,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
     }
     setDragIndex(null)
     setInsertAt(null)
+    setActiveRepeatDropPath(null)
   }, [dragIndex, insertAt, onReorder, sequence])
 
   const handleStripDragOver = useCallback((event) => {
@@ -486,7 +526,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
   })()
 
   return (
-    <div ref={stripRef} onDragOver={handleStripDragOver} onDragLeave={handleStripDragLeave} onDrop={handleStripDrop} style={{ position: 'relative', height: Math.max(totalHeight, CHIP_HEIGHT), minHeight: CHIP_HEIGHT }}>
+    <div ref={stripRef} onDragOver={handleStripDragOver} onDragLeave={handleStripDragLeave} onDrop={handleStripDrop} style={{ position: 'relative', height: Math.max(totalHeight, CHIP_HEIGHT), minHeight: '100%' }}>
       {sequence.map((command, index) => {
         const isDragging = dragIndex === index
         const draggedHeight = dragIndex === null ? 0 : (layout.heights[dragIndex] ?? CHIP_HEIGHT)
@@ -504,7 +544,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
           <div
             key={`${isRepeatCommand(command) ? 'repeat' : command}-${index}`}
             ref={(node) => { itemRefs.current[index] = node }}
-            style={{ position: 'absolute', left: 0, right: 0, top: isDragging ? ghostY : slotTop, zIndex: isDragging ? 50 : 1, transition: isDragging ? 'none' : 'top 0.15s cubic-bezier(0.25,0.46,0.45,0.94)', boxShadow: isDragging ? `0 6px 28px ${getMeta(command, theme).color}44` : 'none', transform: isDragging ? 'scale(1.02)' : 'scale(1)', opacity: isDragging ? 0.95 : 1 }}
+            style={{ position: 'absolute', left: 0, right: 0, top: isDragging ? ghostY : slotTop, zIndex: isDragging ? 50 : 1, transition: isDragging ? 'none' : 'top 0.15s cubic-bezier(0.25,0.46,0.45,0.94)', boxShadow: isDragging ? `0 6px 28px ${getMeta(command, theme).color}44` : 'none', transform: isDragging ? 'scale(1.02)' : 'scale(1)', opacity: isDragging ? 0.95 : 1, pointerEvents: isDragging ? 'none' : 'auto' }}
             onPointerDown={(event) => handlePointerDown(event, index)}
             onPointerMove={(event) => handlePointerMove(event, index)}
             onPointerUp={(event) => handlePointerUp(event, index)}
@@ -521,6 +561,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
                 onUpdateRepeat={onUpdateRepeat}
                 onDropIntoRepeat={onDropIntoRepeat}
                 onNestedPaletteHoverChange={handleNestedPaletteHoverChange}
+                activeRepeatDropPath={activeRepeatDropPath}
               >
                 <StaticSequence
                   sequence={command.commands ?? []}
@@ -532,6 +573,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
                   onUpdateRepeat={onUpdateRepeat}
                   onDropIntoRepeat={onDropIntoRepeat}
                   onNestedPaletteHoverChange={handleNestedPaletteHoverChange}
+                  activeRepeatDropPath={activeRepeatDropPath}
                 />
               </RepeatCard>
             ) : (
@@ -699,7 +741,7 @@ export default function CommandBuilder({
           >
             {sequence.length === 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100%', gap: 6 }}>
-                <div style={{ fontSize: 18, opacity: theme === 'light' ? 0.28 : 0.18, color: theme === 'light' ? '#14b8d4' : '#5a8890' }}>?</div>
+                <div style={{ fontSize: 18, opacity: theme === 'light' ? 0.28 : 0.18, color: theme === 'light' ? '#14b8d4' : '#5a8890' }}>↓</div>
                 <p style={{ color: t.emptyText, fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, margin: 0, userSelect: 'none', fontWeight: 700 }}>drag commands here</p>
               </div>
             ) : (
