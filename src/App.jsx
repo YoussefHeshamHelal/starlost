@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef, memo } from 'react'
+import { useState, useCallback, useEffect, useMemo, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LEVELS } from './data/levels'
 import {
@@ -17,11 +17,10 @@ import { ThemeContext, useTheme, THEMES } from './context/theme'
 // ── Layout constants ──────────────────────────────────────────────────────────
 const HEADER_H = 56
 const GRID_PX  = 520   // 5 tiles × 104 px
-const PANEL_W  = 420
-const GAP      = 32
-const PLAYABLE_LEVELS = 5
-const LEVEL_SCREEN_DESIGN_W = GRID_PX + GAP + PANEL_W
-const LEVEL_SCREEN_DESIGN_H = 730
+const PANEL_W  = 620
+const GAP      = 24
+const PLAYABLE_LEVELS = 10
+const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
 
 // ── CSS keyframe animations ───────────────────────────────────────────────────
 const ANIM_STYLES = `
@@ -917,10 +916,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   const [animSpeed, setAnimSpeed] = useState(50)
   const [tutorialSteps, setTutorialSteps] = useState([])
   const [tutorialIndex, setTutorialIndex] = useState(0)
-  const [contentScale, setContentScale] = useState(1)
   const theme = useTheme()
   const t = THEMES[theme]
-  const outerRef = useRef(null)
 
   const {
     luma, phase,
@@ -1092,40 +1089,6 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   const runBlocked = levelConfig.predictionPrompt && predictionTile === null && predictionResult === null
 
   const panelW = PANEL_W
-  const totalW = GRID_PX + GAP + panelW
-
-  // Design height varies by level: levels without radio/identify have less vertical content
-  const designH = levelConfig.noRadio ? 670 : LEVEL_SCREEN_DESIGN_H
-
-  useEffect(() => {
-    const measureLayout = () => {
-      const outerEl = outerRef.current
-      if (!outerEl) return
-
-      const availableWidth = outerEl.clientWidth - 8
-      const availableHeight = outerEl.clientHeight - 8
-
-      const nextScale = Math.min(
-        1,
-        availableWidth / LEVEL_SCREEN_DESIGN_W,
-        availableHeight / designH
-      )
-
-      setContentScale((current) =>
-        Math.abs(current - nextScale) > 0.01 ? nextScale : current
-      )
-    }
-
-    const frame = window.requestAnimationFrame(measureLayout)
-    window.addEventListener('resize', measureLayout)
-
-    return () => {
-      window.cancelAnimationFrame(frame)
-      window.removeEventListener('resize', measureLayout)
-    }
-  }, [
-    topOffset, designH,
-  ])
 
   const handleSuccessNext = () => {
     const snapshot = getGBISnapshot()
@@ -1138,33 +1101,31 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   }
 
   return (
-    <div ref={outerRef} style={{
+    <div style={{
       position: 'fixed',
       top: topOffset, left: 0, right: 0, bottom: 0,
       display: 'flex', flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'flex-start',
-      padding: '14px 24px 14px',
-      gap: 12,
+      padding: '10px 16px 12px',
       boxSizing: 'border-box',
       overflow: 'hidden',
-      // Ensure no background that could show a bright spot
       background: 'transparent',
     }}>
       {/* ── Title bar ── */}
       <div
         style={{
-          width: totalW,
+          width: '100%',
+          maxWidth: LEVEL_SCREEN_MAX_W,
+          flex: 1,
+          minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
-          gap: 12,
-          flexShrink: 0,
-          transform: `scale(${contentScale})`,
-          transformOrigin: 'top center',
+          gap: 10,
         }}
       >
       <div style={{
-        width: totalW,
+        width: '100%',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         flexShrink: 0,
       }}>
@@ -1244,15 +1205,15 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
 
       {/* ── Helmet radio ── */}
       {!levelConfig.noRadio && (
-        <div style={{ width: totalW, flexShrink: 0 }}>
+        <div style={{ width: '100%', flexShrink: 0 }}>
           <HelmetRadio report={helmetReport} radioIsUncertain={radioIsUncertain} />
         </div>
       )}
 
       {/* ── Main play area ── */}
       <div style={{
-        flex: 1, width: totalW,
-        display: 'flex', gap: GAP, alignItems: phase === 'identify' ? 'center' : 'flex-start',
+        flex: 1, width: '100%',
+        display: 'flex', gap: GAP, alignItems: phase === 'identify' ? 'center' : 'stretch',
         minHeight: 0, overflow: 'hidden',
       }}>
         <div style={{
@@ -1278,7 +1239,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
 
         {/* Right panel */}
         <div style={{
-          flex: '0 0 auto', width: PANEL_W,
+          flex: '1 1 0', maxWidth: panelW,
           height: phase === 'develop' ? '100%' : GRID_PX,
           display: 'flex', flexDirection: 'column',
           justifyContent: phase === 'identify' ? 'center' : 'flex-start',
@@ -1312,10 +1273,10 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}
+                style={{ width: '100%', height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', gap: 8 }}
               >
                 {levelConfig.predictionPrompt && (
-                  <div data-tutorial-id="prediction-banner">
+                  <div data-tutorial-id="prediction-banner" style={{ flexShrink: 0 }}>
                     <PredictionBanner
                       predictionTile={predictionTile}
                       predictionResult={predictionResult}
@@ -1344,6 +1305,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                   showVisorFlip={!levelConfig.noVisorFlip}
                   targetCommands={levelConfig.targetCommands ?? null}
                   showPhaseLabel={!levelConfig.skipIdentify}
+                  showRepeat={Boolean(levelConfig.allowRepeat)}
+                  repeatDefaults={levelConfig.repeatDefaults}
                 />
               </motion.div>
             )}
@@ -1407,8 +1370,10 @@ export default function App() {
   }, [])
 
   const handleLevelComplete = () => {
-    if (currentLevelIndex < LEVELS.length - 1)
+    if (currentLevelIndex < Math.min(PLAYABLE_LEVELS, LEVELS.length) - 1)
       setCurrentLevelIndex(i => i + 1)
+    else
+      setAppPhase('home')
   }
 
   const handleShowStrategyCard = (completedLevelId) => {
@@ -1419,8 +1384,10 @@ export default function App() {
   const handleStrategyCardDone = () => {
     setAppPhase('playing')
     setStrategyCardLevelId(null)
-    if (currentLevelIndex < LEVELS.length - 1)
+    if (currentLevelIndex < Math.min(PLAYABLE_LEVELS, LEVELS.length) - 1)
       setCurrentLevelIndex(i => i + 1)
+    else
+      setAppPhase('home')
   }
 
   return (

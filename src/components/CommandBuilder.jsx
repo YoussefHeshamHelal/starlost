@@ -1,41 +1,41 @@
-// CommandBuilder.jsx — Lightbot-style vertical stacked command sequence
-// Fully theme-aware (light + dark mode).
-import { useState, useRef, useCallback, useContext } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+﻿import { useCallback, useContext, useLayoutEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { ThemeContext } from '../context/theme'
+import { clampRepeatTimes, countProgramBlocks, createRepeatCommand, isRepeatCommand } from '../utils/commands'
 
-const THEMES_CMD = {
+const THUMB_R = 8
+const CHIP_HEIGHT = 44
+const ITEM_GAP = 6
+
+const THEMES = {
   light: {
-    panelBg:       'linear-gradient(180deg, rgba(255,255,255,0.99), rgba(235,248,255,0.98) 55%, rgba(243,237,255,0.96))',
-    panelBorder:   '#2fc9df',
-    phaseLabel:    '#1377aa',
-    subLabel:      '#4b6d8a',
-    scrollBg:      'linear-gradient(180deg, rgba(228,250,255,0.98), rgba(244,245,255,0.96))',
-    scrollBgHover: 'linear-gradient(180deg, rgba(216,247,255,0.98), rgba(236,241,255,0.96))',
-    scrollBorder:  '#bddff2',
-    scrollBorderDrag:'#2fc9df88',
-    emptyText:     '#7190a9',
-    emptyArrow:    '#acdff0',
-    btnBorder:     '#b7dbef',
-    btnColor:      '#355978',
-    btnDisabled:   '#b7c8d8',
-    railBg:        '#dbe7f4',
-    railBorder:    '#b8cfe6',
-    tickColor:     '#64809a',
+    panelBg: 'linear-gradient(180deg, rgba(255,255,255,0.99), rgba(235,248,255,0.98) 55%, rgba(243,237,255,0.96))',
+    panelBorder: '#2fc9df',
+    phaseLabel: '#1377aa',
+    subLabel: '#4b6d8a',
+    scrollBg: 'linear-gradient(180deg, rgba(228,250,255,0.98), rgba(244,245,255,0.96))',
+    scrollBorder: '#bddff2',
+    emptyText: '#7190a9',
+    btnBorder: '#b7dbef',
+    btnColor: '#355978',
+    btnDisabled: '#b7c8d8',
+    railBg: '#dbe7f4',
+    railBorder: '#b8cfe6',
+    tickColor: '#64809a',
     speedLabelClr: '#355978',
-    visorBg:       'linear-gradient(135deg, rgba(244,238,255,0.98), rgba(232,246,255,0.96))',
-    visorBorder:   '#8b5cf6',
-    visorText:     '#5b31b7',
-    visorExhBg:    'linear-gradient(135deg, rgba(240,236,255,0.76), rgba(236,242,255,0.64))',
-    visorExhBd:    '#d2c2ff',
-    visorExhTx:    '#9987c2',
-    mirrorBg:      'linear-gradient(135deg, rgba(255,214,224,0.42), rgba(255,240,243,0.22))',
-    mirrorBorder:  '#fb718577',
-    mirrorText:    '#be123c',
-    programLabel:  '#173f66',
-    programCount:  '#60809d',
-    resetBg:       'linear-gradient(135deg, rgba(255,178,195,0.22), rgba(255,237,242,0.12))',
-    runBgActive:   'linear-gradient(135deg, rgba(45,201,223,0.20), rgba(139,92,246,0.12))',
+    visorBg: 'linear-gradient(135deg, rgba(244,238,255,0.98), rgba(232,246,255,0.96))',
+    visorBorder: '#8b5cf6',
+    visorText: '#5b31b7',
+    visorExhBg: 'linear-gradient(135deg, rgba(240,236,255,0.76), rgba(236,242,255,0.64))',
+    visorExhBd: '#d2c2ff',
+    visorExhTx: '#9987c2',
+    mirrorBg: 'linear-gradient(135deg, rgba(255,214,224,0.42), rgba(255,240,243,0.22))',
+    mirrorBorder: '#fb718577',
+    mirrorText: '#be123c',
+    programLabel: '#173f66',
+    programCount: '#60809d',
+    resetBg: 'linear-gradient(135deg, rgba(255,178,195,0.22), rgba(255,237,242,0.12))',
+    runBgActive: 'linear-gradient(135deg, rgba(45,201,223,0.20), rgba(139,92,246,0.12))',
     runBgDisabled: 'rgba(222,233,244,0.82)',
     runBorderActive: '#2fc9df',
     runBorderDisabled: '#bfd1e4',
@@ -44,37 +44,33 @@ const THEMES_CMD = {
     targetCmdColor: '#1377aa',
   },
   dark: {
-    // DARK MODE: everything dark, text bright and readable
-    panelBg:       'rgba(6,11,20,0.98)',
-    panelBorder:   '#f59e0b',
-    phaseLabel:    '#fbbf24',
-    subLabel:      '#a0b0c8',
-    scrollBg:      'rgba(3,7,14,0.95)',
-    scrollBgHover: 'rgba(45,212,191,0.05)',
-    scrollBorder:  '#0c1828',
-    scrollBorderDrag:'#2dd4bf55',
-    emptyText:     '#3a5060',
-    emptyArrow:    '#2a3848',
-    btnBorder:     '#182838',
-    btnColor:      '#7a9aaa',
-    btnDisabled:   '#1a2838',
-    railBg:        '#0a1828',
-    railBorder:    '#182838',
-    tickColor:     '#5a7888',
+    panelBg: 'rgba(6,11,20,0.98)',
+    panelBorder: '#f59e0b',
+    phaseLabel: '#fbbf24',
+    subLabel: '#a0b0c8',
+    scrollBg: 'rgba(3,7,14,0.95)',
+    scrollBorder: '#0c1828',
+    emptyText: '#3a5060',
+    btnBorder: '#182838',
+    btnColor: '#7a9aaa',
+    btnDisabled: '#1a2838',
+    railBg: '#0a1828',
+    railBorder: '#182838',
+    tickColor: '#5a7888',
     speedLabelClr: '#7a9aaa',
-    visorBg:       'rgba(139,92,246,0.14)',
-    visorBorder:   '#a78bfa',
-    visorText:     '#c4b5fd',
-    visorExhBg:    'rgba(6,10,18,0.7)',
-    visorExhBd:    '#182838',
-    visorExhTx:    '#2a3848',
-    mirrorBg:      'rgba(251,113,133,0.07)',
-    mirrorBorder:  '#fb718555',
-    mirrorText:    '#fb7185',
-    programLabel:  '#a0b0c8',
-    programCount:  '#5a7888',
-    resetBg:       'linear-gradient(135deg, rgba(251,113,133,0.14), rgba(251,113,133,0.07))',
-    runBgActive:   'linear-gradient(135deg, rgba(45,212,191,0.16), rgba(45,212,191,0.08))',
+    visorBg: 'rgba(139,92,246,0.14)',
+    visorBorder: '#a78bfa',
+    visorText: '#c4b5fd',
+    visorExhBg: 'rgba(6,10,18,0.7)',
+    visorExhBd: '#182838',
+    visorExhTx: '#2a3848',
+    mirrorBg: 'rgba(251,113,133,0.07)',
+    mirrorBorder: '#fb718555',
+    mirrorText: '#fb7185',
+    programLabel: '#a0b0c8',
+    programCount: '#5a7888',
+    resetBg: 'linear-gradient(135deg, rgba(251,113,133,0.14), rgba(251,113,133,0.07))',
+    runBgActive: 'linear-gradient(135deg, rgba(45,212,191,0.16), rgba(45,212,191,0.08))',
     runBgDisabled: 'rgba(6,10,18,0.6)',
     runBorderActive: '#2dd4bf',
     runBorderDisabled: '#182838',
@@ -84,666 +80,653 @@ const THEMES_CMD = {
   },
 }
 
-const CMD_META = {
-  F:  { label: 'FORWARD',    icon: '↑', color: '#14b8d4', darkColor: '#2dd4bf', bg: 'rgba(20,184,212,0.12)',  darkBg: 'rgba(45,212,191,0.20)', lightBorderLeft: '#14b8d4' },
-  TL: { label: 'TURN LEFT',  icon: '↺', color: '#8b5cf6', darkColor: '#a78bfa', bg: 'rgba(139,92,246,0.11)', darkBg: 'rgba(167,139,250,0.22)', lightBorderLeft: '#8b5cf6' },
-  TR: { label: 'TURN RIGHT', icon: '↻', color: '#f59e0b', darkColor: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  darkBg: 'rgba(245,158,11,0.20)', lightBorderLeft: '#f59e0b' },
+const META = {
+  F: { buttonLabel: 'MOVE FORWARD', rowLabel: 'FORWARD', icon: '↑', color: '#14b8d4', darkColor: '#2dd4bf', bg: 'rgba(20,184,212,0.12)', darkBg: 'rgba(45,212,191,0.20)' },
+  TR: { buttonLabel: 'TURN RIGHT', rowLabel: 'TURN RIGHT', icon: '→', color: '#f59e0b', darkColor: '#f59e0b', bg: 'rgba(245,158,11,0.12)', darkBg: 'rgba(245,158,11,0.20)' },
+  TL: { buttonLabel: 'TURN LEFT', rowLabel: 'TURN LEFT', icon: '←', color: '#8b5cf6', darkColor: '#a78bfa', bg: 'rgba(139,92,246,0.11)', darkBg: 'rgba(167,139,250,0.22)' },
+  REPEAT: { buttonLabel: 'REPEAT', rowLabel: 'REPEAT', icon: '↺', color: '#22c55e', darkColor: '#4ade80', bg: 'rgba(34,197,94,0.12)', darkBg: 'rgba(74,222,128,0.18)' },
 }
 
-const CHIP_HEIGHT = 36
-const THUMB_R = 8
+const PALETTE_ORDER = ['F', 'TR', 'TL', 'REPEAT']
 
-// ── Speed Bar ────────────────────────────────────────────────────────────────
+function updateCommandsAtPath(sequence, path, updater) {
+  if (path.length === 0) return updater(sequence)
+  const [index, ...rest] = path
+  return sequence.map((command, commandIndex) => {
+    if (commandIndex !== index || !isRepeatCommand(command)) return command
+    return { ...command, commands: updateCommandsAtPath(command.commands ?? [], rest, updater) }
+  })
+}
+
+function updateRepeatAtPath(sequence, path, updater) {
+  const [index, ...rest] = path
+  return sequence.map((command, commandIndex) => {
+    if (commandIndex !== index || !isRepeatCommand(command)) return command
+    if (rest.length === 0) return updater(command)
+    return { ...command, commands: updateRepeatAtPath(command.commands ?? [], rest, updater) }
+  })
+}
+
+function removeCommandAtPath(sequence, path) {
+  const parentPath = path.slice(0, -1)
+  const targetIndex = path[path.length - 1]
+  return updateCommandsAtPath(sequence, parentPath, (commands) => commands.filter((_, commandIndex) => commandIndex !== targetIndex))
+}
+
+function insertCommandAtPath(sequence, parentPath, index, command) {
+  return updateCommandsAtPath(sequence, parentPath, (commands) => {
+    const next = [...commands]
+    next.splice(index, 0, command)
+    return next
+  })
+}
+
+function getMeta(command, theme) {
+  const base = isRepeatCommand(command) ? META.REPEAT : META[command]
+  const color = theme === 'light' ? base.color : base.darkColor
+  const bg = theme === 'light' ? base.bg : base.darkBg
+  return { ...base, color, bg }
+}
+
+function getRowEstimate(command) {
+  if (!isRepeatCommand(command)) return CHIP_HEIGHT
+  const childCount = command.commands?.length ?? 0
+  const nestedHeight = childCount === 0 ? 66 : childCount * (CHIP_HEIGHT + ITEM_GAP) + 22
+  return 78 + nestedHeight
+}
+
 function SpeedBar({ speed, onSpeedChange, theme }) {
-  const t = THEMES_CMD[theme]
+  const t = THEMES[theme]
   const trackRef = useRef(null)
-  const dragging  = useRef(false)
+  const dragging = useRef(false)
 
   const computeSpeed = useCallback((clientX) => {
     if (!trackRef.current) return
     const rect = trackRef.current.getBoundingClientRect()
-    const usableLeft  = rect.left  + THUMB_R
+    const usableLeft = rect.left + THUMB_R
     const usableWidth = rect.width - THUMB_R * 2
     const ratio = Math.max(0, Math.min(1, (clientX - usableLeft) / usableWidth))
     const raw = Math.round((ratio * 90 + 10) / 5) * 5
     onSpeedChange(Math.max(10, Math.min(100, raw)))
   }, [onSpeedChange])
 
-  const onPointerDown = useCallback((e) => {
-    e.preventDefault()
-    dragging.current = true
-    trackRef.current.setPointerCapture(e.pointerId)
-    computeSpeed(e.clientX)
-  }, [computeSpeed])
-
-  const onPointerMove = useCallback((e) => {
-    if (!dragging.current) return
-    computeSpeed(e.clientX)
-  }, [computeSpeed])
-
-  const onPointerUp = useCallback(() => {
-    dragging.current = false
-  }, [])
-
   const fillPct = ((speed - 10) / 90) * 100
   const trackColor = speed < 40 ? '#f59e0b' : speed < 75 ? (theme === 'light' ? '#14b8d4' : '#2dd4bf') : '#10b981'
-
-  const tickLabels = [
-    { label: 'SLOW', speedVal: 10  },
-    { label: 'MED',  speedVal: 50  },
-    { label: 'FAST', speedVal: 100 },
-  ]
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <p style={{ fontSize: 10, color: t.speedLabelClr, fontFamily: 'monospace', letterSpacing: 1, margin: 0, fontWeight: 800 }}>
-          LUMA SPEED
-        </p>
-        <span style={{
-          fontSize: 11, fontFamily: 'monospace', fontWeight: 800,
-          color: trackColor,
-          background: `rgba(${speed < 40 ? '245,158,11' : speed < 75 ? (theme === 'light' ? '20,184,212' : '45,212,191') : '16,185,129'},0.13)`,
-          border: `1px solid ${trackColor}55`,
-          borderRadius: 5, padding: '2px 7px',
-          minWidth: 40, textAlign: 'center',
-          transition: 'color 0.2s, background 0.2s, border-color 0.2s',
-        }}>
-          {speed}%
-        </span>
+        <p style={{ fontSize: 10, color: t.speedLabelClr, fontFamily: 'monospace', letterSpacing: 1, margin: 0, fontWeight: 800 }}>LUMA SPEED</p>
+        <span style={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 800, color: trackColor }}>{speed}%</span>
       </div>
 
       <div
         ref={trackRef}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        style={{
-          position: 'relative',
-          height: THUMB_R * 2,
-          cursor: 'pointer',
-          userSelect: 'none',
-          touchAction: 'none',
-        }}
+        onPointerDown={(event) => { dragging.current = true; event.currentTarget.setPointerCapture(event.pointerId); computeSpeed(event.clientX) }}
+        onPointerMove={(event) => { if (dragging.current) computeSpeed(event.clientX) }}
+        onPointerUp={() => { dragging.current = false }}
+        style={{ position: 'relative', height: THUMB_R * 2, cursor: 'pointer', touchAction: 'none' }}
       >
-        {/* Rail */}
-        <div style={{
-          position: 'absolute',
-          left: THUMB_R, right: THUMB_R,
-          top: '50%', transform: 'translateY(-50%)',
-          height: 4, background: t.railBg,
-          borderRadius: 2, border: `1px solid ${t.railBorder}`,
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            position: 'absolute', left: 0, top: 0, bottom: 0,
-            width: `${fillPct}%`,
-            background: `linear-gradient(90deg, #f59e0b, ${trackColor})`,
-            borderRadius: 2,
-            transition: 'width 0.08s, background 0.2s',
-          }}/>
+        <div style={{ position: 'absolute', left: THUMB_R, right: THUMB_R, top: '50%', transform: 'translateY(-50%)', height: 4, background: t.railBg, borderRadius: 2, border: `1px solid ${t.railBorder}` }}>
+          <div style={{ width: `${fillPct}%`, height: '100%', background: `linear-gradient(90deg, #f59e0b, ${trackColor})` }} />
         </div>
-
-        {/* Thumb */}
-        <div style={{
-          position: 'absolute',
-          left: `calc(${fillPct / 100} * (100% - ${THUMB_R * 2}px))`,
-          top: '50%', transform: 'translateY(-50%)',
-          width: THUMB_R * 2, height: THUMB_R * 2,
-          borderRadius: '50%', background: trackColor,
-          boxShadow: `0 0 8px ${trackColor}88`,
-          transition: 'left 0.08s, background 0.2s, box-shadow 0.2s',
-          pointerEvents: 'none',
-        }}/>
+        <div style={{ position: 'absolute', left: `calc(${fillPct / 100} * (100% - ${THUMB_R * 2}px))`, top: '50%', transform: 'translateY(-50%)', width: THUMB_R * 2, height: THUMB_R * 2, borderRadius: '50%', background: trackColor }} />
       </div>
 
-      <div style={{ position: 'relative', height: 10 }}>
-        {tickLabels.map(({ label, speedVal }) => {
-          const tickFill = ((speedVal - 10) / 90) * 100
-          return (
-            <span
-              key={label}
-              style={{
-                position: 'absolute',
-                left: `calc(${THUMB_R}px + ${tickFill / 100} * (100% - ${THUMB_R * 2}px))`,
-                transform: 'translateX(-50%)',
-                fontSize: 8,
-                color: t.tickColor,
-                fontFamily: 'monospace',
-                letterSpacing: 0.5,
-                fontWeight: 700,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {label}
-            </span>
-          )
-        })}
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, color: t.tickColor, fontFamily: 'monospace', letterSpacing: 0.5, fontWeight: 700 }}>
+        <span>SLOW</span><span>MED</span><span>FAST</span>
       </div>
     </div>
   )
 }
 
-// ── Draggable sequence strip ─────────────────────────────────────────────────
-function DraggableStrip({ sequence, isRunning, onReorder, onInsertAt, theme }) {
-  const [dragIndex, setDragIndex]             = useState(null)
-  const [ghostY, setGhostY]                   = useState(0)
-  const [insertAt, setInsertAt]               = useState(null)
-  const [paletteInsertAt, setPaletteInsertAt] = useState(null)
+function PaletteButton({ code, disabled, onAdd, theme, tutorialId, repeatDefaults }) {
+  const meta = getMeta(code === 'REPEAT' ? createRepeatCommand(repeatDefaults.times) : code, theme)
+  return (
+    <motion.button
+      whileTap={{ scale: 0.985 }}
+      onClick={() => !disabled && onAdd(code === 'REPEAT' ? createRepeatCommand(repeatDefaults.times) : code)}
+      draggable
+      onDragStart={(event) => {
+        event.dataTransfer.setData('cmd', code)
+        event.dataTransfer.effectAllowed = 'copy'
+      }}
+      disabled={disabled}
+      data-tutorial-id={tutorialId}
+      style={{ width: '100%', padding: '10px 12px', background: meta.bg, border: `1.5px solid ${meta.color}`, borderRadius: 10, color: meta.color, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'monospace', opacity: disabled ? 0.35 : 1 }}
+    >
+      <span style={{ fontSize: 20, lineHeight: 1 }}>{meta.icon}</span>
+      <span style={{ fontSize: 10, letterSpacing: 0.8, fontWeight: 800 }}>{meta.buttonLabel}</span>
+    </motion.button>
+  )
+}
 
-  const stripRef  = useRef(null)
+function RepeatCounter({ command, color, onChange }) {
+  const buttonStyle = { width: 20, height: 16, borderRadius: 6, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.72)', color, cursor: 'pointer', padding: 0, fontWeight: 900, fontFamily: 'monospace' }
+  return (
+    <div data-tutorial-id="repeat-block-counter" onPointerDown={(event) => event.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', background: `${color}12`, border: `1px solid ${color}33`, borderRadius: 10 }}>
+      <span style={{ fontSize: 8, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800, color }}>REPEAT</span>
+      <input type="number" min={1} max={9} value={command.times} onChange={(event) => onChange({ ...command, times: clampRepeatTimes(event.target.value) })} style={{ width: 40, padding: '3px 5px', borderRadius: 8, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.82)', color, fontFamily: 'monospace', fontSize: 12, fontWeight: 800, textAlign: 'center' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <button type="button" style={buttonStyle} onClick={() => onChange({ ...command, times: clampRepeatTimes(command.times + 1) })}>+</button>
+        <button type="button" style={buttonStyle} onClick={() => onChange({ ...command, times: clampRepeatTimes(command.times - 1) })}>-</button>
+      </div>
+    </div>
+  )
+}
+
+function RowDelete({ color, isRunning, onDelete, theme }) {
+  return (
+    <button
+      type="button"
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={onDelete}
+      disabled={isRunning}
+      style={{ position: 'absolute', top: '50%', right: 6, transform: 'translateY(-50%)', width: 18, height: 18, borderRadius: '50%', border: `1px solid ${color}55`, background: theme === 'light' ? 'rgba(255,255,255,0.72)' : 'rgba(0,0,0,0.6)', color: `${color}cc`, cursor: isRunning ? 'not-allowed' : 'pointer', fontSize: 10, lineHeight: 1, zIndex: 5 }}
+    >
+      ×
+    </button>
+  )
+}
+function CommandChip({ command, index, depth, path, theme, isRunning, onDelete }) {
+  const meta = getMeta(command, theme)
+  return (
+    <div style={{ position: 'relative', minHeight: CHIP_HEIGHT, marginLeft: depth * 12, display: 'flex', alignItems: 'center', gap: 10, padding: '8px 34px 8px 10px', background: meta.bg, borderLeft: `3px solid ${meta.color}`, borderBottom: `1px solid ${meta.color}22`, borderRadius: 10 }}>
+      <span style={{ fontSize: 8, color: meta.color, fontFamily: 'monospace', width: 14, textAlign: 'right', fontWeight: 700 }}>{String(index + 1).padStart(2, '0')}</span>
+      <span style={{ fontSize: 16, color: meta.color }}>{meta.icon}</span>
+      <span style={{ fontSize: 10, color: meta.color, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 700, flex: 1 }}>{meta.rowLabel}</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 1.5, opacity: theme === 'light' ? 0.4 : 0.35, paddingRight: 14 }}>
+        {[0, 1, 2].map((dotRow) => (
+          <div key={dotRow} style={{ width: 14, display: 'flex', gap: 2 }}>
+            <div style={{ width: 2, height: 2, borderRadius: '50%', background: meta.color }} />
+            <div style={{ width: 2, height: 2, borderRadius: '50%', background: meta.color }} />
+          </div>
+        ))}
+      </div>
+      <RowDelete color={meta.color} isRunning={isRunning} onDelete={() => onDelete(path)} theme={theme} />
+    </div>
+  )
+}
+
+function StaticSequence({ sequence, parentPath, depth, theme, isRunning, onDelete, onUpdateRepeat, onDropIntoRepeat, onNestedPaletteHoverChange }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: ITEM_GAP }}>
+      {sequence.map((command, index) => {
+        const path = [...parentPath, index]
+        return isRepeatCommand(command) ? (
+          <RepeatCard
+            key={`repeat-${path.join('-')}`}
+            command={command}
+            index={index}
+            depth={depth}
+            path={path}
+            theme={theme}
+            isRunning={isRunning}
+            onDelete={onDelete}
+            onUpdateRepeat={onUpdateRepeat}
+            onDropIntoRepeat={onDropIntoRepeat}
+            onNestedPaletteHoverChange={onNestedPaletteHoverChange}
+          >
+            <StaticSequence
+              sequence={command.commands ?? []}
+              parentPath={path}
+              depth={depth + 1}
+              theme={theme}
+              isRunning={isRunning}
+              onDelete={onDelete}
+              onUpdateRepeat={onUpdateRepeat}
+              onDropIntoRepeat={onDropIntoRepeat}
+              onNestedPaletteHoverChange={onNestedPaletteHoverChange}
+            />
+          </RepeatCard>
+        ) : (
+          <CommandChip
+            key={`${command}-${path.join('-')}`}
+            command={command}
+            index={index}
+            depth={depth}
+            path={path}
+            theme={theme}
+            isRunning={isRunning}
+            onDelete={onDelete}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
+function RepeatCard({ command, index, depth, path, theme, isRunning, onDelete, onUpdateRepeat, onDropIntoRepeat, onNestedPaletteHoverChange, children }) {
+  const meta = getMeta(command, theme)
+  const [isDragOver, setIsDragOver] = useState(false)
+  const childCount = command.commands?.length ?? 0
+
+  return (
+    <div style={{ position: 'relative', marginLeft: depth * 12, padding: '8px 34px 10px 10px', background: meta.bg, border: `1.5px solid ${meta.color}66`, borderRadius: 14 }}>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+        <span style={{ fontSize: 8, color: meta.color, fontFamily: 'monospace', width: 14, textAlign: 'right', fontWeight: 700, paddingTop: 7 }}>{String(index + 1).padStart(2, '0')}</span>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 18, color: meta.color }}>{meta.icon}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <span style={{ fontSize: 10, color: meta.color, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800 }}>REPEAT x{command.times}</span>
+                <span style={{ fontSize: 7, color: `${meta.color}cc`, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 700 }}>{childCount} BLOCK{childCount === 1 ? '' : 'S'}</span>
+              </div>
+            </div>
+            <RepeatCounter command={command} color={meta.color} onChange={(next) => onUpdateRepeat(path, next)} />
+          </div>
+
+          <div
+            onDragOver={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              setIsDragOver(true)
+              onNestedPaletteHoverChange?.(true)
+              event.dataTransfer.dropEffect = 'copy'
+            }}
+            onDragLeave={(event) => {
+              event.stopPropagation()
+              const rect = event.currentTarget.getBoundingClientRect()
+              if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
+                setIsDragOver(false)
+                onNestedPaletteHoverChange?.(false)
+              }
+            }}
+            onDrop={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              setIsDragOver(false)
+              onNestedPaletteHoverChange?.(false)
+              const raw = event.dataTransfer.getData('cmd')
+              if (!raw) return
+              onDropIntoRepeat(path, raw)
+            }}
+            style={{ minHeight: 92, padding: '10px', borderRadius: 12, background: isDragOver ? (theme === 'light' ? 'rgba(216,247,255,0.96)' : 'rgba(45,212,191,0.07)') : (theme === 'light' ? 'rgba(255,255,255,0.68)' : 'rgba(3,7,14,0.72)'), border: `1.5px ${isDragOver ? `dashed ${meta.color}88` : `solid ${meta.color}33`}`, display: 'flex', flexDirection: 'column', gap: 6 }}
+          >
+            {childCount === 0 ? (
+              <div style={{ flex: 1, minHeight: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <p style={{ color: `${meta.color}cc`, fontSize: 11, fontFamily: 'monospace', letterSpacing: 0.8, margin: 0, fontWeight: 700 }}>Drag commands here</p>
+              </div>
+            ) : children}
+          </div>
+        </div>
+      </div>
+      <RowDelete color={meta.color} isRunning={isRunning} onDelete={() => onDelete(path)} theme={theme} />
+    </div>
+  )
+}
+
+function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete, onUpdateRepeat, onDropIntoRepeat, theme, setDragOver }) {
+  const [dragIndex, setDragIndex] = useState(null)
+  const [ghostY, setGhostY] = useState(0)
+  const [insertAt, setInsertAt] = useState(null)
+  const [paletteInsertAt, setPaletteInsertAt] = useState(null)
+  const [layout, setLayout] = useState({ heights: [], tops: [], totalHeight: CHIP_HEIGHT })
+  const stripRef = useRef(null)
+  const itemRefs = useRef([])
+  const heightsRef = useRef([])
   const startYRef = useRef(0)
-  const startTop  = useRef(0)
+  const startTopRef = useRef(0)
+
+  const measureHeights = useCallback(() => {
+    heightsRef.current = sequence.map((command, index) => itemRefs.current[index]?.offsetHeight ?? getRowEstimate(command))
+    let cursor = 0
+    const tops = sequence.map((_, index) => {
+      const top = cursor
+      cursor += (heightsRef.current[index] ?? CHIP_HEIGHT) + ITEM_GAP
+      return top
+    })
+    const totalHeight = sequence.length === 0
+      ? CHIP_HEIGHT
+      : heightsRef.current.reduce((sum, value) => sum + (value ?? CHIP_HEIGHT), 0) + ITEM_GAP * Math.max(0, sequence.length - 1)
+    setLayout({ heights: [...heightsRef.current], tops, totalHeight })
+  }, [sequence])
+
+  useLayoutEffect(() => {
+    measureHeights()
+    window.addEventListener('resize', measureHeights)
+    return () => window.removeEventListener('resize', measureHeights)
+  }, [measureHeights])
 
   const computeInsert = useCallback((pointerY) => {
-    const slotIndex = Math.round(pointerY / CHIP_HEIGHT)
-    return Math.max(0, Math.min(sequence.length, slotIndex))
+    let cursor = 0
+    for (let index = 0; index < sequence.length; index += 1) {
+      const itemTop = cursor
+      const height = heightsRef.current[index] ?? CHIP_HEIGHT
+      if (pointerY < itemTop + height / 2) return index
+      cursor += height + ITEM_GAP
+    }
+    return sequence.length
   }, [sequence.length])
 
-  const onPointerDown = useCallback((e, index) => {
+  const handlePointerDown = useCallback((event, index) => {
     if (isRunning) return
-    if (e.button !== 0) return
-    e.preventDefault()
-    startYRef.current = e.clientY
-    startTop.current  = index * CHIP_HEIGHT
+    if (event.button !== 0) return
+    event.preventDefault()
+    measureHeights()
+    startYRef.current = event.clientY
+    startTopRef.current = layout.tops[index] ?? 0
     setDragIndex(index)
-    setGhostY(index * CHIP_HEIGHT)
+    setGhostY(layout.tops[index] ?? 0)
     setInsertAt(index)
-    e.currentTarget.setPointerCapture(e.pointerId)
-  }, [isRunning])
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }, [isRunning, layout.tops, measureHeights])
 
-  const onPointerMove = useCallback((e, index) => {
-    if (dragIndex !== index) return
-    const stripRect = stripRef.current.getBoundingClientRect()
-    const pointerYInStrip = e.clientY - stripRect.top
-    const delta = e.clientY - startYRef.current
-    setGhostY(Math.max(0, Math.min((sequence.length - 1) * CHIP_HEIGHT, startTop.current + delta)))
+  const handlePointerMove = useCallback((event, index) => {
+    if (dragIndex !== index || !stripRef.current) return
+    const rect = stripRef.current.getBoundingClientRect()
+    const pointerYInStrip = event.clientY - rect.top
+    const draggedHeight = heightsRef.current[index] ?? CHIP_HEIGHT
+    const maxTop = Math.max(0, layout.totalHeight - draggedHeight)
+    const delta = event.clientY - startYRef.current
+    setGhostY(Math.max(0, Math.min(maxTop, startTopRef.current + delta)))
     setInsertAt(computeInsert(pointerYInStrip))
-  }, [dragIndex, sequence.length, computeInsert])
+  }, [computeInsert, dragIndex, layout.totalHeight])
 
-  const onPointerUp = useCallback((e, index) => {
+  const handlePointerUp = useCallback((_, index) => {
     if (dragIndex !== index) return
-    if (insertAt !== null && insertAt !== dragIndex) {
-      const newSeq = [...sequence]
-      const [removed] = newSeq.splice(dragIndex, 1)
-      newSeq.splice(insertAt, 0, removed)
-      onReorder(newSeq)
+    if (insertAt !== null) {
+      const adjustedIndex = dragIndex < insertAt ? insertAt - 1 : insertAt
+      if (adjustedIndex !== dragIndex) {
+        const next = [...sequence]
+        const [moved] = next.splice(dragIndex, 1)
+        next.splice(adjustedIndex, 0, moved)
+        onReorder(next)
+      }
     }
     setDragIndex(null)
     setInsertAt(null)
-  }, [dragIndex, insertAt, sequence, onReorder])
+  }, [dragIndex, insertAt, onReorder, sequence])
 
-  const onStripDragOver = useCallback((e) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'copy'
+  const handleStripDragOver = useCallback((event) => {
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'copy'
+    setDragOver(true)
     if (!stripRef.current) return
     const rect = stripRef.current.getBoundingClientRect()
-    setPaletteInsertAt(computeInsert(e.clientY - rect.top))
-  }, [computeInsert])
+    setPaletteInsertAt(computeInsert(event.clientY - rect.top))
+  }, [computeInsert, setDragOver])
 
-  const onStripDragLeave = useCallback((e) => {
+  const handleStripDragLeave = useCallback((event) => {
     if (!stripRef.current) return
     const rect = stripRef.current.getBoundingClientRect()
-    if (e.clientX < rect.left || e.clientX > rect.right ||
-        e.clientY < rect.top  || e.clientY > rect.bottom) {
+    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
       setPaletteInsertAt(null)
+      setDragOver(false)
+    }
+  }, [setDragOver])
+
+  const handleStripDrop = useCallback((event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    const cmd = event.dataTransfer.getData('cmd')
+    if (cmd && stripRef.current) {
+      const rect = stripRef.current.getBoundingClientRect()
+      onInsertAt(cmd, computeInsert(event.clientY - rect.top))
+    }
+    setPaletteInsertAt(null)
+    setDragOver(false)
+  }, [computeInsert, onInsertAt, setDragOver])
+
+  const handleNestedPaletteHoverChange = useCallback((isHovering) => {
+    if (isHovering) {
+      setPaletteInsertAt(null)
+      return
     }
   }, [])
 
-  const onStripDrop = useCallback((e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const cmd = e.dataTransfer.getData('cmd')
-    if (cmd && CMD_META[cmd] && stripRef.current) {
-      const rect = stripRef.current.getBoundingClientRect()
-      onInsertAt(cmd, computeInsert(e.clientY - rect.top))
-    }
-    setPaletteInsertAt(null)
-  }, [computeInsert, onInsertAt])
-
-  const stripHeight = Math.max(sequence.length * CHIP_HEIGHT, CHIP_HEIGHT)
-  const isLight = theme === 'light'
+  const tops = layout.tops
+  const totalHeight = layout.totalHeight
+  const insertLineTop = (() => {
+    const slotIndex = dragIndex === null ? paletteInsertAt : insertAt
+    if (slotIndex === null) return null
+    if (slotIndex >= sequence.length) return totalHeight - 2
+    return Math.max(0, (tops[slotIndex] ?? 0) - 2)
+  })()
 
   return (
-    <div
-      ref={stripRef}
-      onDragOver={onStripDragOver}
-      onDragLeave={onStripDragLeave}
-      onDrop={onStripDrop}
-      style={{ position: 'relative', height: stripHeight, minHeight: CHIP_HEIGHT }}
-    >
-      {sequence.map((cmd, i) => {
-        const m = CMD_META[cmd]
-        const color  = isLight ? m.color    : m.darkColor
-        const chipBg = isLight ? m.bg       : m.darkBg
-        const isDragging     = dragIndex === i
-        const isInsertTarget = insertAt === i && dragIndex !== null && dragIndex !== i
+    <div ref={stripRef} onDragOver={handleStripDragOver} onDragLeave={handleStripDragLeave} onDrop={handleStripDrop} style={{ position: 'relative', height: Math.max(totalHeight, CHIP_HEIGHT), minHeight: CHIP_HEIGHT }}>
+      {sequence.map((command, index) => {
+        const isDragging = dragIndex === index
+        const draggedHeight = dragIndex === null ? 0 : (layout.heights[dragIndex] ?? CHIP_HEIGHT)
+        let slotTop = tops[index] ?? 0
 
-        let slotTop = i * CHIP_HEIGHT
-        if (dragIndex !== null && dragIndex !== i) {
+        if (dragIndex !== null && dragIndex !== index && insertAt !== null) {
           if (dragIndex < insertAt) {
-            if (i > dragIndex && i <= insertAt) slotTop -= CHIP_HEIGHT
-          } else {
-            if (i >= insertAt && i < dragIndex) slotTop += CHIP_HEIGHT
+            if (index > dragIndex && index < insertAt) slotTop -= draggedHeight + ITEM_GAP
+          } else if (dragIndex > insertAt) {
+            if (index >= insertAt && index < dragIndex) slotTop += draggedHeight + ITEM_GAP
           }
         }
 
         return (
           <div
-            key={`${cmd}-${i}`}
-            style={{
-              position: 'absolute', left: 0, right: 0,
-              top: isDragging ? ghostY : slotTop,
-              height: CHIP_HEIGHT,
-              zIndex: isDragging ? 50 : 1,
-              transition: isDragging ? 'none' : 'top 0.15s cubic-bezier(0.25,0.46,0.45,0.94)',
-              boxShadow: isDragging ? `0 6px 28px ${color}44` : 'none',
-              transform: isDragging ? 'scale(1.02)' : 'scale(1)',
-              opacity: isDragging ? 0.95 : 1,
-            }}
-            onPointerDown={e => onPointerDown(e, i)}
-            onPointerMove={e => onPointerMove(e, i)}
-            onPointerUp={e => onPointerUp(e, i)}
+            key={`${isRepeatCommand(command) ? 'repeat' : command}-${index}`}
+            ref={(node) => { itemRefs.current[index] = node }}
+            style={{ position: 'absolute', left: 0, right: 0, top: isDragging ? ghostY : slotTop, zIndex: isDragging ? 50 : 1, transition: isDragging ? 'none' : 'top 0.15s cubic-bezier(0.25,0.46,0.45,0.94)', boxShadow: isDragging ? `0 6px 28px ${getMeta(command, theme).color}44` : 'none', transform: isDragging ? 'scale(1.02)' : 'scale(1)', opacity: isDragging ? 0.95 : 1 }}
+            onPointerDown={(event) => handlePointerDown(event, index)}
+            onPointerMove={(event) => handlePointerMove(event, index)}
+            onPointerUp={(event) => handlePointerUp(event, index)}
           >
-            {isInsertTarget && (
-              <div style={{
-                position: 'absolute', top: dragIndex > insertAt ? 0 : CHIP_HEIGHT - 2,
-                left: 0, right: 0, height: 2,
-                background: color, opacity: 0.8, borderRadius: 2, zIndex: 60,
-              }}/>
+            {isRepeatCommand(command) ? (
+              <RepeatCard
+                command={command}
+                index={index}
+                depth={0}
+                path={[index]}
+                theme={theme}
+                isRunning={isRunning}
+                onDelete={onDelete}
+                onUpdateRepeat={onUpdateRepeat}
+                onDropIntoRepeat={onDropIntoRepeat}
+                onNestedPaletteHoverChange={handleNestedPaletteHoverChange}
+              >
+                <StaticSequence
+                  sequence={command.commands ?? []}
+                  parentPath={[index]}
+                  depth={1}
+                  theme={theme}
+                  isRunning={isRunning}
+                  onDelete={onDelete}
+                  onUpdateRepeat={onUpdateRepeat}
+                  onDropIntoRepeat={onDropIntoRepeat}
+                  onNestedPaletteHoverChange={handleNestedPaletteHoverChange}
+                />
+              </RepeatCard>
+            ) : (
+              <CommandChip command={command} index={index} depth={0} path={[index]} theme={theme} isRunning={isRunning} onDelete={onDelete} />
             )}
-
-            {paletteInsertAt === i && dragIndex === null && (
-              <div style={{
-                position: 'absolute', top: -2, left: 0, right: 0, height: 3,
-                background: isLight ? '#14b8d4' : '#2dd4bf',
-                opacity: 0.9, borderRadius: 2, zIndex: 60,
-                boxShadow: `0 0 8px ${isLight ? '#14b8d4' : '#2dd4bf'}`,
-              }}/>
-            )}
-
-            <div style={{
-              width: '100%', height: CHIP_HEIGHT,
-              background: chipBg,
-              borderLeft: `3px solid ${color}`,
-              borderBottom: `1px solid ${color}22`,
-              display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 12,
-              cursor: isRunning ? 'not-allowed' : 'grab',
-              userSelect: 'none', touchAction: 'none', boxSizing: 'border-box',
-            }}>
-              <span style={{ fontSize: 8, color: color, fontFamily: 'monospace', opacity: isLight ? 0.8 : 0.6, width: 14, textAlign: 'right', flexShrink: 0, fontWeight: 700 }}>
-                {String(i + 1).padStart(2, '0')}
-              </span>
-              <span style={{ fontSize: 18, color: color, lineHeight: 1, flexShrink: 0 }}>
-                {m.icon}
-              </span>
-              <span style={{ fontSize: 11, color: color, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 700, flex: 1 }}>
-                {m.label}
-              </span>
-              <div style={{ display:'flex', flexDirection:'column', gap: 1.5, opacity: isLight ? 0.4 : 0.35, paddingRight: 28 }}>
-                {[0,1,2].map(di => (
-                  <div key={di} style={{ width: 14, display:'flex', gap: 2 }}>
-                    <div style={{ width: 2, height: 2, borderRadius:'50%', background:color }}/>
-                    <div style={{ width: 2, height: 2, borderRadius:'50%', background:color }}/>
-                  </div>
-                ))}
-              </div>
-              <div
-                onPointerDown={e => e.stopPropagation()}
-                onClick={() => onReorder(sequence.filter((_, si) => si !== i))}
-                style={{
-                  position:'absolute', top:'50%', right:6,
-                  transform:'translateY(-50%)',
-                  width:18, height:18, borderRadius:'50%',
-                  background: isLight ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)',
-                  border:`1px solid ${color}55`,
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  cursor:'pointer', fontSize:10, color:`${color}bb`,
-                  lineHeight:1, transition:'all 0.15s', zIndex: 10,
-                }}
-                title="Remove"
-              >×</div>
-            </div>
           </div>
         )
       })}
 
-      {paletteInsertAt === sequence.length && dragIndex === null && (
-        <div style={{
-          position: 'absolute', left: 0, right: 0,
-          top: sequence.length * CHIP_HEIGHT - 2,
-          height: 3, background: theme === 'light' ? '#14b8d4' : '#2dd4bf',
-          opacity: 0.9, borderRadius: 2, zIndex: 60,
-          boxShadow: `0 0 8px ${theme === 'light' ? '#14b8d4' : '#2dd4bf'}`,
-        }}/>
+      {insertLineTop !== null && (
+        <div style={{ position: 'absolute', left: 0, right: 0, top: insertLineTop, height: 3, background: theme === 'light' ? '#14b8d4' : '#2dd4bf', opacity: 0.9, borderRadius: 2, zIndex: 60, boxShadow: `0 0 8px ${theme === 'light' ? '#14b8d4' : '#2dd4bf'}` }} />
       )}
     </div>
   )
 }
 
-// ── Palette button ────────────────────────────────────────────────────────────
-function PaletteBtn({ cmd, onAdd, disabled, theme }) {
-  const m = CMD_META[cmd]
-  const isLight = theme === 'light'
-  const color = isLight ? m.color : m.darkColor
-  const chipBg = isLight ? m.bg : m.darkBg
-  const tutorialId = cmd === 'F'
-    ? 'command-forward'
-    : cmd === 'TL' || cmd === 'TR'
-      ? 'command-turn'
-      : undefined
-  return (
-    <motion.button
-      whileTap={{ scale: 0.94 }}
-      onClick={() => !disabled && onAdd(cmd)}
-      draggable
-      onDragStart={e => {
-        e.dataTransfer.setData('cmd', cmd)
-        e.dataTransfer.effectAllowed = 'copy'
-      }}
-      disabled={disabled}
-      data-tutorial-id={tutorialId}
-      style={{
-        flex: 1, padding: '10px 4px',
-        background: chipBg,
-        border: `1.5px solid ${color}`,
-        borderRadius: 8, color: color,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-        fontFamily: 'monospace', transition: 'background 0.15s',
-        opacity: disabled ? 0.35 : 1,
-        boxShadow: isLight && !disabled ? `0 10px 18px ${color}1f, inset 0 1px 0 rgba(255,255,255,0.45)` : 'none',
-      }}
-    >
-      <span style={{ fontSize: 20 }}>{m.icon}</span>
-      <span style={{ fontSize: 9, letterSpacing: 0.5, textAlign:'center', lineHeight:1.2, fontWeight: 800 }}>
-        {m.label}
-      </span>
-    </motion.button>
-  )
-}
-
-// ── Main CommandBuilder ───────────────────────────────────────────────────────
 export default function CommandBuilder({
-  sequence, isRunning, isMirrored,
-  onAdd, onRemove, onClear, onRun,
-  visorFlipCount, onVisorFlip,
-  phase, onReorder,
-  needsReset, onReset,
+  sequence,
+  isRunning,
+  isMirrored,
+  onAdd,
+  onRemove,
+  onClear,
+  onRun,
+  visorFlipCount,
+  onVisorFlip,
+  phase,
+  onReorder,
+  needsReset,
+  onReset,
   runBlocked = false,
-  speed, onSpeedChange,
+  speed,
+  onSpeedChange,
   showVisorFlip = true,
   targetCommands = null,
   showPhaseLabel = false,
+  showRepeat = false,
+  repeatDefaults = { times: 2 },
 }) {
   const theme = useContext(ThemeContext)
-  const t = THEMES_CMD[theme]
+  const t = THEMES[theme]
   const [dragOver, setDragOver] = useState(false)
+
+  const totalBlocks = countProgramBlocks(sequence)
+  const isDisabled = isRunning || sequence.length === 0 || needsReset || runBlocked
+  const wrapperBg = theme === 'light' ? 'rgba(255,255,255,0.18)' : 'rgba(6,11,20,0.16)'
+  const subPanelStyle = {
+    flex: '1 1 0',
+    minWidth: 0,
+    minHeight: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    background: t.panelBg,
+    border: `1.5px solid ${t.panelBorder}`,
+    borderRadius: 12,
+    padding: '16px',
+    boxSizing: 'border-box',
+    overflow: 'hidden',
+    boxShadow: theme === 'light' ? '0 18px 40px rgba(74,144,226,0.12), 0 10px 24px rgba(45,201,223,0.10), inset 0 1px 0 rgba(255,255,255,0.7)' : '0 4px 24px rgba(0,0,0,0.45)',
+  }
+  const actionBtn = (disabled) => ({ padding: '3px 10px', background: 'transparent', border: `1.5px solid ${t.btnBorder}`, borderRadius: 6, color: disabled ? t.btnDisabled : t.btnColor, cursor: disabled ? 'not-allowed' : 'pointer', fontSize: 13, fontFamily: 'monospace', fontWeight: 800 })
+
+  const handleTopLevelAdd = useCallback((command) => {
+    onAdd(command)
+  }, [onAdd])
+
+  const handleDelete = useCallback((path) => {
+    onReorder(removeCommandAtPath(sequence, path))
+  }, [onReorder, sequence])
+
+  const handleUpdateRepeat = useCallback((path, nextRepeat) => {
+    onReorder(updateRepeatAtPath(sequence, path, () => createRepeatCommand(nextRepeat.times, nextRepeat.commands ?? [])))
+  }, [onReorder, sequence])
+
+  const handleDropIntoRepeat = useCallback((path, raw) => {
+    const dropped = raw === 'REPEAT' ? createRepeatCommand(repeatDefaults.times) : raw
+    onReorder(updateRepeatAtPath(sequence, path, (repeatCommand) => ({
+      ...repeatCommand,
+      commands: [...(repeatCommand.commands ?? []), dropped],
+    })))
+  }, [onReorder, repeatDefaults.times, sequence])
+
+  const handleInsertAt = useCallback((rawCommand, index) => {
+    const inserted = rawCommand === 'REPEAT' ? createRepeatCommand(repeatDefaults.times) : rawCommand
+    onReorder(insertCommandAtPath(sequence, [], index, inserted))
+  }, [onReorder, repeatDefaults.times, sequence])
+
+  const visibleCommands = PALETTE_ORDER.filter((code) => showRepeat || code !== 'REPEAT')
 
   if (phase !== 'develop') return null
 
-  const isDisabled = isRunning || sequence.length === 0 || needsReset || runBlocked
-
-  const handleDropOnEmptyZone = (e) => {
-    e.preventDefault()
-    setDragOver(false)
-    const cmd = e.dataTransfer.getData('cmd')
-    if (cmd && CMD_META[cmd]) onAdd(cmd)
-  }
-
-  const handleInsertAt = (cmd, index) => {
-    const newSeq = [...sequence]
-    newSeq.splice(index, 0, cmd)
-    onReorder(newSeq)
-  }
-
   return (
-    <div data-tutorial-id="command-builder" style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 10,
-      width: '100%',
-      flex: 1,
-      minHeight: 0,
-      background: t.panelBg,
-      border: `1.5px solid ${t.panelBorder}`,
-      borderRadius: 12,
-      padding: '16px 16px 16px',
-      boxSizing: 'border-box',
-      overflow: 'hidden',
-      boxShadow: theme === 'light'
-        ? '0 18px 40px rgba(74,144,226,0.12), 0 10px 24px rgba(45,201,223,0.14), inset 0 1px 0 rgba(255,255,255,0.7)'
-        : '0 4px 32px rgba(0,0,0,0.6)',
-    }}>
+    <div data-tutorial-id="command-builder" style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', height: '100%', flex: 1, minHeight: 0, background: wrapperBg, padding: 0, boxSizing: 'border-box' }}>
+      {showPhaseLabel && <p style={{ fontSize: 10, color: t.phaseLabel, fontFamily: 'monospace', letterSpacing: 3, margin: 0, fontWeight: 800 }}>PHASE 2 - DEVELOP</p>}
 
-      {showPhaseLabel && (
-        <p style={{
-          fontSize: 10, color: t.phaseLabel,
-          fontFamily: 'monospace', letterSpacing: 3, margin: 0, flexShrink: 0, fontWeight: 800,
-        }}>
-          PHASE 2 — DEVELOP
-        </p>
-      )}
-
-      {/* ── VISOR FLIP ── */}
       {showVisorFlip && (
-        <motion.button
-          whileTap={{ scale: 0.96 }}
-          onClick={onVisorFlip}
-          disabled={visorFlipCount >= 3}
-          data-tutorial-id="visor-flip-button"
-          style={{
-            width: '100%',
-            padding: '9px 12px',
-            background: visorFlipCount >= 3 ? t.visorExhBg : t.visorBg,
-            border: `1.5px solid ${visorFlipCount >= 3 ? t.visorExhBd : t.visorBorder}`,
-            borderRadius: 8,
-            color: visorFlipCount >= 3 ? t.visorExhTx : t.visorText,
-            cursor: visorFlipCount >= 3 ? 'not-allowed' : 'pointer',
-            fontFamily: 'monospace', fontSize: 11, letterSpacing: 1.5,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            transition: 'all 0.2s', boxSizing: 'border-box',
-            flexShrink: 0,
-            fontWeight: 700,
-          }}
-        >
-          <span>👁  VISOR FLIP</span>
-          <span style={{
-            background: visorFlipCount >= 3 ? 'transparent' : 'rgba(139,92,246,0.16)',
-            border: `1px solid ${visorFlipCount >= 3 ? t.visorExhBd : '#8b5cf688'}`,
-            borderRadius: 20, padding: '2px 8px', fontSize: 10,
-            fontWeight: 800,
-          }}>
-            {3 - visorFlipCount} left
-          </span>
+        <motion.button whileTap={{ scale: 0.96 }} onClick={onVisorFlip} disabled={visorFlipCount >= 3} data-tutorial-id="visor-flip-button" style={{ width: '100%', padding: '9px 12px', background: visorFlipCount >= 3 ? t.visorExhBg : t.visorBg, border: `1.5px solid ${visorFlipCount >= 3 ? t.visorExhBd : t.visorBorder}`, borderRadius: 8, color: visorFlipCount >= 3 ? t.visorExhTx : t.visorText, cursor: visorFlipCount >= 3 ? 'not-allowed' : 'pointer', fontFamily: 'monospace', fontSize: 11, letterSpacing: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 700 }}>
+          <span>?? VISOR FLIP</span>
+          <span style={{ fontSize: 10, fontWeight: 800 }}>{3 - visorFlipCount} left</span>
         </motion.button>
       )}
 
-      {/* ── SPEED BAR ── */}
       <SpeedBar speed={speed} onSpeedChange={onSpeedChange} theme={theme} />
 
-      {/* Mirror warning */}
       <AnimatePresence>
-        {isMirrored && (
-          <motion.div
-            initial={{ opacity:0, height:0 }}
-            animate={{ opacity:1, height:'auto' }}
-            exit={{ opacity:0, height:0 }}
-            style={{
-              overflow:'hidden', padding:'6px 10px',
-              background: t.mirrorBg,
-              border:`1.5px solid ${t.mirrorBorder}`,
-              borderRadius:6, color: t.mirrorText, fontSize:12,
-              fontFamily:'monospace', letterSpacing:1,
-              flexShrink: 0, fontWeight: 800,
-            }}
-          >
-            ⚠ MIRROR MODE — L / R FLIPPED
-          </motion.div>
-        )}
+        {isMirrored && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} style={{ overflow: 'hidden', padding: '6px 10px', background: t.mirrorBg, border: `1.5px solid ${t.mirrorBorder}`, borderRadius: 6, color: t.mirrorText, fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800 }}>WARNING: LEFT / RIGHT FLIPPED</motion.div>}
       </AnimatePresence>
 
-      {/* ── COMMAND PALETTE ── */}
-      <div style={{ flexShrink: 0 }} data-tutorial-id="command-palette">
-        <p style={{ fontSize:11, color: t.subLabel, fontFamily:'monospace', letterSpacing:1, marginBottom:7, fontWeight: 800 }}>
-          TAP OR DRAG TO ADD
-        </p>
-        <div style={{ display:'flex', gap:8 }}>
-          {Object.keys(CMD_META).map(cmd => (
-            <PaletteBtn key={cmd} cmd={cmd} onAdd={onAdd} disabled={isRunning} theme={theme}/>
-          ))}
-        </div>
-      </div>
-
-      {/* ── SEQUENCE STRIP WITH SCROLL ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, flexShrink: 1 }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:7, flexShrink: 0 }}>
-          <p style={{ fontSize:11, color: t.programLabel, fontFamily:'monospace', letterSpacing:1, margin: 0, fontWeight: 800 }}>
-            PROGRAM  <span style={{ color: t.programCount, fontWeight: 600 }}>({sequence.length} commands)</span>
-          </p>
-          <div style={{ display:'flex', gap:4, alignItems:'center' }}>
-            {targetCommands !== null && (
-              <span style={{ fontSize:10, color: t.targetCmdColor, fontFamily:'monospace', letterSpacing:0.5, marginRight: 4, fontWeight: 700 }}>
-                Best Path: {targetCommands}
-              </span>
-            )}
-            <button
-              onClick={onRemove}
-              disabled={isRunning || sequence.length === 0}
-              style={{
-                padding:'3px 10px', background:'transparent',
-                border:`1.5px solid ${t.btnBorder}`, borderRadius:6,
-                color: sequence.length === 0 ? t.btnDisabled : t.btnColor,
-                cursor: isRunning || sequence.length === 0 ? 'not-allowed' : 'pointer',
-                fontSize:13, fontFamily:'monospace',
-                fontWeight: 800,
-              }}
-              title="Remove last"
-            >⌫</button>
-            <button
-              onClick={onClear}
-              disabled={isRunning || sequence.length === 0}
-              style={{
-                padding:'3px 10px', background:'transparent',
-                border:`1.5px solid ${t.btnBorder}`, borderRadius:6,
-                color: sequence.length === 0 ? t.btnDisabled : t.btnColor,
-                cursor: isRunning || sequence.length === 0 ? 'not-allowed' : 'pointer',
-                fontSize:13, fontFamily:'monospace',
-                fontWeight: 800,
-              }}
-              title="Clear all"
-            >✕</button>
+      <div style={{ display: 'flex', gap: 14, alignItems: 'stretch', minHeight: 0, flex: 1 }}>
+        <div style={subPanelStyle}>
+          <div data-tutorial-id="command-palette" style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+            <p style={{ fontSize: 11, color: t.subLabel, fontFamily: 'monospace', letterSpacing: 1.1, margin: 0, fontWeight: 800 }}>COMMANDS</p>
+            <p style={{ fontSize: 10, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.8, margin: 0 }}>Tap or drag from here</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {visibleCommands.map((code) => (
+                <PaletteButton
+                  key={code}
+                  code={code}
+                  disabled={isRunning}
+                  onAdd={handleTopLevelAdd}
+                  theme={theme}
+                  repeatDefaults={repeatDefaults}
+                  tutorialId={code === 'F' ? 'command-forward' : code === 'TR' || code === 'TL' ? 'command-turn' : 'command-repeat'}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Scrollable container */}
-        <div
-          data-tutorial-id="sequence-area"
-          style={{
-            flex: 1,
-            minHeight: 0,
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            background: dragOver
-              ? (theme === 'light' ? 'linear-gradient(180deg, rgba(210,248,255,0.98), rgba(239,240,255,0.96))' : 'rgba(45,212,191,0.04)')
-              : t.scrollBg,
-            border: `1.5px ${dragOver
-              ? `dashed ${theme === 'light' ? '#2fc9df88' : '#2dd4bf55'}`
-              : `solid ${t.scrollBorder}`}`,
-            borderRadius: 8,
-            transition: 'border 0.2s, background 0.2s',
-            scrollbarWidth: 'thin',
-            scrollbarColor: theme === 'light' ? '#2fc9df55 #e8f4fb' : '#2dd4bf44 #0a1828',
-          }}
-        >
-          {sequence.length === 0 ? (
-            <div
-              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDropOnEmptyZone}
-              style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height: '100%', gap:6 }}
-            >
-              <div style={{ fontSize:18, opacity: theme === 'light' ? 0.28 : 0.18, color: theme === 'light' ? '#14b8d4' : '#5a8890' }}>↓</div>
-              <p style={{ color: t.emptyText, fontSize:12, fontFamily:'monospace', letterSpacing:1, userSelect:'none', fontWeight: 700 }}>
-                drag commands here
-              </p>
+        <div style={subPanelStyle}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 10, flexShrink: 0 }}>
+            <div>
+              <p style={{ fontSize: 11, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 1.1, margin: 0, fontWeight: 800 }}>PROGRAM <span style={{ color: t.programCount, fontWeight: 600 }}>({totalBlocks} blocks)</span></p>
+              <p style={{ fontSize: 10, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.8, margin: '4px 0 0 0' }}>Top to bottom order</p>
             </div>
-          ) : (
-            <DraggableStrip
-              sequence={sequence}
-              isRunning={isRunning}
-              onReorder={onReorder}
-              onInsertAt={handleInsertAt}
-              theme={theme}
-            />
-          )}
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {targetCommands !== null && <span style={{ fontSize: 10, color: t.targetCmdColor, fontFamily: 'monospace', letterSpacing: 0.5, marginRight: 4, fontWeight: 700 }}>Best Path: {targetCommands}</span>}
+              <button onClick={onRemove} disabled={isRunning || sequence.length === 0} style={actionBtn(isRunning || sequence.length === 0)}>⌫</button>
+              <button onClick={onClear} disabled={isRunning || sequence.length === 0} style={actionBtn(isRunning || sequence.length === 0)}>✕</button>
+            </div>
+          </div>
+
+          <div
+            data-tutorial-id="sequence-area"
+            onDragOver={(event) => {
+              event.preventDefault()
+              setDragOver(true)
+            }}
+            onDragLeave={(event) => {
+              const rect = event.currentTarget.getBoundingClientRect()
+              if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
+                setDragOver(false)
+              }
+            }}
+            onDrop={(event) => {
+              if (sequence.length > 0) return
+              event.preventDefault()
+              setDragOver(false)
+              const rawCommand = event.dataTransfer.getData('cmd')
+              if (!rawCommand) return
+              onReorder(insertCommandAtPath(sequence, [], sequence.length, rawCommand === 'REPEAT' ? createRepeatCommand(repeatDefaults.times) : rawCommand))
+            }}
+            style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', background: dragOver ? (theme === 'light' ? 'linear-gradient(180deg, rgba(210,248,255,0.98), rgba(239,240,255,0.96))' : 'rgba(45,212,191,0.04)') : t.scrollBg, border: `1.5px ${dragOver ? `dashed ${theme === 'light' ? '#2fc9df88' : '#2dd4bf55'}` : `solid ${t.scrollBorder}`}`, borderRadius: 8, padding: 10, boxSizing: 'border-box' }}
+          >
+            {sequence.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100%', gap: 6 }}>
+                <div style={{ fontSize: 18, opacity: theme === 'light' ? 0.28 : 0.18, color: theme === 'light' ? '#14b8d4' : '#5a8890' }}>?</div>
+                <p style={{ color: t.emptyText, fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, margin: 0, userSelect: 'none', fontWeight: 700 }}>drag commands here</p>
+              </div>
+            ) : (
+              <DraggableProgram
+                sequence={sequence}
+                isRunning={isRunning}
+                onReorder={onReorder}
+                onInsertAt={handleInsertAt}
+                onDelete={handleDelete}
+                onUpdateRepeat={handleUpdateRepeat}
+                onDropIntoRepeat={handleDropIntoRepeat}
+                theme={theme}
+                setDragOver={setDragOver}
+              />
+            )}
+          </div>
         </div>
       </div>
 
-      {/* ── RESET BUTTON ── */}
       <AnimatePresence>
-        {needsReset && (
-          <motion.button
-            key="reset-btn"
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={onReset}
-            disabled={isRunning}
-            data-tutorial-id="reset-button"
-            style={{
-              width: '100%',
-              padding: '11px 0',
-              background: t.resetBg,
-              border: '2px solid #fb7185',
-              borderRadius: 8, color: theme === 'light' ? '#be123c' : '#fb7185',
-              fontFamily: 'monospace', fontSize: 13, letterSpacing: 2,
-              cursor: isRunning ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
-              boxShadow: '0 0 20px rgba(251,113,133,0.12)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              flexShrink: 0,
-              fontWeight: 800,
-            }}
-          >
-            ↺  RESET LUMA
-          </motion.button>
-        )}
+        {needsReset && <motion.button key="reset-btn" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} whileTap={{ scale: 0.97 }} onClick={onReset} disabled={isRunning} data-tutorial-id="reset-button" style={{ width: '100%', padding: '11px 0', background: t.resetBg, border: '2px solid #fb7185', borderRadius: 8, color: theme === 'light' ? '#be123c' : '#fb7185', fontFamily: 'monospace', fontSize: 13, letterSpacing: 2, cursor: isRunning ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontWeight: 800 }}>↺ RESET LUMA</motion.button>}
       </AnimatePresence>
 
-      {/* ── EXECUTE BUTTON ── */}
-      <motion.button
-        whileTap={{ scale: 0.97 }}
-        onClick={onRun}
-        disabled={isDisabled}
-        data-tutorial-id="run-button"
-        style={{
-          width: '100%',
-          padding: '13px 0',
-          background: isDisabled ? t.runBgDisabled : t.runBgActive,
-          border: `2px solid ${isDisabled ? t.runBorderDisabled : t.runBorderActive}`,
-          borderRadius: 8,
-          color: isDisabled ? t.runColorDisabled : t.runColorActive,
-          fontFamily: 'monospace', fontSize: 14, letterSpacing: 2,
-          cursor: isDisabled ? 'not-allowed' : 'pointer',
-          transition: 'all 0.2s',
-          boxShadow: isDisabled ? 'none' : `0 0 20px rgba(${theme === 'light' ? '20,184,166' : '45,212,191'},0.14)`,
-          flexShrink: 0,
-          fontWeight: 800,
-        }}
-      >
-        {isRunning ? (
-          <span style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-            <motion.span
-              animate={{ rotate:360 }}
-              transition={{ duration:1, repeat:Infinity, ease:'linear' }}
-              style={{ display:'inline-block' }}
-            >◌</motion.span>
-            RUNNING
-          </span>
-        ) : runBlocked ? '🎯  SET PREDICTION FIRST' : '▶  EXECUTE PROGRAM'}
+      <motion.button whileTap={{ scale: 0.97 }} onClick={onRun} disabled={isDisabled} data-tutorial-id="run-button" style={{ width: '100%', padding: '13px 0', background: isDisabled ? t.runBgDisabled : t.runBgActive, border: `2px solid ${isDisabled ? t.runBorderDisabled : t.runBorderActive}`, borderRadius: 8, color: isDisabled ? t.runColorDisabled : t.runColorActive, fontFamily: 'monospace', fontSize: 14, letterSpacing: 2, cursor: isDisabled ? 'not-allowed' : 'pointer', fontWeight: 800 }}>
+        {isRunning ? 'RUNNING' : runBlocked ? 'SET PREDICTION FIRST' : 'EXECUTE PROGRAM'}
       </motion.button>
     </div>
   )
 }
+

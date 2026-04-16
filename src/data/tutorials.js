@@ -6,6 +6,10 @@ function featureStep(id, featureKey, config) {
   return { id, scope: 'feature', featureKey, ...config }
 }
 
+function hasRepeatBlock(sequence = []) {
+  return sequence.some(command => command && typeof command === 'object' && command.type === 'REPEAT')
+}
+
 export const LEVEL_TUTORIALS = {
   1: [
     levelStep('level-1-welcome', {
@@ -177,6 +181,41 @@ export const FEATURE_TUTORIALS = {
       completeWhen: ({ visorActive }) => visorActive,
     }),
   ],
+  'repeat-intro': [
+    featureStep('repeat-intro', 'repeat-intro', {
+      targetId: 'command-repeat',
+      placement: 'left',
+      title: 'Repeat helps with patterns',
+      body: 'If the same little path happens again, use REPEAT so LUMA can do those blocks again.',
+      nextLabel: 'Show me',
+    }),
+    featureStep('repeat-add-block', 'repeat-intro', {
+      targetId: 'command-repeat',
+      placement: 'left',
+      title: 'Add one Repeat block',
+      body: 'Tap REPEAT first, then put the pattern you want inside the block.',
+      requiresAction: true,
+      actionLabel: 'Add REPEAT',
+      completeWhen: ({ sequence }) => hasRepeatBlock(sequence),
+    }),
+    featureStep('repeat-settings', 'repeat-intro', {
+      targetId: 'repeat-block-counter',
+      placement: 'top',
+      title: 'Tune the Repeat block',
+      body: 'Change the number at the top to choose how many times LUMA repeats the blocks inside.',
+      waitForTarget: true,
+      nextLabel: 'Got it',
+    }),
+  ],
+  'repeat-builder': [
+    featureStep('repeat-builder-intro', 'repeat-builder', {
+      targetId: 'sequence-area',
+      placement: 'left',
+      title: 'Some blocks stay outside Repeat',
+      body: 'Use normal blocks before or after REPEAT when the whole path is not the same.',
+      nextLabel: 'Okay',
+    }),
+  ],
   'ship-fragments': [
     featureStep('ship-fragments-intro', 'ship-fragments', {
       targetId: 'ship-fragment-tile',
@@ -223,6 +262,10 @@ const LEVEL_FEATURE_ORDER = {
   2: ['rock-obstacle', 'turn-commands'],
   3: ['luma-confused', 'helmet-radio', 'identify-phase', 'facing-question'],
   5: ['ship-fragments', 'collect-all-fragments'],
+  7: ['repeat-intro'],
+  8: ['repeat-builder'],
+  9: ['uncertain-radio', 'visor-flip'],
+  10: ['ship-fragments', 'collect-all-fragments'],
 }
 
 export function getTutorialFeatureKeys(levelConfig, effectiveLevel) {
@@ -236,6 +279,8 @@ export function getTutorialFeatureKeys(levelConfig, effectiveLevel) {
     if (featureKey === 'turn-commands') return levelConfig.id >= 2
     if (featureKey === 'uncertain-radio') return Boolean(levelConfig.uncertainRadio)
     if (featureKey === 'visor-flip') return !levelConfig.noVisorFlip
+    if (featureKey === 'repeat-intro') return Boolean(levelConfig.allowRepeat)
+    if (featureKey === 'repeat-builder') return Boolean(levelConfig.allowRepeat)
     if (featureKey === 'ship-fragments') {
       return (effectiveLevel?.objects ?? []).some(objectItem => objectItem.type === 'ship_part')
     }

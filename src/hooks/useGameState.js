@@ -5,7 +5,13 @@ import {
   generateLevel3Layout,
   generateLevel4Layout,
   generateLevel5Layout,
+  generateLevel6Layout,
+  generateLevel7Layout,
+  generateLevel8Layout,
+  generateLevel9Layout,
+  generateLevel10Layout,
 } from '../data/levels'
+import { expandSequence } from '../utils/commands'
 
 const DIRECTIONS = ['north', 'east', 'south', 'west']
 
@@ -196,6 +202,11 @@ function generateLayout(generatorKey, facing) {
     case 'level3': return generateLevel3Layout(facing)
     case 'level4': return generateLevel4Layout(facing)
     case 'level5': return generateLevel5Layout(facing)
+    case 'level6': return generateLevel6Layout(facing)
+    case 'level7': return generateLevel7Layout(facing)
+    case 'level8': return generateLevel8Layout(facing)
+    case 'level9': return generateLevel9Layout(facing)
+    case 'level10': return generateLevel10Layout(facing)
     default: return { walls: [], objects: [], solution: null }
   }
 }
@@ -431,7 +442,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
     let currentLuma = { ...luma }
     let localCollected = new Set(collectedParts)
-    const steps = [...sequence]
+    const steps = expandSequence(sequence)
     const walls = effectiveLevel.walls ?? []
     const goal  = effectiveLevel.goal ?? levelConfig.goal
     const gridCols = levelConfig.grid.cols

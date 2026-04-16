@@ -3,6 +3,7 @@ import { useContext } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import LumaSprite from './LumaSprite'
 import CrashSiteBackground from './CrashSiteBackground'
+import ForestTrailBackground from './ForestTrailBackground'
 import { ThemeContext } from '../context/theme'
 
 const DEFAULT_TILE_SIZE = 104
@@ -976,11 +977,12 @@ export default function GameGrid({
   const firstRock = walls[0] ?? objects.find(objectItem => objectItem.type === 'rock') ?? null
   const shipParts = objects.filter(objectItem => objectItem.type === 'ship_part')
   const firstShipFragment = shipParts.find((part, index) => !collectedParts.has(index)) ?? null
+  const BackgroundComponent = activeLevel.world === 'forest-trail' ? ForestTrailBackground : CrashSiteBackground
 
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
       <div data-tutorial-id="grid-label" style={{ fontSize:9, color: scanLabelColor, fontFamily:'monospace', letterSpacing:3, opacity: isLight ? 0.9 : 0.5, fontWeight: isLight ? 700 : 400 }}>
-        ◈ ORBITAL SCAN — CRASH SITE W1
+        {activeLevel.world === 'forest-trail' ? 'ORBITAL SCAN - FOREST TRAIL W2' : 'ORBITAL SCAN - CRASH SITE W1'}
       </div>
 
       <AnimatePresence>
@@ -1007,7 +1009,7 @@ export default function GameGrid({
         boxShadow: gridBoxShadow,
         cursor: predictionModeActive ? 'crosshair' : 'default',
       }}>
-        <CrashSiteBackground width={gridWidth} height={gridHeight} cols={cols} rows={rows} />
+        <BackgroundComponent width={gridWidth} height={gridHeight} cols={cols} rows={rows} />
 
         {Array.from({ length: rows }, (_, row) =>
           Array.from({ length: cols }, (_, col) => {
@@ -1131,3 +1133,4 @@ export default function GameGrid({
     </div>
   )
 }
+

@@ -1,13 +1,21 @@
-// levels.js - Crash Site early-map layouts.
+// levels.js - Crash Site and Forest Trail layouts.
 // Ship parts are collectible waypoints; walls are rock obstacles that block LUMA.
 // lumaFacing: 'random-NE' means useGameState will pick north OR east randomly.
 //
+import { createRepeatCommand } from '../utils/commands'
+
 // Crash Site design targets for this pass:
 //   L1: fixed, 3 commands, no rocks, no fragments, no identify
 //   L2: randomized, 4 commands, 1 rock, no identify, no fragments
 //   L3: randomized, 5 commands, 1 rock, identify starts, no fragments
 //   L4: randomized, 7 commands, 2 rocks, identify practice, no fragments
 //   L5: randomized, 7 commands, 2 rocks, 1 fragment, strategy card after
+// Forest Trail design targets:
+//   L6: pattern pressure, 2 rocks, no repeat yet
+//   L7: first repeat level
+//   L8: repeat plus extra commands outside the loop
+//   L9: uncertain radio + first visor flip
+//   L10: repeat + visor + one fragment mastery
 //
 // There is no hard command limit. targetCommands is a best-path hint only.
 
@@ -31,6 +39,21 @@ const L4_GOAL = { x: 4, y: 1 }
 
 const L5_START = { x: 1, y: 3 }
 const L5_GOAL = { x: 4, y: 1 }
+
+const L6_START = { x: 0, y: 4 }
+const L6_GOAL = { x: 2, y: 1 }
+
+const L7_START = { x: 0, y: 4 }
+const L7_GOAL = { x: 2, y: 1 }
+
+const L8_START = { x: 0, y: 4 }
+const L8_GOAL = { x: 2, y: 0 }
+
+const L9_START = { x: 0, y: 4 }
+const L9_GOAL = { x: 3, y: 1 }
+
+const L10_START = { x: 0, y: 4 }
+const L10_GOAL = { x: 4, y: 0 }
 
 const DIRECTIONS = ['north', 'east', 'south', 'west']
 const MOVE_DELTAS = {
@@ -248,6 +271,10 @@ function buildPathTilesFromSolution(start, facing, solution) {
   return tiles
 }
 
+function chooseVariant(variants) {
+  return shuffle(variants)[0]
+}
+
 export function generateLevel1Layout() {
   return {
     walls: [],
@@ -260,19 +287,6 @@ export function generateLevel1Layout() {
 }
 
 export function generateLevel2Layout(facing = 'north') {
-  const pathCellsByFacing = {
-    north: [
-      { x: 1, y: 1 },
-      { x: 2, y: 1 },
-      { x: 3, y: 1 },
-    ],
-    east: [
-      { x: 2, y: 2 },
-      { x: 3, y: 2 },
-      { x: 3, y: 1 },
-    ],
-  }
-
   const allowedRockPool = [
     { x: 1, y: 1 },
     { x: 2, y: 2 },
@@ -321,7 +335,7 @@ export function generateLevel3Layout(facing = 'north') {
   })
 }
 
-export function generateLevel4Layout(facing = 'north') {
+export function generateLevel4Layout() {
   const adjacentRockPool = shuffle([
     { x: 1, y: 2 },
     { x: 2, y: 3 },
@@ -378,7 +392,7 @@ export function generateLevel4Layout(facing = 'north') {
   }
 }
 
-export function generateLevel5Layout(facing = 'north') {
+export function generateLevel5Layout() {
   const adjacentRockPool = shuffle([
     { x: 1, y: 2 },
     { x: 2, y: 3 },
@@ -463,6 +477,143 @@ export function generateLevel5Layout(facing = 'north') {
   }
 }
 
+export function generateLevel6Layout() {
+  return chooseVariant([
+    {
+      walls: [
+        { x: 0, y: 2 },
+        { x: 1, y: 1 },
+      ],
+      objects: [],
+      solution: ['F', 'TR', 'F', 'TL', 'F', 'TR', 'F', 'TL', 'F'],
+      lumaStart: { ...L6_START },
+      goal: { ...L6_GOAL },
+      lumaFacing: 'north',
+    },
+    {
+      walls: [
+        { x: 1, y: 3 },
+        { x: 2, y: 2 },
+      ],
+      objects: [],
+      solution: ['F', 'TR', 'F', 'TL', 'F', 'TR', 'F', 'TL', 'F'],
+      lumaStart: { x: 1, y: 4 },
+      goal: { x: 3, y: 1 },
+      lumaFacing: 'north',
+    },
+  ])
+}
+
+export function generateLevel7Layout() {
+  return chooseVariant([
+    {
+      walls: [
+        { x: 0, y: 2 },
+        { x: 2, y: 0 },
+      ],
+      objects: [],
+      solution: [createRepeatCommand(2, ['F', 'TR', 'F', 'TL'])],
+      lumaStart: { ...L7_START },
+      goal: { ...L7_GOAL },
+      lumaFacing: 'north',
+    },
+    {
+      walls: [
+        { x: 1, y: 3 },
+        { x: 3, y: 1 },
+      ],
+      objects: [],
+      solution: [createRepeatCommand(2, ['F', 'TR', 'F', 'TL'])],
+      lumaStart: { x: 1, y: 4 },
+      goal: { x: 3, y: 1 },
+      lumaFacing: 'north',
+    },
+  ])
+}
+
+export function generateLevel8Layout() {
+  return chooseVariant([
+    {
+      walls: [
+        { x: 0, y: 1 },
+        { x: 2, y: 2 },
+      ],
+      objects: [],
+      solution: ['F', createRepeatCommand(2, ['F', 'TR', 'F', 'TL']), 'F'],
+      lumaStart: { ...L8_START },
+      goal: { ...L8_GOAL },
+      lumaFacing: 'north',
+    },
+    {
+      walls: [
+        { x: 1, y: 2 },
+        { x: 3, y: 3 },
+      ],
+      objects: [],
+      solution: ['F', createRepeatCommand(2, ['F', 'TR', 'F', 'TL']), 'F'],
+      lumaStart: { x: 1, y: 4 },
+      goal: { x: 3, y: 0 },
+      lumaFacing: 'north',
+    },
+  ])
+}
+
+export function generateLevel9Layout() {
+  return chooseVariant([
+    {
+      walls: [
+        { x: 1, y: 4 },
+        { x: 2, y: 3 },
+      ],
+      objects: [],
+      solution: [createRepeatCommand(2, ['F', 'TR', 'F', 'TL']), 'TR', 'F'],
+      lumaStart: { ...L9_START },
+      goal: { ...L9_GOAL },
+      lumaFacing: 'north',
+    },
+    {
+      walls: [
+        { x: 2, y: 4 },
+        { x: 3, y: 3 },
+      ],
+      objects: [],
+      solution: [createRepeatCommand(2, ['F', 'TR', 'F', 'TL']), 'TR', 'F'],
+      lumaStart: { x: 1, y: 4 },
+      goal: { x: 4, y: 1 },
+      lumaFacing: 'north',
+    },
+  ])
+}
+
+export function generateLevel10Layout() {
+  return chooseVariant([
+    {
+      walls: [
+        { x: 1, y: 4 },
+        { x: 2, y: 3 },
+        { x: 3, y: 1 },
+      ],
+      objects: [{ type: 'ship_part', x: 2, y: 1 }],
+      solution: [createRepeatCommand(2, ['F', 'TR', 'F', 'TL']), 'F', 'TR', 'F', 'F'],
+      lumaStart: { ...L10_START },
+      goal: { ...L10_GOAL },
+      lumaFacing: 'north',
+    },
+    {
+      walls: [
+        { x: 2, y: 4 },
+        { x: 3, y: 2 },
+        { x: 4, y: 1 },
+      ],
+      objects: [{ type: 'ship_part', x: 3, y: 1 }],
+      solution: [createRepeatCommand(2, ['F', 'TR', 'F', 'TL']), 'F', 'TR', 'F', 'F'],
+      lumaStart: { x: 1, y: 4 },
+      goal: { x: 4, y: 0 },
+      lumaFacing: 'north',
+    },
+  ])
+}
+
 export const LEVELS = [
   {
     id: 1,
@@ -541,7 +692,7 @@ export const LEVELS = [
     skipIdentify: false,
     noRadio: false,
     layoutGenerator: 'level3',
-    targetCommands: 5,
+    targetCommands: 6,
     uncertainRadio: false,
   },
   {
@@ -603,5 +754,164 @@ export const LEVELS = [
     layoutGenerator: 'level5',
     targetCommands: 7,
     uncertainRadio: false,
+  },
+  {
+    id: 6,
+    name: 'Pattern Pressure',
+    world: 'forest-trail',
+    tutorial: false,
+    grid: { cols: COLS, rows: ROWS },
+    lumaStart: { ...L6_START },
+    lumaFacing: 'north',
+    goal: { ...L6_GOAL },
+    walls: [],
+    objects: [],
+    fog: false,
+    sptQuestion: {
+      prompt: 'Which direction is LUMA facing?',
+      options: ['↑ Up', '→ Right', '↓ Down', '← Left'],
+      correct: null,
+    },
+    solution: null,
+    decompositionPrompt: false,
+    predictionPrompt: false,
+    mirrorControls: false,
+    echoPosition: null,
+    strategyCardAfter: false,
+    noVisorFlip: true,
+    skipIdentify: false,
+    noRadio: false,
+    layoutGenerator: 'level6',
+    targetCommands: 9,
+    uncertainRadio: false,
+    allowRepeat: false,
+  },
+  {
+    id: 7,
+    name: 'Repeat Intro',
+    world: 'forest-trail',
+    tutorial: false,
+    grid: { cols: COLS, rows: ROWS },
+    lumaStart: { ...L7_START },
+    lumaFacing: 'north',
+    goal: { ...L7_GOAL },
+    walls: [],
+    objects: [],
+    fog: false,
+    sptQuestion: {
+      prompt: 'Which direction is LUMA facing?',
+      options: ['↑ Up', '→ Right', '↓ Down', '← Left'],
+      correct: null,
+    },
+    solution: null,
+    decompositionPrompt: false,
+    predictionPrompt: false,
+    mirrorControls: false,
+    echoPosition: null,
+    strategyCardAfter: false,
+    noVisorFlip: true,
+    skipIdentify: false,
+    noRadio: false,
+    layoutGenerator: 'level7',
+    targetCommands: 5,
+    uncertainRadio: false,
+    allowRepeat: true,
+    repeatDefaults: { times: 2 },
+  },
+  {
+    id: 8,
+    name: 'Repeat Builder',
+    world: 'forest-trail',
+    tutorial: false,
+    grid: { cols: COLS, rows: ROWS },
+    lumaStart: { ...L8_START },
+    lumaFacing: 'north',
+    goal: { ...L8_GOAL },
+    walls: [],
+    objects: [],
+    fog: false,
+    sptQuestion: {
+      prompt: 'Which direction is LUMA facing?',
+      options: ['↑ Up', '→ Right', '↓ Down', '← Left'],
+      correct: null,
+    },
+    solution: null,
+    decompositionPrompt: false,
+    predictionPrompt: false,
+    mirrorControls: false,
+    echoPosition: null,
+    strategyCardAfter: false,
+    noVisorFlip: true,
+    skipIdentify: false,
+    noRadio: false,
+    layoutGenerator: 'level8',
+    targetCommands: 7,
+    uncertainRadio: false,
+    allowRepeat: true,
+    repeatDefaults: { times: 2 },
+  },
+  {
+    id: 9,
+    name: 'Uncertain Radio + First Visor Flip',
+    world: 'forest-trail',
+    tutorial: false,
+    grid: { cols: COLS, rows: ROWS },
+    lumaStart: { ...L9_START },
+    lumaFacing: 'north',
+    goal: { ...L9_GOAL },
+    walls: [],
+    objects: [],
+    fog: false,
+    sptQuestion: {
+      prompt: 'Which direction is LUMA facing?',
+      options: ['↑ Up', '→ Right', '↓ Down', '← Left'],
+      correct: null,
+    },
+    solution: null,
+    decompositionPrompt: false,
+    predictionPrompt: false,
+    mirrorControls: false,
+    echoPosition: null,
+    strategyCardAfter: false,
+    noVisorFlip: false,
+    skipIdentify: false,
+    noRadio: false,
+    layoutGenerator: 'level9',
+    targetCommands: 7,
+    uncertainRadio: true,
+    allowRepeat: true,
+    repeatDefaults: { times: 2 },
+  },
+  {
+    id: 10,
+    name: 'Loop + Fragment Mastery',
+    world: 'forest-trail',
+    tutorial: false,
+    grid: { cols: COLS, rows: ROWS },
+    lumaStart: { ...L10_START },
+    lumaFacing: 'north',
+    goal: { ...L10_GOAL },
+    walls: [],
+    objects: [],
+    fog: false,
+    sptQuestion: {
+      prompt: 'Which direction is LUMA facing?',
+      options: ['↑ Up', '→ Right', '↓ Down', '← Left'],
+      correct: null,
+    },
+    solution: null,
+    decompositionPrompt: false,
+    predictionPrompt: false,
+    mirrorControls: false,
+    echoPosition: null,
+    strategyCardAfter: true,
+    noVisorFlip: false,
+    skipIdentify: false,
+    noRadio: false,
+    layoutGenerator: 'level10',
+    targetCommands: 8,
+    uncertainRadio: false,
+    allowRepeat: true,
+    repeatDefaults: { times: 2 },
   },
 ]
