@@ -40,8 +40,8 @@ const L4_GOAL = { x: 4, y: 1 }
 const L5_START = { x: 1, y: 3 }
 const L5_GOAL = { x: 4, y: 1 }
 
-const L6_START = { x: 0, y: 4 }
-const L6_GOAL = { x: 2, y: 1 }
+const L6_START = { x: 1, y: 4 }
+const L6_GOAL = { x: 3, y: 1 }
 
 const L7_START = { x: 0, y: 4 }
 const L7_GOAL = { x: 2, y: 1 }
@@ -478,30 +478,37 @@ export function generateLevel5Layout() {
 }
 
 export function generateLevel6Layout() {
-  return chooseVariant([
-    {
-      walls: [
-        { x: 0, y: 2 },
-        { x: 1, y: 1 },
-      ],
-      objects: [],
-      solution: ['F', 'TR', 'F', 'TL', 'F', 'TR', 'F', 'TL', 'F'],
-      lumaStart: { ...L6_START },
-      goal: { ...L6_GOAL },
-      lumaFacing: 'north',
-    },
-    {
-      walls: [
-        { x: 1, y: 3 },
-        { x: 2, y: 2 },
-      ],
-      objects: [],
-      solution: ['F', 'TR', 'F', 'TL', 'F', 'TR', 'F', 'TL', 'F'],
-      lumaStart: { x: 1, y: 4 },
-      goal: { x: 3, y: 1 },
-      lumaFacing: 'north',
-    },
-  ])
+  return {
+    walls: [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 2, y: 0 },
+      { x: 3, y: 0 },
+      { x: 4, y: 0 },
+      { x: 0, y: 1 },
+      { x: 1, y: 1 },
+      { x: 2, y: 1 },
+      { x: 4, y: 1 },
+      { x: 0, y: 2 },
+      { x: 1, y: 2 },
+      { x: 4, y: 2 },
+      { x: 0, y: 3 },
+      { x: 3, y: 3 },
+      { x: 4, y: 3 },
+      { x: 0, y: 4 },
+      { x: 2, y: 4 },
+      { x: 3, y: 4 },
+      { x: 4, y: 4 },
+    ],
+    objects: [
+      { type: 'ship_part', x: 1, y: 3 },
+      { type: 'ship_part', x: 3, y: 2 },
+    ],
+    solution: ['F', 'TR', 'F', 'TL', 'F', 'TR', 'F', 'TL', 'F'],
+    lumaStart: { ...L6_START },
+    goal: { ...L6_GOAL },
+    lumaFacing: 'north',
+  }
 }
 
 export function generateLevel7Layout() {

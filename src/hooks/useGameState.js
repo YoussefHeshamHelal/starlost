@@ -301,6 +301,15 @@ export function useGameState(levelConfig, animSpeed = 50) {
     if (levelConfig.uncertainRadio && !visorFlippedThisLevel) {
       return uncertainMessage
     }
+    if (
+      levelConfig.id === 6 &&
+      luma.x === resolvedStart.x &&
+      luma.y === resolvedStart.y &&
+      luma.facing === resolvedFacing &&
+      collectedParts.size === 0
+    ) {
+      return "I'm okay... I think. Can you see where I am? There is a rock to my right, a rock to my left, and a ship fragment in front of me."
+    }
     return buildRadioReport(
       luma,
       luma.facing,
@@ -312,7 +321,9 @@ export function useGameState(levelConfig, animSpeed = 50) {
   }, [
     luma, effectiveLevel.walls, effectiveLevel.objects,
     effectiveLevel.goal, levelConfig.goal,
-    collectedParts, levelConfig.uncertainRadio, visorFlippedThisLevel, uncertainMessage
+    collectedParts, levelConfig.id, levelConfig.uncertainRadio,
+    resolvedStart.x, resolvedStart.y, resolvedFacing,
+    visorFlippedThisLevel, uncertainMessage
   ])
 
   const helmetReport = reportOverride ?? liveReport
