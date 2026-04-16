@@ -1053,6 +1053,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   const handleResetLuma = useCallback(() => resetLuma(), [resetLuma])
   const canReplayTutorial =
     levelConfig.id !== 4 &&
+    levelConfig.id !== 8 &&
     (levelConfig.id !== 5 || phase === 'develop') &&
     (levelConfig.id !== 7 || phase === 'develop')
   const handleReplayTutorial = useCallback(() => {

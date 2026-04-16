@@ -47,7 +47,7 @@ const L7_START = { x: 0, y: 4 }
 const L7_GOAL = { x: 4, y: 0 }
 
 const L8_START = { x: 0, y: 4 }
-const L8_GOAL = { x: 2, y: 0 }
+const L8_GOAL = { x: 4, y: 0 }
 
 const L9_START = { x: 0, y: 4 }
 const L9_GOAL = { x: 3, y: 1 }
@@ -544,30 +544,37 @@ export function generateLevel7Layout() {
 }
 
 export function generateLevel8Layout() {
-  return chooseVariant([
-    {
-      walls: [
-        { x: 0, y: 1 },
-        { x: 2, y: 2 },
-      ],
-      objects: [],
-      solution: ['F', createRepeatCommand(2, ['F', 'TR', 'F', 'TL']), 'F'],
-      lumaStart: { ...L8_START },
-      goal: { ...L8_GOAL },
-      lumaFacing: 'north',
-    },
-    {
-      walls: [
-        { x: 1, y: 2 },
-        { x: 3, y: 3 },
-      ],
-      objects: [],
-      solution: ['F', createRepeatCommand(2, ['F', 'TR', 'F', 'TL']), 'F'],
-      lumaStart: { x: 1, y: 4 },
-      goal: { x: 3, y: 0 },
-      lumaFacing: 'north',
-    },
-  ])
+  return {
+    walls: [
+      { x: 1, y: 1 },
+      { x: 1, y: 2 },
+      { x: 1, y: 3 },
+      { x: 1, y: 4 },
+      { x: 3, y: 0 },
+      { x: 3, y: 1 },
+      { x: 3, y: 2 },
+      { x: 3, y: 3 },
+    ],
+    objects: [
+      { type: 'ship_part', x: 0, y: 0 },
+      { type: 'ship_part', x: 2, y: 2 },
+      { type: 'ship_part', x: 4, y: 4 },
+    ],
+    solution: [
+      createRepeatCommand(4, ['F']),
+      'TR',
+      createRepeatCommand(2, ['F']),
+      'TR',
+      createRepeatCommand(4, ['F']),
+      'TL',
+      createRepeatCommand(2, ['F']),
+      'TL',
+      createRepeatCommand(4, ['F']),
+    ],
+    lumaStart: { ...L8_START },
+    goal: { ...L8_GOAL },
+    lumaFacing: 'north',
+  }
 }
 
 export function generateLevel9Layout() {
@@ -857,7 +864,7 @@ export const LEVELS = [
     skipIdentify: false,
     noRadio: false,
     layoutGenerator: 'level8',
-    targetCommands: 7,
+    targetCommands: 9,
     uncertainRadio: false,
     allowRepeat: true,
     repeatDefaults: { times: 2 },

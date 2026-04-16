@@ -262,7 +262,6 @@ const LEVEL_FEATURE_ORDER = {
   3: ['luma-confused', 'helmet-radio', 'identify-phase', 'facing-question'],
   5: ['ship-fragments', 'collect-all-fragments'],
   7: ['repeat-intro'],
-  8: ['repeat-builder'],
   9: ['uncertain-radio', 'visor-flip'],
   10: ['ship-fragments', 'collect-all-fragments'],
 }

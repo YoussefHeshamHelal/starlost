@@ -707,7 +707,7 @@ export default function CommandBuilder({
         <div style={subPanelStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 10, flexShrink: 0 }}>
             <div>
-              <p style={{ fontSize: 11, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 1.1, margin: 0, fontWeight: 800 }}>PROGRAM <span style={{ color: t.programCount, fontWeight: 600 }}>({totalBlocks} blocks)</span></p>
+              <p style={{ fontSize: 11, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 1.1, margin: 0, fontWeight: 800, whiteSpace: 'nowrap' }}>PROGRAM <span style={{ color: t.programCount, fontWeight: 600, whiteSpace: 'nowrap' }}>({totalBlocks} blocks)</span></p>
               <p style={{ fontSize: 10, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.8, margin: '4px 0 0 0' }}>Top to bottom order</p>
             </div>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
