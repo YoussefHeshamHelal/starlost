@@ -185,6 +185,7 @@ const VisorFlipButton = memo(function VisorFlipButton({ visorFlipCount, onVisorF
   const exhausted = visorFlipCount >= 3
   return (
     <button
+      data-tutorial-id="visor-flip-button"
       onClick={onVisorFlip}
       disabled={exhausted}
       style={{
@@ -202,13 +203,13 @@ const VisorFlipButton = memo(function VisorFlipButton({ visorFlipCount, onVisorF
         fontWeight: 700,
       }}
     >
-      <span>👁  VISOR FLIP</span>
+      <span>{'\u{1F441}'} VISOR FLIP</span>
       {highlighted && !exhausted && (
         <span style={{
           fontSize: 10, color: '#f59e0b', fontFamily: 'monospace', marginRight: 4,
           animation: 'blink-try 1.2s ease-in-out infinite', fontWeight: 700,
         }}>
-          try it!
+          Try it!
         </span>
       )}
       <span style={{
@@ -1218,7 +1219,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
       <div style={{
         flex: 1, width: '100%',
         display: 'flex', gap: GAP, alignItems: phase === 'identify' ? 'center' : 'stretch',
-        minHeight: 0, overflow: 'hidden',
+        minHeight: 0, overflow: levelConfig.id === 9 ? 'visible' : 'hidden',
       }}>
         <div style={{
           flex: '0 0 auto', width: GRID_PX,

@@ -178,8 +178,10 @@ function SpeedBar({ speed, onSpeedChange, theme }) {
         <div style={{ position: 'absolute', left: `calc(${fillPct / 100} * (100% - ${THUMB_R * 2}px))`, top: '50%', transform: 'translateY(-50%)', width: THUMB_R * 2, height: THUMB_R * 2, borderRadius: '50%', background: trackColor }} />
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, color: t.tickColor, fontFamily: 'monospace', letterSpacing: 0.5, fontWeight: 700 }}>
-        <span>SLOW</span><span>MED</span><span>FAST</span>
+      <div style={{ position: 'relative', height: 10, fontSize: 8, color: t.tickColor, fontFamily: 'monospace', letterSpacing: 0.5, fontWeight: 700 }}>
+        <span style={{ position: 'absolute', left: 0 }}>SLOW</span>
+        <span style={{ position: 'absolute', left: `calc(${THUMB_R}px + (100% - ${THUMB_R * 2}px) * ${(50 - 10) / 90})`, transform: 'translateX(-50%)' }}>MED</span>
+        <span style={{ position: 'absolute', right: 0 }}>FAST</span>
       </div>
     </div>
   )
@@ -328,9 +330,43 @@ function RepeatCard({ command, index, depth, path, theme, isRunning, onDelete, o
   const [isDragOver, setIsDragOver] = useState(false)
   const childCount = command.commands?.length ?? 0
   const isDropActive = isDragOver || activeRepeatDropPath === JSON.stringify(path)
+  const dropPath = JSON.stringify(path)
+
+  const handleRepeatDragOver = (event) => {
+    const raw = event.dataTransfer.getData('cmd')
+    if (raw === 'REPEAT') return
+    event.preventDefault()
+    setIsDragOver(true)
+    onNestedPaletteHoverChange?.(true)
+    event.dataTransfer.dropEffect = 'copy'
+  }
+
+  const handleRepeatDragLeave = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
+      setIsDragOver(false)
+      onNestedPaletteHoverChange?.(false)
+    }
+  }
+
+  const handleRepeatDrop = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setIsDragOver(false)
+    onNestedPaletteHoverChange?.(false)
+    const raw = event.dataTransfer.getData('cmd')
+    if (!raw || raw === 'REPEAT') return
+    onDropIntoRepeat(path, raw)
+  }
 
   return (
-    <div style={{ position: 'relative', marginLeft: depth * 12, padding: '8px 34px 10px 10px', background: meta.bg, border: `1.5px solid ${meta.color}66`, borderRadius: 14 }}>
+    <div
+      data-repeat-drop-path={dropPath}
+      onDragOver={handleRepeatDragOver}
+      onDragLeave={handleRepeatDragLeave}
+      onDrop={handleRepeatDrop}
+      style={{ position: 'relative', marginLeft: depth * 12, padding: '8px 34px 10px 10px', background: meta.bg, border: `1.5px solid ${meta.color}66`, borderRadius: 14 }}
+    >
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
         <span style={{ fontSize: 8, color: meta.color, fontFamily: 'monospace', width: 14, textAlign: 'right', fontWeight: 700, paddingTop: 7 }}>{String(index + 1).padStart(2, '0')}</span>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -372,7 +408,7 @@ function RepeatCard({ command, index, depth, path, theme, isRunning, onDelete, o
               if (!raw || raw === 'REPEAT') return
               onDropIntoRepeat(path, raw)
             }}
-            data-repeat-drop-path={JSON.stringify(path)}
+            data-repeat-drop-path={dropPath}
             style={{ minHeight: 92, padding: '10px', borderRadius: 12, background: isDropActive ? (theme === 'light' ? 'rgba(216,247,255,0.96)' : 'rgba(45,212,191,0.07)') : (theme === 'light' ? 'rgba(255,255,255,0.68)' : 'rgba(3,7,14,0.72)'), border: `1.5px ${isDropActive ? `dashed ${meta.color}88` : `solid ${meta.color}33`}`, display: 'flex', flexDirection: 'column', gap: 6 }}
           >
             {childCount === 0 ? (
@@ -692,7 +728,7 @@ export default function CommandBuilder({
 
       {showVisorFlip && (
         <motion.button whileTap={{ scale: 0.96 }} onClick={onVisorFlip} disabled={visorFlipCount >= 3} data-tutorial-id="visor-flip-button" style={{ width: '100%', padding: '9px 12px', background: visorFlipCount >= 3 ? t.visorExhBg : t.visorBg, border: `1.5px solid ${visorFlipCount >= 3 ? t.visorExhBd : t.visorBorder}`, borderRadius: 8, color: visorFlipCount >= 3 ? t.visorExhTx : t.visorText, cursor: visorFlipCount >= 3 ? 'not-allowed' : 'pointer', fontFamily: 'monospace', fontSize: 11, letterSpacing: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 700 }}>
-          <span>?? VISOR FLIP</span>
+          <span>{'\u{1F441}'} VISOR FLIP</span>
           <span style={{ fontSize: 10, fontWeight: 800 }}>{3 - visorFlipCount} left</span>
         </motion.button>
       )}
@@ -727,7 +763,7 @@ export default function CommandBuilder({
         <div style={subPanelStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 10, flexShrink: 0 }}>
             <div>
-              <p style={{ fontSize: 11, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 1.1, margin: 0, fontWeight: 800, whiteSpace: 'nowrap' }}>PROGRAM <span style={{ color: t.programCount, fontWeight: 600, whiteSpace: 'nowrap' }}>({totalBlocks} blocks)</span></p>
+              <p style={{ fontSize: 11, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 1.1, margin: 0, fontWeight: 800, whiteSpace: 'nowrap' }}>PROGRAM <span style={{ color: t.programCount, fontWeight: 600, whiteSpace: 'nowrap' }}>({totalBlocks} {totalBlocks === 1 ? 'block' : 'blocks'})</span></p>
               <p style={{ fontSize: 10, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.8, margin: '4px 0 0 0' }}>Top to bottom order</p>
             </div>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>

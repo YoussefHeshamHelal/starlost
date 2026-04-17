@@ -145,6 +145,24 @@ function buildUncertainRadioReport(lumaPos, facing, walls = [], objects = [], go
   return "Hmm… I can't tell which way I'm facing. My sensors are acting up. Can you help?"
 }
 
+// ── Level 9 radio helpers ─────────────────────────────────────────────────────
+function buildLevel9UncertainRadioReport() {
+  return "I feel like there's a rock beside me, but I'm not sure if it's on my left or my right."
+}
+
+function buildLevel9IdentifyConfirmation(lumaPos, facing, walls = []) {
+  const lumaCtx = { x: lumaPos.x, y: lumaPos.y, facing }
+  const sideRock = walls
+    .map(w => getRelativeDirection(lumaCtx, w))
+    .find(rel => rel === 'left' || rel === 'right')
+
+  if (sideRock) {
+    return `Yes, that's right! The rock is on my ${sideRock}.`
+  }
+
+  return "Yes, that's right! Now I know where the rock is."
+}
+
 // ── Collection report ─────────────────────────────────────────────────────────
 function buildCollectionReport(lumaPos, facing, walls = [], objects = [], goal, collectedIndices = new Set()) {
   const opener = "Got it! I found a ship fragment!"
@@ -276,6 +294,10 @@ export function useGameState(levelConfig, animSpeed = 50) {
   // Pick a fixed uncertain message for this session (so it doesn't change on re-renders)
   const [uncertainMessage] = useState(() => {
     if (levelConfig.uncertainRadio) {
+      if (levelConfig.id === 9) {
+        return buildLevel9UncertainRadioReport()
+      }
+
       return buildUncertainRadioReport(
         { x: resolvedStart.x, y: resolvedStart.y },
         resolvedFacing,
@@ -296,6 +318,10 @@ export function useGameState(levelConfig, animSpeed = 50) {
   const [reportOverride, setReportOverride] = useState(null)
 
   const liveReport = useMemo(() => {
+    if (levelConfig.id === 9 && levelConfig.uncertainRadio) {
+      return uncertainMessage
+    }
+
     // Level 2/3: show uncertain message until the player flips the visor
     // After flipping, switch to the clear normal message
     if (levelConfig.uncertainRadio && !visorFlippedThisLevel) {
@@ -367,9 +393,18 @@ export function useGameState(levelConfig, animSpeed = 50) {
     setSptAnswer(answer)
     const correct = answer === sptCorrectAnswer
     setSptCorrect(correct)
-    if (correct) setPhase('develop')
+    if (correct) {
+      if (levelConfig.id === 9) {
+        setReportOverride(buildLevel9IdentifyConfirmation(
+          { x: resolvedStart.x, y: resolvedStart.y },
+          resolvedFacing,
+          effectiveLevel.walls,
+        ))
+      }
+      setPhase('develop')
+    }
     return correct
-  }, [sptCorrectAnswer])
+  }, [effectiveLevel.walls, levelConfig.id, resolvedFacing, resolvedStart.x, resolvedStart.y, sptCorrectAnswer])
 
   // ── VISOR FLIP ───────────────────────────────────────────────────────────
   const openVisor = useCallback(() => {
@@ -380,12 +415,12 @@ export function useGameState(levelConfig, animSpeed = 50) {
       setVisorFlipTiming(hadErrorBefore ? 'reactive' : 'proactive')
     }
 
-    // Level 2: mark that the visor was flipped and pick a reaction message
+    // Mark that the visor was flipped and pick a reaction message where used.
     if (levelConfig.uncertainRadio && !visorFlippedThisLevel) {
       setVisorFlippedThisLevel(true)
-      setVisorFlipReaction(getRandomFrom(VISOR_FLIP_REACTIONS))
+      setVisorFlipReaction(levelConfig.id === 9 ? null : getRandomFrom(VISOR_FLIP_REACTIONS))
     }
-  }, [visorActive, visorFlipCount, visorFlipTiming, hadErrorBefore, levelConfig.uncertainRadio, visorFlippedThisLevel])
+  }, [visorActive, visorFlipCount, visorFlipTiming, hadErrorBefore, levelConfig.id, levelConfig.uncertainRadio, visorFlippedThisLevel])
 
   const closeVisor = useCallback(() => {
     setVisorActive(false)
@@ -620,7 +655,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     sptAnswer, sptCorrect, answerSPT,
     helmetReport,
     // Level 2 specific: whether the radio is currently uncertain
-    radioIsUncertain: levelConfig.uncertainRadio && !visorFlippedThisLevel && !reportOverride,
+    radioIsUncertain: levelConfig.uncertainRadio && !reportOverride && (levelConfig.id === 9 ? !sptCorrect : !visorFlippedThisLevel),
     visorActive, visorFlipCount, flipVisor, closeVisor,
     sequence, setSequence, isRunning, isMirrored,
     addCommand, removeLastCommand, clearSequence, runSequence,

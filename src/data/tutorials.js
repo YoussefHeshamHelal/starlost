@@ -181,6 +181,18 @@ export const FEATURE_TUTORIALS = {
       completeWhen: ({ visorActive }) => visorActive,
     }),
   ],
+  'visor-flip-level-9': [
+    featureStep('visor-flip-level-9-intro', 'visor-flip-level-9', {
+      targetId: 'visor-flip-button',
+      placement: 'bottom',
+      title: 'Try Visor Flip now!',
+      body: 'Tap Visor Flip so you can see what LUMA sees.',
+      requiresAction: true,
+      actionLabel: 'Turn Visor Flip on',
+      waitForTarget: true,
+      completeWhen: ({ visorActive }) => visorActive,
+    }),
+  ],
   'repeat-intro': [
     featureStep('repeat-intro', 'repeat-intro', {
       targetId: 'command-repeat',
@@ -262,7 +274,7 @@ const LEVEL_FEATURE_ORDER = {
   3: ['luma-confused', 'helmet-radio', 'identify-phase', 'facing-question'],
   5: ['ship-fragments', 'collect-all-fragments'],
   7: ['repeat-intro'],
-  9: ['uncertain-radio', 'visor-flip'],
+  9: ['uncertain-radio', 'visor-flip-level-9'],
   10: ['ship-fragments', 'collect-all-fragments'],
 }
 
@@ -277,6 +289,7 @@ export function getTutorialFeatureKeys(levelConfig, effectiveLevel) {
     if (featureKey === 'turn-commands') return levelConfig.id >= 2
     if (featureKey === 'uncertain-radio') return Boolean(levelConfig.uncertainRadio)
     if (featureKey === 'visor-flip') return !levelConfig.noVisorFlip
+    if (featureKey === 'visor-flip-level-9') return levelConfig.id === 9 && !levelConfig.noVisorFlip
     if (featureKey === 'repeat-intro') return Boolean(levelConfig.allowRepeat)
     if (featureKey === 'repeat-builder') return Boolean(levelConfig.allowRepeat)
     if (featureKey === 'ship-fragments') {
