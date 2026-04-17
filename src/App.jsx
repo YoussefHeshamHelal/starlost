@@ -19,6 +19,7 @@ const HEADER_H = 56
 const GRID_PX  = 520   // 5 tiles × 104 px
 const PANEL_W  = 620
 const GAP      = 24
+const EARLY_MAP_SCALE = 1.1
 const PLAYABLE_LEVELS = 10
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
 
@@ -913,7 +914,7 @@ function markTutorialPlanSeen(plan, levelId) {
 
 
 // ── Level Screen ──────────────────────────────────────────────────────────────
-function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, onGoHome, topOffset = HEADER_H }) {
+function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, onGoHome, onHeaderControls, topOffset = HEADER_H }) {
   const [animSpeed, setAnimSpeed] = useState(50)
   const [tutorialSteps, setTutorialSteps] = useState([])
   const [tutorialIndex, setTutorialIndex] = useState(0)
@@ -1066,6 +1067,18 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
 
     startTutorial(replayPlan, { persist: false })
   }, [canReplayTutorial, levelConfig.id, startTutorial, tutorialFeatureKeys])
+
+  useEffect(() => {
+    if (!onHeaderControls) return undefined
+
+    onHeaderControls({
+      canReplayTutorial,
+      onGoHome,
+      onReplayTutorial: handleReplayTutorial,
+    })
+
+    return () => onHeaderControls(null)
+  }, [canReplayTutorial, handleReplayTutorial, onGoHome, onHeaderControls])
   const handleTutorialNext = useCallback(() => {
     setTutorialIndex(index => {
       const nextIndex = index + 1
@@ -1094,6 +1107,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   const runBlocked = levelConfig.predictionPrompt && predictionTile === null && predictionResult === null
 
   const panelW = PANEL_W
+  const usesEarlyMapOnlyLayout = levelConfig.id === 1 || levelConfig.id === 2
+  const mapFootprintW = usesEarlyMapOnlyLayout ? GRID_PX * EARLY_MAP_SCALE : GRID_PX
 
   const handleSuccessNext = () => {
     const snapshot = getGBISnapshot()
@@ -1114,7 +1129,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
       justifyContent: 'flex-start',
       padding: '10px 16px 12px',
       boxSizing: 'border-box',
-      overflow: 'hidden',
+      overflow: phase === 'identify' ? 'visible' : 'hidden',
       background: 'transparent',
     }}>
       {/* ── Title bar ── */}
@@ -1126,7 +1141,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
           minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
-          gap: 10,
+          gap: levelConfig.id === 9 ? 14 : 10,
         }}
       >
       <div style={{
@@ -1138,58 +1153,11 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
           <p style={{
             fontSize: 10,
             color: t.levelLabel,
-            fontFamily: 'monospace', letterSpacing: 3, marginBottom: 3,
+            fontFamily: 'monospace', letterSpacing: 3, margin: 0,
             fontWeight: 800,
           }}>
             LEVEL {levelConfig.id} — {levelConfig.world?.toUpperCase()}
           </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h2 style={{
-              fontSize: 20, fontWeight: 900,
-              color: t.levelTitle,
-              letterSpacing: 1, margin: 0,
-            }}>
-              {levelConfig.name}
-            </h2>
-            <button
-              onClick={onGoHome}
-              style={{
-                padding: '8px 14px',
-                borderRadius: 999,
-                border: `1.5px solid ${theme === 'light' ? '#f3b372' : '#7a4d1c'}`,
-                background: theme === 'light'
-                  ? 'rgba(255,247,235,0.82)'
-                  : 'rgba(27,17,8,0.72)',
-                color: theme === 'light' ? '#93510f' : '#ffd59a',
-                fontSize: 11,
-                fontWeight: 800,
-                cursor: 'pointer',
-              }}
-            >
-              ← Home
-            </button>
-            <button
-              onClick={handleReplayTutorial}
-              disabled={!canReplayTutorial}
-              style={{
-                padding: '8px 14px',
-                borderRadius: 999,
-                border: `1.5px solid ${theme === 'light' ? '#85d9eb' : '#1f4d61'}`,
-                background: theme === 'light'
-                  ? 'rgba(255,255,255,0.74)'
-                  : 'rgba(6,12,22,0.8)',
-                color: canReplayTutorial
-                  ? (theme === 'light' ? '#14557f' : '#d8fdfa')
-                  : (theme === 'light' ? '#8ba5ba' : '#6c8598'),
-                fontSize: 11,
-                fontWeight: 800,
-                cursor: canReplayTutorial ? 'pointer' : 'not-allowed',
-                opacity: canReplayTutorial ? 1 : 0.6,
-              }}
-            >
-              Replay Tutorial
-            </button>
-          </div>
         </div>
         {!levelConfig.skipIdentify && (
           <div data-tutorial-id="phase-badge" style={{
@@ -1208,38 +1176,45 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
         )}
       </div>
 
-      {/* ── Helmet radio ── */}
-      {!levelConfig.noRadio && (
-        <div style={{ width: '100%', flexShrink: 0 }}>
-          <HelmetRadio report={helmetReport} radioIsUncertain={radioIsUncertain} />
-        </div>
-      )}
-
       {/* ── Main play area ── */}
       <div style={{
-        flex: 1, width: '100%',
-        display: 'flex', gap: GAP, alignItems: phase === 'identify' ? 'center' : 'stretch',
-        minHeight: 0, overflow: levelConfig.id === 9 ? 'visible' : 'hidden',
+        flex: phase === 'identify' ? '0 0 auto' : 1, width: '100%',
+        display: 'flex', gap: GAP, alignItems: phase === 'identify' ? 'flex-start' : 'stretch',
+        minHeight: phase === 'identify' ? 'auto' : 0,
+        overflow: phase === 'identify' || levelConfig.id === 9 || usesEarlyMapOnlyLayout ? 'visible' : 'hidden',
       }}>
         <div style={{
-          flex: '0 0 auto', width: GRID_PX,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flex: '0 0 auto', width: mapFootprintW,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start',
+          gap: 10,
           position: 'relative',
+          transform: levelConfig.id === 9 && phase === 'identify' ? 'translateY(-8px)' : 'none',
         }}>
-          <GameGrid
-            levelConfig={levelConfig}
-            effectiveLevel={effectiveLevel}
-            luma={luma}
-            visorActive={visorActive}
-            onVisorClose={handleVisorClose}
-            sptCorrect={sptCorrect}
-            collectedParts={collectedParts}
-            gridPx={GRID_PX}
-            predictionModeActive={predictionModeActive}
-            predictionTile={predictionTile}
-            predictionResult={predictionResult}
-            onTileClick={handleTileClick}
-          />
+          {!levelConfig.noRadio && (
+            <div style={{ width: GRID_PX, flexShrink: 0 }}>
+              <HelmetRadio report={helmetReport} radioIsUncertain={radioIsUncertain} />
+            </div>
+          )}
+
+          <div style={{
+            transform: usesEarlyMapOnlyLayout ? `scale(${EARLY_MAP_SCALE})` : 'none',
+            transformOrigin: 'top center',
+          }}>
+            <GameGrid
+              levelConfig={levelConfig}
+              effectiveLevel={effectiveLevel}
+              luma={luma}
+              visorActive={visorActive}
+              onVisorClose={handleVisorClose}
+              sptCorrect={sptCorrect}
+              collectedParts={collectedParts}
+              gridPx={GRID_PX}
+              predictionModeActive={predictionModeActive}
+              predictionTile={predictionTile}
+              predictionResult={predictionResult}
+              onTileClick={handleTileClick}
+            />
+          </div>
         </div>
 
         {/* Right panel */}
@@ -1352,6 +1327,7 @@ export default function App() {
   const [appPhase, setAppPhase] = useState('home')
   const [strategyCardLevelId, setStrategyCardLevelId] = useState(null)
   const [theme, setTheme] = useState('light')
+  const [levelHeaderControls, setLevelHeaderControls] = useState(null)
 
   const toggleTheme = useCallback(() => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light')
@@ -1366,12 +1342,14 @@ export default function App() {
     setCurrentLevelIndex(levelNumber - 1)
     setLevelSessionKey(key => key + 1)
     setStrategyCardLevelId(null)
+    setLevelHeaderControls(null)
     setAppPhase('playing')
   }, [])
 
   const handleGoHome = useCallback(() => {
     setAppPhase('home')
     setStrategyCardLevelId(null)
+    setLevelHeaderControls(null)
   }, [])
 
   const handleLevelComplete = () => {
@@ -1383,12 +1361,14 @@ export default function App() {
 
   const handleShowStrategyCard = (completedLevelId) => {
     setStrategyCardLevelId(completedLevelId)
+    setLevelHeaderControls(null)
     setAppPhase('strategy-card')
   }
 
   const handleStrategyCardDone = () => {
     setAppPhase('playing')
     setStrategyCardLevelId(null)
+    setLevelHeaderControls(null)
     if (currentLevelIndex < Math.min(PLAYABLE_LEVELS, LEVELS.length) - 1)
       setCurrentLevelIndex(i => i + 1)
     else
@@ -1437,6 +1417,48 @@ export default function App() {
             }}>
               STARLOST
             </h1>
+            {appPhase === 'playing' && levelHeaderControls && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 10 }}>
+                <button
+                  onClick={levelHeaderControls.onGoHome}
+                  style={{
+                    padding: '7px 12px',
+                    borderRadius: 999,
+                    border: `1.5px solid ${theme === 'light' ? '#f3b372' : '#7a4d1c'}`,
+                    background: theme === 'light'
+                      ? 'rgba(255,247,235,0.82)'
+                      : 'rgba(27,17,8,0.72)',
+                    color: theme === 'light' ? '#93510f' : '#ffd59a',
+                    fontSize: 10,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Home
+                </button>
+                <button
+                  onClick={levelHeaderControls.onReplayTutorial}
+                  disabled={!levelHeaderControls.canReplayTutorial}
+                  style={{
+                    padding: '7px 12px',
+                    borderRadius: 999,
+                    border: `1.5px solid ${theme === 'light' ? '#85d9eb' : '#1f4d61'}`,
+                    background: theme === 'light'
+                      ? 'rgba(255,255,255,0.74)'
+                      : 'rgba(6,12,22,0.8)',
+                    color: levelHeaderControls.canReplayTutorial
+                      ? (theme === 'light' ? '#14557f' : '#d8fdfa')
+                      : (theme === 'light' ? '#8ba5ba' : '#6c8598'),
+                    fontSize: 10,
+                    fontWeight: 800,
+                    cursor: levelHeaderControls.canReplayTutorial ? 'pointer' : 'not-allowed',
+                    opacity: levelHeaderControls.canReplayTutorial ? 1 : 0.6,
+                  }}
+                >
+                  Replay Tutorial
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Center tagline */}
@@ -1487,6 +1509,7 @@ export default function App() {
                 onComplete={handleLevelComplete}
                 onStrategyCard={handleShowStrategyCard}
                 onGoHome={handleGoHome}
+                onHeaderControls={setLevelHeaderControls}
                 topOffset={gameTopOffset}
               />
             </motion.div>
