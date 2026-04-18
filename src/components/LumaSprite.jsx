@@ -209,8 +209,12 @@ const FootPad = ({ cx, cy, id = '' }) => (
 )
 
 // ─── FACING SOUTH ──────────────────────────────────────────────────────────────
-function FacingSouth() {
+function FacingSouth({ collectEffectKey = null }) {
   const id = 'S'
+  const isCollecting = Boolean(collectEffectKey)
+  const collectTransition = isCollecting
+    ? { duration: 0.46, ease: [0.16, 1, 0.3, 1], times: [0, 0.34, 0.68, 1] }
+    : { duration: 0.12 }
   return (
     <svg width={60} height={72} viewBox="0 0 60 72" fill="none">
       <LUMA_DEFS id={id}/>
@@ -224,16 +228,32 @@ function FacingSouth() {
       <ellipse cx={30} cy={45} rx={6} ry={4.5} fill={`url(#su${id})`}/>
 
       {/* Left arm */}
-      <ellipse cx={16} cy={55} rx={5.5} ry={3.5} fill={`url(#su${id})`}
-        transform="rotate(-18,16,55)"/>
-      {/* Left hand/cuff */}
-      <ellipse cx={12} cy={58} rx={3.8} ry={2.8} fill={`url(#sk${id})`}/>
+      <motion.g
+        animate={isCollecting
+          ? { x: [0, 5, 8, 0], y: [0, -2, -6, 0], rotate: [0, 8, 18, 0] }
+          : { x: 0, y: 0, rotate: 0 }}
+        transition={collectTransition}
+        style={{ transformOrigin: '18px 55px' }}
+      >
+        <ellipse cx={16} cy={55} rx={5.5} ry={3.5} fill={`url(#su${id})`}
+          transform="rotate(-18,16,55)"/>
+        {/* Left hand/cuff */}
+        <ellipse cx={12} cy={58} rx={3.8} ry={2.8} fill={`url(#sk${id})`}/>
+      </motion.g>
 
       {/* Right arm */}
-      <ellipse cx={44} cy={55} rx={5.5} ry={3.5} fill={`url(#su${id})`}
-        transform="rotate(18,44,55)"/>
-      {/* Right hand/cuff */}
-      <ellipse cx={48} cy={58} rx={3.8} ry={2.8} fill={`url(#sk${id})`}/>
+      <motion.g
+        animate={isCollecting
+          ? { x: [0, -5, -8, 0], y: [0, -2, -6, 0], rotate: [0, -8, -18, 0] }
+          : { x: 0, y: 0, rotate: 0 }}
+        transition={collectTransition}
+        style={{ transformOrigin: '42px 55px' }}
+      >
+        <ellipse cx={44} cy={55} rx={5.5} ry={3.5} fill={`url(#su${id})`}
+          transform="rotate(18,44,55)"/>
+        {/* Right hand/cuff */}
+        <ellipse cx={48} cy={58} rx={3.8} ry={2.8} fill={`url(#sk${id})`}/>
+      </motion.g>
 
       {/* Chest panel */}
       <ChestPanel cx={30} cy={55} id={id}/>
@@ -263,8 +283,12 @@ function FacingSouth() {
 }
 
 // ─── FACING NORTH ──────────────────────────────────────────────────────────────
-function FacingNorth() {
+function FacingNorth({ collectEffectKey = null }) {
   const id = 'N'
+  const isCollecting = Boolean(collectEffectKey)
+  const collectTransition = isCollecting
+    ? { duration: 0.46, ease: [0.16, 1, 0.3, 1], times: [0, 0.34, 0.68, 1] }
+    : { duration: 0.12 }
   return (
     <svg width={60} height={72} viewBox="0 0 60 72" fill="none">
       <LUMA_DEFS id={id}/>
@@ -277,13 +301,29 @@ function FacingNorth() {
       <ellipse cx={30} cy={45} rx={6}  ry={4.5} fill={`url(#suB${id})`}/>
 
       {/* Arms from behind */}
-      <ellipse cx={16} cy={54} rx={5.5} ry={3.5} fill={`url(#suB${id})`}
-        transform="rotate(18,16,54)"/>
-      <ellipse cx={44} cy={54} rx={5.5} ry={3.5} fill={`url(#suB${id})`}
-        transform="rotate(-18,44,54)"/>
-      {/* Green hands from behind */}
-      <ellipse cx={12} cy={58} rx={3.5} ry={2.6} fill={`url(#skB${id})`}/>
-      <ellipse cx={48} cy={58} rx={3.5} ry={2.6} fill={`url(#skB${id})`}/>
+      <motion.g
+        animate={isCollecting
+          ? { x: [0, 5, 7, 0], y: [0, -3, -8, 0], rotate: [0, -8, -16, 0] }
+          : { x: 0, y: 0, rotate: 0 }}
+        transition={collectTransition}
+        style={{ transformOrigin: '18px 54px' }}
+      >
+        <ellipse cx={16} cy={54} rx={5.5} ry={3.5} fill={`url(#suB${id})`}
+          transform="rotate(18,16,54)"/>
+        {/* Green hand from behind */}
+        <ellipse cx={12} cy={58} rx={3.5} ry={2.6} fill={`url(#skB${id})`}/>
+      </motion.g>
+      <motion.g
+        animate={isCollecting
+          ? { x: [0, -5, -7, 0], y: [0, -3, -8, 0], rotate: [0, 8, 16, 0] }
+          : { x: 0, y: 0, rotate: 0 }}
+        transition={collectTransition}
+        style={{ transformOrigin: '42px 54px' }}
+      >
+        <ellipse cx={44} cy={54} rx={5.5} ry={3.5} fill={`url(#suB${id})`}
+          transform="rotate(-18,44,54)"/>
+        <ellipse cx={48} cy={58} rx={3.5} ry={2.6} fill={`url(#skB${id})`}/>
+      </motion.g>
 
       {/* ── BACK OF HEAD / HELMET ── */}
       <ellipse cx={30} cy={27} rx={19} ry={21} fill={`url(#skB${id})`}>
@@ -311,8 +351,12 @@ function FacingNorth() {
 }
 
 // ─── FACING EAST ───────────────────────────────────────────────────────────────
-function FacingEast() {
+function FacingEast({ collectEffectKey = null }) {
   const id = 'E'
+  const isCollecting = Boolean(collectEffectKey)
+  const collectTransition = isCollecting
+    ? { duration: 0.46, ease: [0.16, 1, 0.3, 1], times: [0, 0.34, 0.68, 1] }
+    : { duration: 0.12 }
   return (
     <svg width={60} height={72} viewBox="0 0 60 72" fill="none">
       <LUMA_DEFS id={id}/>
@@ -324,11 +368,31 @@ function FacingEast() {
       <ellipse cx={30} cy={55} rx={9.5} ry={9.5} fill={`url(#su${id})`}/>
       <ellipse cx={32} cy={45} rx={6}   ry={4.5} fill={`url(#su${id})`}/>
 
+      <motion.g
+        animate={isCollecting
+          ? { x: [0, 7, 9, 0], y: [0, -1, -5, 0], rotate: [0, -8, -16, 0], opacity: [0, 0.42, 0.52, 0] }
+          : { x: 0, y: 0, rotate: 0, opacity: 0 }}
+        transition={collectTransition}
+        style={{ transformOrigin: '34px 54px' }}
+      >
+        <ellipse cx={34} cy={55} rx={4.8} ry={3} fill={`url(#suB${id})`}
+          transform="rotate(-8,34,55)"/>
+        <ellipse cx={39} cy={58} rx={3.2} ry={2.3} fill={`url(#skB${id})`}/>
+      </motion.g>
+
       {/* Leading arm (east) */}
-      <ellipse cx={42} cy={54} rx={5} ry={3.2} fill={`url(#su${id})`}
-        transform="rotate(-12,42,54)"/>
-      {/* Leading hand/cuff */}
-      <ellipse cx={47} cy={57} rx={3.5} ry={2.6} fill={`url(#sk${id})`}/>
+      <motion.g
+        animate={isCollecting
+          ? { x: [0, 4, -2, 0], y: [0, -2, -7, 0], rotate: [0, -8, -22, 0] }
+          : { x: 0, y: 0, rotate: 0 }}
+        transition={collectTransition}
+        style={{ transformOrigin: '41px 54px' }}
+      >
+        <ellipse cx={42} cy={54} rx={5} ry={3.2} fill={`url(#su${id})`}
+          transform="rotate(-12,42,54)"/>
+        {/* Leading hand/cuff */}
+        <ellipse cx={47} cy={57} rx={3.5} ry={2.6} fill={`url(#sk${id})`}/>
+      </motion.g>
 
       {/* Chest panel — partial side view */}
       <rect x={27} y={51} width={8} height={7} rx={1.6} fill={`url(#cp${id})`}/>
@@ -378,8 +442,12 @@ function FacingEast() {
 }
 
 // ─── FACING WEST ───────────────────────────────────────────────────────────────
-function FacingWest() {
+function FacingWest({ collectEffectKey = null }) {
   const id = 'W'
+  const isCollecting = Boolean(collectEffectKey)
+  const collectTransition = isCollecting
+    ? { duration: 0.46, ease: [0.16, 1, 0.3, 1], times: [0, 0.34, 0.68, 1] }
+    : { duration: 0.12 }
   return (
     <svg width={60} height={72} viewBox="0 0 60 72" fill="none">
       <LUMA_DEFS id={id}/>
@@ -391,10 +459,30 @@ function FacingWest() {
       <ellipse cx={30} cy={55} rx={9.5} ry={9.5} fill={`url(#su${id})`}/>
       <ellipse cx={28} cy={45} rx={6}   ry={4.5} fill={`url(#su${id})`}/>
 
+      <motion.g
+        animate={isCollecting
+          ? { x: [0, -7, -9, 0], y: [0, -1, -5, 0], rotate: [0, 8, 16, 0], opacity: [0, 0.42, 0.52, 0] }
+          : { x: 0, y: 0, rotate: 0, opacity: 0 }}
+        transition={collectTransition}
+        style={{ transformOrigin: '26px 54px' }}
+      >
+        <ellipse cx={26} cy={55} rx={4.8} ry={3} fill={`url(#suB${id})`}
+          transform="rotate(8,26,55)"/>
+        <ellipse cx={21} cy={58} rx={3.2} ry={2.3} fill={`url(#skB${id})`}/>
+      </motion.g>
+
       {/* Leading arm (west) */}
-      <ellipse cx={18} cy={54} rx={5} ry={3.2} fill={`url(#su${id})`}
-        transform="rotate(12,18,54)"/>
-      <ellipse cx={13} cy={57} rx={3.5} ry={2.6} fill={`url(#sk${id})`}/>
+      <motion.g
+        animate={isCollecting
+          ? { x: [0, -4, 2, 0], y: [0, -2, -7, 0], rotate: [0, 8, 22, 0] }
+          : { x: 0, y: 0, rotate: 0 }}
+        transition={collectTransition}
+        style={{ transformOrigin: '19px 54px' }}
+      >
+        <ellipse cx={18} cy={54} rx={5} ry={3.2} fill={`url(#su${id})`}
+          transform="rotate(12,18,54)"/>
+        <ellipse cx={13} cy={57} rx={3.5} ry={2.6} fill={`url(#sk${id})`}/>
+      </motion.g>
 
       {/* Chest panel partial */}
       <rect x={25} y={51} width={8} height={7} rx={1.6} fill={`url(#cp${id})`}/>
@@ -571,7 +659,7 @@ function LumaHiddenUnknown({ size }) {
   return <LumaConfusedUnknown size={size}/>
 }
 
-function LumaStanding({ size, facing }) {
+function LumaStanding({ size, facing, collectEffectKey = null }) {
   const directions = ['south', 'north', 'east', 'west']
   const sprites = {
     south: FacingSouth,
@@ -609,7 +697,7 @@ function LumaStanding({ size, facing }) {
               pointerEvents:   'none',
             }}
           >
-            <Sprite/>
+            <Sprite collectEffectKey={isActive ? collectEffectKey : null}/>
           </motion.div>
         )
       })}
@@ -691,139 +779,6 @@ function LumaCollectAura({ size, effectKey }) {
   )
 }
 
-function collectHandPose(facing, side, size) {
-  const poses = {
-    south: {
-      left: { start: { x: -size * 0.25, y: size * 0.16, rotate: -24 }, gather: { x: -size * 0.05, y: -size * 0.04, rotate: 20 } },
-      right: { start: { x: size * 0.25, y: size * 0.16, rotate: 24 }, gather: { x: size * 0.05, y: -size * 0.04, rotate: -20 } },
-    },
-    north: {
-      left: { start: { x: -size * 0.24, y: size * 0.11, rotate: 16 }, gather: { x: -size * 0.07, y: -size * 0.09, rotate: 34 } },
-      right: { start: { x: size * 0.24, y: size * 0.11, rotate: -16 }, gather: { x: size * 0.07, y: -size * 0.09, rotate: -34 } },
-    },
-    east: {
-      left: { start: { x: -size * 0.02, y: size * 0.18, rotate: -8 }, gather: { x: size * 0.07, y: -size * 0.02, rotate: 18 } },
-      right: { start: { x: size * 0.3, y: size * 0.1, rotate: 22 }, gather: { x: size * 0.12, y: -size * 0.08, rotate: -20 } },
-    },
-    west: {
-      left: { start: { x: -size * 0.3, y: size * 0.1, rotate: -22 }, gather: { x: -size * 0.12, y: -size * 0.08, rotate: 20 } },
-      right: { start: { x: size * 0.02, y: size * 0.18, rotate: 8 }, gather: { x: -size * 0.07, y: -size * 0.02, rotate: -18 } },
-    },
-  }
-
-  return poses[facing]?.[side] ?? poses.south[side]
-}
-
-function LumaCollectArm({ side, isBackView, isTrailingSide }) {
-  const sleeveStart = side === 'left' ? '62%' : '0%'
-  const gloveStart = side === 'left' ? '2%' : '56%'
-  const armGradient = isBackView
-    ? 'linear-gradient(135deg, #4a6070, #1e3040 68%, #080f18)'
-    : 'linear-gradient(135deg, #d0e8f0, #8ab0c8 42%, #1a2c38)'
-  const gloveGradient = isBackView
-    ? 'radial-gradient(circle at 35% 28%, #1a6050 0%, #0a3a2a 64%, #021810 100%)'
-    : 'radial-gradient(circle at 35% 28%, #a8ffdc 0%, #52f0b0 34%, #0d7a52 100%)'
-
-  return (
-    <>
-      <div
-        style={{
-          position: 'absolute',
-          left: sleeveStart,
-          top: '34%',
-          width: '42%',
-          height: '34%',
-          borderRadius: 10,
-          background: armGradient,
-          border: '1px solid rgba(96,216,255,0.38)',
-          boxShadow: 'inset 0 1px 3px rgba(255,255,255,0.22)',
-          opacity: isTrailingSide ? 0.72 : 1,
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          left: gloveStart,
-          top: '18%',
-          width: '52%',
-          height: '60%',
-          borderRadius: '50% 46% 44% 52%',
-          background: gloveGradient,
-          border: '1px solid rgba(103,232,249,0.62)',
-          boxShadow: 'inset 0 0 6px rgba(255,255,255,0.25), 0 0 6px rgba(103,232,249,0.28)',
-          opacity: isTrailingSide ? 0.74 : 1,
-        }}
-      />
-      {[0, 1, 2].map((finger) => (
-        <span
-          key={finger}
-          style={{
-            position: 'absolute',
-            left: side === 'left' ? `${7 + finger * 8}%` : `${70 + finger * 7}%`,
-            top: `${14 + finger * 2}%`,
-            width: '14%',
-            height: '30%',
-            borderRadius: 8,
-            background: gloveGradient,
-            transform: `rotate(${side === 'left' ? -18 + finger * 7 : 18 - finger * 7}deg)`,
-            opacity: isTrailingSide ? 0.68 : 0.95,
-          }}
-        />
-      ))}
-    </>
-  )
-}
-
-function LumaCollectHands({ size, facing, effectKey }) {
-  if (!effectKey) return null
-
-  return (
-    <AnimatePresence>
-      {['left', 'right'].map((side) => {
-        const pose = collectHandPose(facing, side, size)
-        const isBackView = facing === 'north'
-        const isSideView = facing === 'east' || facing === 'west'
-        const isTrailingSide = isSideView && ((facing === 'east' && side === 'left') || (facing === 'west' && side === 'right'))
-        const opacityPeak = isBackView ? 0.74 : isTrailingSide ? 0.72 : 1
-        return (
-          <motion.div
-            key={`${effectKey}-${side}`}
-            initial={{
-              x: pose.start.x,
-              y: pose.start.y,
-              rotate: pose.start.rotate,
-              opacity: 0,
-              scale: 0.86,
-            }}
-            animate={{
-              x: [pose.start.x, pose.gather.x, pose.gather.x],
-              y: [pose.start.y, pose.gather.y, pose.gather.y],
-              rotate: [pose.start.rotate, pose.gather.rotate, pose.gather.rotate * 0.82],
-              opacity: [0, opacityPeak, 0],
-              scale: [0.88, 1.06, 0.96],
-            }}
-            exit={{ opacity: 0, transition: { duration: 0 } }}
-            transition={{ duration: 0.44, ease: [0.16, 1, 0.3, 1], times: [0, 0.45, 1] }}
-            style={{
-              position: 'absolute',
-              left: '50%',
-              top: '58%',
-              width: size * 0.34,
-              height: size * 0.18,
-              zIndex: 5,
-              pointerEvents: 'none',
-              transformOrigin: side === 'left' ? '80% 50%' : '20% 50%',
-              filter: 'drop-shadow(0 0 6px rgba(103,232,249,0.48))',
-            }}
-          >
-            <LumaCollectArm side={side} isBackView={isBackView} isTrailingSide={isTrailingSide}/>
-          </motion.div>
-        )
-      })}
-    </AnimatePresence>
-  )
-}
-
 export default function LumaSprite({
   x, y,
   facing     = 'south',
@@ -883,13 +838,9 @@ export default function LumaSprite({
         initial={false}
         animate={isCollecting
           ? {
-            y: [0, 0.6, 0],
-            scale: [1, 1.01, 1],
-            rotate: [
-              0,
-              facing === 'east' ? 2.2 : facing === 'west' ? -2.2 : facing === 'north' ? 1 : -1,
-              0,
-            ],
+            y: 0,
+            scale: [1, 1.004, 1],
+            rotate: 0,
             filter: [
               'drop-shadow(0 0 0 rgba(103,232,249,0))',
               'drop-shadow(0 0 16px rgba(103,232,249,0.72))',
@@ -903,7 +854,6 @@ export default function LumaSprite({
         style={{ position: 'relative', zIndex: 1, transformOrigin: '50% 72%' }}
       >
         <LumaCollectAura size={size} effectKey={collectEffectKey}/>
-        <LumaCollectHands size={size} facing={facing} effectKey={collectEffectKey}/>
         <AnimatePresence mode="wait">
           {showFacing
             ? (
@@ -914,7 +864,7 @@ export default function LumaSprite({
                 exit={{    opacity: 0.5, scale: 0.93 }}
                 transition={{ duration: 0.15, ease: 'easeOut' }}
               >
-                <LumaStanding size={size} facing={facing}/>
+                <LumaStanding size={size} facing={facing} collectEffectKey={collectEffectKey}/>
               </motion.div>
             )
             : <LumaHiddenUnknown key="hidden-unknown" size={size}/>

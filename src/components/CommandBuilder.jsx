@@ -4,8 +4,8 @@ import { ThemeContext } from '../context/theme'
 import { clampRepeatTimes, countProgramBlocks, createRepeatCommand, isRepeatCommand } from '../utils/commands'
 
 const THUMB_R = 8
-const CHIP_HEIGHT = 44
-const ITEM_GAP = 6
+const CHIP_HEIGHT = 34
+const ITEM_GAP = 4
 
 const THEMES = {
   light: {
@@ -81,7 +81,7 @@ const THEMES = {
 }
 
 const META = {
-  F: { buttonLabel: 'MOVE FORWARD', rowLabel: 'FORWARD', icon: '↑', color: '#14b8d4', darkColor: '#2dd4bf', bg: 'rgba(20,184,212,0.12)', darkBg: 'rgba(45,212,191,0.20)' },
+  F: { buttonLabel: 'MOVE FORWARD', rowLabel: 'MOVE FORWARD', icon: '↑', color: '#14b8d4', darkColor: '#2dd4bf', bg: 'rgba(20,184,212,0.12)', darkBg: 'rgba(45,212,191,0.20)' },
   TR: { buttonLabel: 'TURN RIGHT', rowLabel: 'TURN RIGHT', icon: '→', color: '#f59e0b', darkColor: '#f59e0b', bg: 'rgba(245,158,11,0.12)', darkBg: 'rgba(245,158,11,0.20)' },
   TL: { buttonLabel: 'TURN LEFT', rowLabel: 'TURN LEFT', icon: '←', color: '#8b5cf6', darkColor: '#a78bfa', bg: 'rgba(139,92,246,0.11)', darkBg: 'rgba(167,139,250,0.22)' },
   C: { buttonLabel: 'COLLECT', rowLabel: 'COLLECT', icon: 'collect', color: '#38bdf8', darkColor: '#67e8f9', bg: 'rgba(56,189,248,0.12)', darkBg: 'rgba(103,232,249,0.16)' },
@@ -137,12 +137,8 @@ function getMeta(command, theme) {
 function getRowEstimate(command) {
   if (!isRepeatCommand(command)) return CHIP_HEIGHT
   const childCount = command.commands?.length ?? 0
-  const nestedHeight = childCount === 0 ? 66 : childCount * (CHIP_HEIGHT + ITEM_GAP) + 22
-  return 78 + nestedHeight
-}
-
-function CommandIcon({ meta, size = 20 }) {
-  return <span style={{ fontSize: size, lineHeight: 1 }}>{meta.icon === 'collect' ? '🫳' : meta.icon}</span>
+  const nestedHeight = childCount === 0 ? 46 : childCount * (CHIP_HEIGHT + ITEM_GAP) + 14
+  return 58 + nestedHeight
 }
 
 function SpeedBar({ speed, onSpeedChange, theme }) {
@@ -207,7 +203,6 @@ function PaletteButton({ code, disabled, onAdd, theme, tutorialId, repeatDefault
       data-tutorial-id={tutorialId}
       style={{ width: '100%', padding: '10px 12px', background: meta.bg, border: `1.5px solid ${meta.color}`, borderRadius: 10, color: meta.color, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'monospace', opacity: disabled ? 0.35 : 1 }}
     >
-      <CommandIcon meta={meta} size={20} />
       <span style={{ fontSize: 10, letterSpacing: 0.8, fontWeight: 800 }}>{meta.buttonLabel}</span>
     </motion.button>
   )
@@ -215,7 +210,7 @@ function PaletteButton({ code, disabled, onAdd, theme, tutorialId, repeatDefault
 
 function RepeatCounter({ command, color, onChange }) {
   const [inputValue, setInputValue] = useState(String(command.times))
-  const buttonStyle = { width: 20, height: 16, borderRadius: 6, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.72)', color, cursor: 'pointer', padding: 0, fontWeight: 900, fontFamily: 'monospace' }
+  const buttonStyle = { width: 18, height: 13, borderRadius: 5, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.72)', color, cursor: 'pointer', padding: 0, fontWeight: 900, fontFamily: 'monospace', fontSize: 10, lineHeight: 1 }
 
   const updateTimes = (times) => {
     const nextTimes = clampRepeatTimes(times)
@@ -236,10 +231,10 @@ function RepeatCounter({ command, color, onChange }) {
   }
 
   return (
-    <div data-tutorial-id="repeat-block-counter" onPointerDown={(event) => event.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', background: `${color}12`, border: `1px solid ${color}33`, borderRadius: 10 }}>
+    <div data-tutorial-id="repeat-block-counter" onPointerDown={(event) => event.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 5px', background: `${color}12`, border: `1px solid ${color}33`, borderRadius: 8 }}>
       <span style={{ fontSize: 8, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800, color }}>REPEAT</span>
-      <input type="text" inputMode="numeric" value={inputValue} onChange={handleInputChange} onBlur={() => inputValue === '' && setInputValue(String(command.times))} style={{ width: 40, padding: '3px 5px', borderRadius: 8, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.82)', color, fontFamily: 'monospace', fontSize: 12, fontWeight: 800, textAlign: 'center' }} />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <input type="text" inputMode="numeric" value={inputValue} onChange={handleInputChange} onBlur={() => inputValue === '' && setInputValue(String(command.times))} style={{ width: 34, padding: '2px 4px', borderRadius: 6, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.82)', color, fontFamily: 'monospace', fontSize: 11, fontWeight: 800, textAlign: 'center' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         <button type="button" style={buttonStyle} onClick={() => updateTimes(command.times + 1)}>+</button>
         <button type="button" style={buttonStyle} onClick={() => updateTimes(command.times - 1)}>-</button>
       </div>
@@ -263,20 +258,9 @@ function RowDelete({ color, isRunning, onDelete, theme }) {
 function CommandChip({ command, index, depth, path, theme, isRunning, onDelete }) {
   const meta = getMeta(command, theme)
   return (
-    <div style={{ position: 'relative', minHeight: CHIP_HEIGHT, marginLeft: depth * 12, display: 'flex', alignItems: 'center', gap: 10, padding: '8px 34px 8px 10px', background: meta.bg, borderLeft: `3px solid ${meta.color}`, borderBottom: `1px solid ${meta.color}22`, borderRadius: 10 }}>
+    <div style={{ position: 'relative', minHeight: CHIP_HEIGHT, marginLeft: depth * 12, display: 'flex', alignItems: 'center', gap: 8, padding: '5px 30px 5px 8px', background: meta.bg, borderLeft: `3px solid ${meta.color}`, borderBottom: `1px solid ${meta.color}22`, borderRadius: 8 }}>
       <span style={{ fontSize: 8, color: meta.color, fontFamily: 'monospace', width: 14, textAlign: 'right', fontWeight: 700 }}>{String(index + 1).padStart(2, '0')}</span>
-      <span style={{ width: 18, height: 18, color: meta.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <CommandIcon meta={meta} size={16} />
-      </span>
       <span style={{ fontSize: 10, color: meta.color, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 700, flex: 1 }}>{meta.rowLabel}</span>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 1.5, opacity: theme === 'light' ? 0.4 : 0.35, paddingRight: 14 }}>
-        {[0, 1, 2].map((dotRow) => (
-          <div key={dotRow} style={{ width: 14, display: 'flex', gap: 2 }}>
-            <div style={{ width: 2, height: 2, borderRadius: '50%', background: meta.color }} />
-            <div style={{ width: 2, height: 2, borderRadius: '50%', background: meta.color }} />
-          </div>
-        ))}
-      </div>
       <RowDelete color={meta.color} isRunning={isRunning} onDelete={() => onDelete(path)} theme={theme} />
     </div>
   )
@@ -372,14 +356,13 @@ function RepeatCard({ command, index, depth, path, theme, isRunning, onDelete, o
       onDragOver={handleRepeatDragOver}
       onDragLeave={handleRepeatDragLeave}
       onDrop={handleRepeatDrop}
-      style={{ position: 'relative', marginLeft: depth * 12, padding: '8px 34px 10px 10px', background: meta.bg, border: `1.5px solid ${meta.color}66`, borderRadius: 14 }}
+      style={{ position: 'relative', marginLeft: depth * 12, padding: '6px 30px 8px 8px', background: meta.bg, border: `1.5px solid ${meta.color}66`, borderRadius: 10 }}
     >
-      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-        <span style={{ fontSize: 8, color: meta.color, fontFamily: 'monospace', width: 14, textAlign: 'right', fontWeight: 700, paddingTop: 7 }}>{String(index + 1).padStart(2, '0')}</span>
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+        <span style={{ fontSize: 8, color: meta.color, fontFamily: 'monospace', width: 14, textAlign: 'right', fontWeight: 700, paddingTop: 5 }}>{String(index + 1).padStart(2, '0')}</span>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 18, color: meta.color }}>{meta.icon}</span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <span style={{ fontSize: 10, color: meta.color, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800 }}>REPEAT x{command.times}</span>
                 <span style={{ fontSize: 7, color: `${meta.color}cc`, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 700 }}>{childCount} BLOCK{childCount === 1 ? '' : 'S'}</span>
@@ -416,11 +399,11 @@ function RepeatCard({ command, index, depth, path, theme, isRunning, onDelete, o
               onDropIntoRepeat(path, raw)
             }}
             data-repeat-drop-path={dropPath}
-            style={{ minHeight: 92, padding: '10px', borderRadius: 12, background: isDropActive ? (theme === 'light' ? 'rgba(216,247,255,0.96)' : 'rgba(45,212,191,0.07)') : (theme === 'light' ? 'rgba(255,255,255,0.68)' : 'rgba(3,7,14,0.72)'), border: `1.5px ${isDropActive ? `dashed ${meta.color}88` : `solid ${meta.color}33`}`, display: 'flex', flexDirection: 'column', gap: 6 }}
+            style={{ minHeight: 54, padding: '6px', borderRadius: 8, background: isDropActive ? (theme === 'light' ? 'rgba(216,247,255,0.96)' : 'rgba(45,212,191,0.07)') : (theme === 'light' ? 'rgba(255,255,255,0.68)' : 'rgba(3,7,14,0.72)'), border: `1.5px ${isDropActive ? `dashed ${meta.color}88` : `solid ${meta.color}33`}`, display: 'flex', flexDirection: 'column', gap: 4 }}
           >
             {childCount === 0 ? (
-              <div style={{ flex: 1, minHeight: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <p style={{ color: `${meta.color}cc`, fontSize: 11, fontFamily: 'monospace', letterSpacing: 0.8, margin: 0, fontWeight: 700 }}>Drag commands here</p>
+              <div style={{ flex: 1, minHeight: 34, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <p style={{ color: `${meta.color}cc`, fontSize: 10, fontFamily: 'monospace', letterSpacing: 0.8, margin: 0, fontWeight: 700 }}>Drag commands here</p>
               </div>
             ) : children}
           </div>
