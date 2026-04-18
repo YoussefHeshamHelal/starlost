@@ -343,7 +343,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
       luma.facing === resolvedFacing &&
       collectedParts.size === 0
     ) {
-      return "I'm okay... I think. Can you see where I am? There is a rock to my right, a rock to my left, and a ship fragment in front of me."
+      return "I'm okay... I think. Can you see where I am? There is a rock to my right and a ship fragment in front of me."
     }
     return buildRadioReport(
       luma,
