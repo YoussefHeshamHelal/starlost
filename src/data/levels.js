@@ -15,7 +15,7 @@ import { createRepeatCommand } from '../utils/commands'
 //   L7: first repeat level
 //   L8: repeat plus extra commands outside the loop
 //   L9: uncertain radio + first visor flip
-//   L10: repeat + visor + one fragment mastery
+//   L10: repeat + visor + fragment mastery
 //
 // There is no hard command limit. targetCommands is a best-path hint only.
 
@@ -53,7 +53,7 @@ const L9_START = { x: 3, y: 4 }
 const L9_GOAL = { x: 1, y: 4 }
 
 const L10_START = { x: 0, y: 4 }
-const L10_GOAL = { x: 4, y: 0 }
+const L10_GOAL = { x: 2, y: 2 }
 
 const DIRECTIONS = ['north', 'east', 'south', 'west']
 const MOVE_DELTAS = {
@@ -269,10 +269,6 @@ function buildPathTilesFromSolution(start, facing, solution) {
   })
 
   return tiles
-}
-
-function chooseVariant(variants) {
-  return shuffle(variants)[0]
 }
 
 export function generateLevel1Layout() {
@@ -605,32 +601,35 @@ export function generateLevel9Layout() {
 }
 
 export function generateLevel10Layout() {
-  return chooseVariant([
-    {
-      walls: [
-        { x: 1, y: 4 },
-        { x: 2, y: 3 },
-        { x: 3, y: 1 },
-      ],
-      objects: [{ type: 'ship_part', x: 2, y: 1 }],
-      solution: [createRepeatCommand(2, ['F', 'TR', 'F', 'TL']), 'F', 'TR', 'F', 'F'],
-      lumaStart: { ...L10_START },
-      goal: { ...L10_GOAL },
-      lumaFacing: 'north',
-    },
-    {
-      walls: [
-        { x: 2, y: 4 },
-        { x: 3, y: 2 },
-        { x: 4, y: 1 },
-      ],
-      objects: [{ type: 'ship_part', x: 3, y: 1 }],
-      solution: [createRepeatCommand(2, ['F', 'TR', 'F', 'TL']), 'F', 'TR', 'F', 'F'],
-      lumaStart: { x: 1, y: 4 },
-      goal: { x: 4, y: 0 },
-      lumaFacing: 'north',
-    },
-  ])
+  return {
+    walls: [
+      { x: 1, y: 1 },
+      { x: 3, y: 1 },
+      { x: 1, y: 3 },
+      { x: 3, y: 3 },
+    ],
+    objects: [
+      { type: 'ship_part', x: 4, y: 4 },
+      { type: 'ship_part', x: 4, y: 2 },
+      { type: 'ship_part', x: 4, y: 0 },
+      { type: 'ship_part', x: 0, y: 0 },
+      { type: 'ship_part', x: 0, y: 2 },
+    ],
+    solution: [
+      createRepeatCommand(4, ['F']),
+      'TL',
+      createRepeatCommand(4, ['F']),
+      'TL',
+      createRepeatCommand(4, ['F']),
+      'TL',
+      createRepeatCommand(2, ['F']),
+      'TL',
+      createRepeatCommand(2, ['F']),
+    ],
+    lumaStart: { ...L10_START },
+    goal: { ...L10_GOAL },
+    lumaFacing: 'east',
+  }
 }
 
 export const LEVELS = [
@@ -908,7 +907,7 @@ export const LEVELS = [
     tutorial: false,
     grid: { cols: COLS, rows: ROWS },
     lumaStart: { ...L10_START },
-    lumaFacing: 'north',
+    lumaFacing: 'east',
     goal: { ...L10_GOAL },
     walls: [],
     objects: [],
@@ -928,7 +927,7 @@ export const LEVELS = [
     skipIdentify: false,
     noRadio: false,
     layoutGenerator: 'level10',
-    targetCommands: 8,
+    targetCommands: 9,
     uncertainRadio: false,
     allowRepeat: true,
     repeatDefaults: { times: 2 },

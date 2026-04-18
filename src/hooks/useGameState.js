@@ -328,6 +328,15 @@ export function useGameState(levelConfig, animSpeed = 50) {
       return uncertainMessage
     }
     if (
+      levelConfig.id === 10 &&
+      luma.x === resolvedStart.x &&
+      luma.y === resolvedStart.y &&
+      luma.facing === resolvedFacing &&
+      collectedParts.size === 0
+    ) {
+      return "I’m near the edge of the forest. I think there’s a wall on my right… and another wall behind me."
+    }
+    if (
       levelConfig.id === 6 &&
       luma.x === resolvedStart.x &&
       luma.y === resolvedStart.y &&

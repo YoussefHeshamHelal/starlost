@@ -275,7 +275,6 @@ const LEVEL_FEATURE_ORDER = {
   5: ['ship-fragments', 'collect-all-fragments'],
   7: ['repeat-intro'],
   9: ['uncertain-radio', 'visor-flip-level-9'],
-  10: ['ship-fragments', 'collect-all-fragments'],
 }
 
 export function getTutorialFeatureKeys(levelConfig, effectiveLevel) {
