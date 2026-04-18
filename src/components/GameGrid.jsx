@@ -14,6 +14,9 @@ const MOVE_DELTAS = { north:[0,-1], east:[1,0], south:[0,1], west:[-1,0] }
 // Get what's in a specific relative direction from LUMA
 function getTileInDirection(luma, relDir, level) {
   const { grid, walls = [], objects = [], goal } = level
+  const forestObstacle = level.world === 'forest-trail'
+    ? { type: 'forest_tree', label: 'FOREST TREE!', emoji: '\u{1F332}', color: '#65a30d' }
+    : { type: 'rock', label: 'BIG ROCK!', emoji: '🪨', color: '#c0845a' }
   const facingIdx = DIRECTIONS.indexOf(luma.facing)
 
   const offsets = { front: 0, right: 1, back: 2, left: 3 }
@@ -26,14 +29,14 @@ function getTileInDirection(luma, relDir, level) {
   if (ax < 0 || ax >= grid.cols || ay < 0 || ay >= grid.rows)
     return { type: 'boundary', label: 'WALL!', emoji: '🚧', color: '#64748b' }
   if (walls.some(w => w.x === ax && w.y === ay))
-    return { type: 'rock', label: 'BIG ROCK!', emoji: '🪨', color: '#c0845a' }
+    return forestObstacle
   if (goal && goal.x === ax && goal.y === ay)
     return { type: 'goal', label: 'SHIP CORE!', emoji: '⭐', color: '#f59e0b' }
   const obj = objects.find(o => o.x === ax && o.y === ay)
   if (obj?.type === 'ship_part')
     return { type: 'ship_part', label: 'SHIP PIECE!', emoji: '🛸', color: '#38bdf8' }
   if (obj?.type === 'rock')
-    return { type: 'rock', label: 'BIG ROCK!', emoji: '🪨', color: '#c0845a' }
+    return forestObstacle
   return { type: 'open', label: 'ALL CLEAR!', emoji: '✅', color: '#4ade80' }
 }
 
@@ -279,6 +282,77 @@ function RockObstacle() {
   )
 }
 
+function ForestTreeObstacle() {
+  return (
+    <svg width={66} height={66} viewBox="0 0 66 66" fill="none">
+      <defs>
+        <linearGradient id="tree_trunk" x1="0.18" y1="0" x2="0.82" y2="1">
+          <stop offset="0%" stopColor="#9a6732"/>
+          <stop offset="44%" stopColor="#5c371b"/>
+          <stop offset="100%" stopColor="#251206"/>
+        </linearGradient>
+        <linearGradient id="tree_bark" x1="0.1" y1="0" x2="0.9" y2="0">
+          <stop offset="0%" stopColor="#c58a45" stopOpacity="0.76"/>
+          <stop offset="52%" stopColor="#4b2b14" stopOpacity="0.5"/>
+          <stop offset="100%" stopColor="#1b0e05" stopOpacity="0.72"/>
+        </linearGradient>
+        <linearGradient id="tree_leaf_mass" x1="0.25" y1="0" x2="0.8" y2="1">
+          <stop offset="0%" stopColor="#a9e96a"/>
+          <stop offset="38%" stopColor="#4f9b3d"/>
+          <stop offset="72%" stopColor="#246836"/>
+          <stop offset="100%" stopColor="#103b24"/>
+        </linearGradient>
+        <linearGradient id="tree_leaf_dark" x1="0.15" y1="0" x2="0.85" y2="1">
+          <stop offset="0%" stopColor="#4f9c40"/>
+          <stop offset="55%" stopColor="#236233"/>
+          <stop offset="100%" stopColor="#0d2d1c"/>
+        </linearGradient>
+        <radialGradient id="tree_leaf_highlight" cx="38%" cy="20%" r="70%">
+          <stop offset="0%" stopColor="#d5ff8a" stopOpacity="0.72"/>
+          <stop offset="58%" stopColor="#8bd65f" stopOpacity="0.22"/>
+          <stop offset="100%" stopColor="#234f2c" stopOpacity="0"/>
+        </radialGradient>
+        <filter id="tree_shadow" x="-30%" y="-20%" width="160%" height="160%">
+          <feDropShadow dx="2" dy="4" stdDeviation="3" floodColor="#06140a" floodOpacity="0.72"/>
+        </filter>
+      </defs>
+      <ellipse cx="34" cy="60" rx="23" ry="5" fill="#071207" opacity="0.52"/>
+      <g filter="url(#tree_shadow)">
+        <path
+          d="M25 58 C27 49 28 40 27 31 C30 33 34 33 38 31 C37 41 38 50 42 58 Z"
+          fill="url(#tree_trunk)"
+          stroke="#211105"
+          strokeWidth="1.2"
+        />
+        <path d="M32 58 C29 48 33 41 31 31" stroke="url(#tree_bark)" strokeWidth="1.7" strokeLinecap="round" opacity="0.92"/>
+        <path d="M38 56 C34 47 37 39 36 31" stroke="#281407" strokeWidth="1.1" strokeLinecap="round" opacity="0.78"/>
+        <path d="M27 56 C22 57 18 60 14 63" stroke="#3c2815" strokeWidth="3.2" strokeLinecap="round" opacity="0.82"/>
+        <path d="M40 56 C46 57 50 60 54 63" stroke="#3c2815" strokeWidth="3.2" strokeLinecap="round" opacity="0.82"/>
+        <path
+          d="M11 37 C8 28 13 21 22 19 C22 10 29 5 37 7 C43 5 51 10 52 18 C60 22 61 32 54 39 C56 47 46 52 38 48 C32 53 22 51 19 44 C14 44 11 41 11 37 Z"
+          fill="url(#tree_leaf_dark)"
+          stroke="#0d2f1a"
+          strokeWidth="1.2"
+        />
+        <path
+          d="M15 34 C14 27 19 22 27 22 C27 14 33 10 40 12 C46 12 51 17 51 24 C56 27 56 35 50 39 C48 45 39 46 34 43 C28 47 20 44 20 38 C17 38 15 36 15 34 Z"
+          fill="url(#tree_leaf_mass)"
+          opacity="0.94"
+        />
+        <path
+          d="M19 27 C23 19 31 17 38 19 C43 18 48 21 50 27 C42 24 33 23 25 25 C22 25 20 26 19 27 Z"
+          fill="url(#tree_leaf_highlight)"
+        />
+        <path d="M18 36 C25 32 34 31 46 34" stroke="#c7f68b" strokeWidth="1.35" strokeLinecap="round" opacity="0.34"/>
+        <path d="M25 23 C31 20 38 20 45 24" stroke="#e5ffad" strokeWidth="1.1" strokeLinecap="round" opacity="0.36"/>
+        <path d="M26 43 C31 40 38 40 44 43" stroke="#a7e86b" strokeWidth="1" strokeLinecap="round" opacity="0.26"/>
+        <path d="M16 46 C19 43 22 42 25 43" stroke="#68b857" strokeWidth="2" strokeLinecap="round" opacity="0.82"/>
+        <path d="M48 46 C51 43 54 42 58 43" stroke="#68b857" strokeWidth="2" strokeLinecap="round" opacity="0.74"/>
+      </g>
+    </svg>
+  )
+}
+
 function GoalBeacon() {
   return (
     <motion.div
@@ -362,6 +436,92 @@ function ZoneContent({ tile, zone, W, H }) {
         >
           {isFront ? 'PATH IS CLEAR!' : 'OPEN'}
         </text>
+      </g>
+    )
+  }
+
+  if (tile.type === 'forest_tree') {
+    if (isFront) {
+      return (
+        <g>
+          <ellipse cx={W * 0.5} cy={H * 0.93} rx={W * 0.29} ry={H * 0.055} fill="#020b04" opacity="0.64"/>
+          <path
+            d={`M${W * 0.39},${H} C${W * 0.43},${H * 0.76} ${W * 0.43},${H * 0.5} ${W * 0.42},${H * 0.25}
+                C${W * 0.47},${H * 0.29} ${W * 0.54},${H * 0.29} ${W * 0.59},${H * 0.25}
+                C${W * 0.57},${H * 0.5} ${W * 0.59},${H * 0.76} ${W * 0.64},${H} Z`}
+            fill="url(#tree_front_trunk)" stroke="#140a04" strokeWidth="2"
+          />
+          <path d={`M${W * 0.48},${H * 0.96} C${W * 0.44},${H * 0.72} ${W * 0.51},${H * 0.5} ${W * 0.48},${H * 0.27}`}
+            stroke="#2b1708" strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.7"/>
+          <path d={`M${W * 0.56},${H * 0.95} C${W * 0.52},${H * 0.73} ${W * 0.55},${H * 0.47} ${W * 0.55},${H * 0.27}`}
+            stroke="#7a4a24" strokeWidth="2.2" strokeLinecap="round" fill="none" opacity="0.55"/>
+          <path d={`M${W * 0.42},${H * 0.92} C${W * 0.32},${H * 0.95} ${W * 0.22},${H * 0.99} ${W * 0.13},${H}`}
+            stroke="#2b190b" strokeWidth="5" strokeLinecap="round" fill="none" opacity="0.8"/>
+          <path d={`M${W * 0.59},${H * 0.92} C${W * 0.7},${H * 0.94} ${W * 0.8},${H * 0.98} ${W * 0.9},${H}`}
+            stroke="#2b190b" strokeWidth="5" strokeLinecap="round" fill="none" opacity="0.8"/>
+          <path
+            d={`M${W * 0.18},${H * 0.39} C${W * 0.1},${H * 0.27} ${W * 0.2},${H * 0.16} ${W * 0.34},${H * 0.17}
+                C${W * 0.35},${H * 0.05} ${W * 0.49},${H * 0.02} ${W * 0.58},${H * 0.1}
+                C${W * 0.72},${H * 0.1} ${W * 0.82},${H * 0.22} ${W * 0.76},${H * 0.35}
+                C${W * 0.84},${H * 0.47} ${W * 0.72},${H * 0.58} ${W * 0.57},${H * 0.53}
+                C${W * 0.48},${H * 0.62} ${W * 0.31},${H * 0.57} ${W * 0.29},${H * 0.47}
+                C${W * 0.23},${H * 0.48} ${W * 0.19},${H * 0.45} ${W * 0.18},${H * 0.39} Z`}
+            fill="url(#tree_front_leaf)"
+            stroke="#0e2f17"
+            strokeWidth="2"
+          />
+          <path
+            d={`M${W * 0.26},${H * 0.35} C${W * 0.26},${H * 0.25} ${W * 0.37},${H * 0.2} ${W * 0.48},${H * 0.23}
+                C${W * 0.56},${H * 0.18} ${W * 0.69},${H * 0.23} ${W * 0.71},${H * 0.34}
+                C${W * 0.66},${H * 0.42} ${W * 0.55},${H * 0.42} ${W * 0.49},${H * 0.39}
+                C${W * 0.42},${H * 0.45} ${W * 0.3},${H * 0.43} ${W * 0.26},${H * 0.35} Z`}
+            fill="url(#tree_front_leaf_alt)"
+            opacity="0.72"
+          />
+          <path d={`M${W * 0.25},${H * 0.32} C${W * 0.37},${H * 0.21} ${W * 0.57},${H * 0.2} ${W * 0.69},${H * 0.3}`}
+            stroke="#d9f99d" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.38"/>
+          <path d={`M${W * 0.27},${H * 0.46} C${W * 0.39},${H * 0.41} ${W * 0.55},${H * 0.42} ${W * 0.68},${H * 0.48}`}
+            stroke="#a7f3d0" strokeWidth="1.3" strokeLinecap="round" fill="none" opacity="0.26"/>
+        </g>
+      )
+    }
+
+    return (
+      <g>
+        <ellipse cx={isLeft ? W * 0.09 : W * 0.91} cy={H * 0.93} rx={W * 0.16} ry={H * 0.045} fill="#020b04" opacity="0.55"/>
+        <path
+          d={isLeft
+            ? `M0,${H} C${W * 0.02},${H * 0.72} ${W * 0.04},${H * 0.45} ${W * 0.03},${H * 0.18}
+               L${W * 0.13},${H * 0.17} C${W * 0.12},${H * 0.44} ${W * 0.13},${H * 0.74} ${W * 0.2},${H} Z`
+            : `M${W},${H} C${W * 0.98},${H * 0.72} ${W * 0.96},${H * 0.45} ${W * 0.97},${H * 0.18}
+               L${W * 0.87},${H * 0.17} C${W * 0.88},${H * 0.44} ${W * 0.87},${H * 0.74} ${W * 0.8},${H} Z`
+          }
+          fill="url(#tree_front_trunk)" stroke="#140a04" strokeWidth="1.4"
+        />
+        <path
+          d={isLeft
+            ? `M0,${H * 0.46} C0,${H * 0.3} ${W * 0.08},${H * 0.18} ${W * 0.2},${H * 0.21}
+               C${W * 0.31},${H * 0.23} ${W * 0.31},${H * 0.39} ${W * 0.2},${H * 0.45}
+               C${W * 0.12},${H * 0.52} ${W * 0.05},${H * 0.51} 0,${H * 0.46} Z`
+            : `M${W},${H * 0.46} C${W},${H * 0.3} ${W * 0.92},${H * 0.18} ${W * 0.8},${H * 0.21}
+               C${W * 0.69},${H * 0.23} ${W * 0.69},${H * 0.39} ${W * 0.8},${H * 0.45}
+               C${W * 0.88},${H * 0.52} ${W * 0.95},${H * 0.51} ${W},${H * 0.46} Z`
+          }
+          fill="url(#tree_front_leaf)"
+          stroke="#0e2f17"
+          strokeWidth="1.4"
+        />
+        <path
+          d={isLeft
+            ? `M${W * 0.02},${H * 0.34} C${W * 0.08},${H * 0.25} ${W * 0.2},${H * 0.27} ${W * 0.25},${H * 0.36}`
+            : `M${W * 0.98},${H * 0.34} C${W * 0.92},${H * 0.25} ${W * 0.8},${H * 0.27} ${W * 0.75},${H * 0.36}`
+          }
+          stroke="#d9f99d"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          fill="none"
+          opacity="0.35"
+        />
       </g>
     )
   }
@@ -552,6 +712,7 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
 
   // ── Horizon/sky colors based on what's ahead ──────────────────────────────
   const aheadAccent =
+    ahead.type === 'forest_tree' ? '#65a30d' :
     ahead.type === 'rock'      ? '#c0845a' :
     ahead.type === 'boundary'  ? '#64748b' :
     ahead.type === 'ship_part' ? '#38bdf8' :
@@ -609,6 +770,22 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
             <stop offset="60%" stopColor="#7a4c22"/>
             <stop offset="100%" stopColor="#3c2008"/>
           </linearGradient>
+          {/* Forest tree gradients */}
+          <linearGradient id="tree_front_trunk" x1="0.15" y1="0" x2="0.85" y2="1">
+            <stop offset="0%" stopColor="#8b5a2b"/>
+            <stop offset="45%" stopColor="#5b371d"/>
+            <stop offset="100%" stopColor="#241207"/>
+          </linearGradient>
+          <radialGradient id="tree_front_leaf" cx="38%" cy="28%" r="68%">
+            <stop offset="0%" stopColor="#9be66a"/>
+            <stop offset="48%" stopColor="#3f8f3e"/>
+            <stop offset="100%" stopColor="#124a27"/>
+          </radialGradient>
+          <radialGradient id="tree_front_leaf_alt" cx="44%" cy="22%" r="68%">
+            <stop offset="0%" stopColor="#c5f96f"/>
+            <stop offset="50%" stopColor="#5aa541"/>
+            <stop offset="100%" stopColor="#1f5c31"/>
+          </radialGradient>
           {/* Ship part gradient */}
           <linearGradient id="ship_part_front" x1="0" y1="1" x2="1" y2="0">
             <stop offset="0%"  stopColor="#1e3a5a"/>
@@ -977,12 +1154,14 @@ export default function GameGrid({
   const firstRock = walls[0] ?? objects.find(objectItem => objectItem.type === 'rock') ?? null
   const shipParts = objects.filter(objectItem => objectItem.type === 'ship_part')
   const firstShipFragment = shipParts.find((part, index) => !collectedParts.has(index)) ?? null
-  const BackgroundComponent = activeLevel.world === 'forest-trail' ? ForestTrailBackground : CrashSiteBackground
+  const isForestTrail = activeLevel.world === 'forest-trail'
+  const ObstacleVisual = isForestTrail ? ForestTreeObstacle : RockObstacle
+  const BackgroundComponent = isForestTrail ? ForestTrailBackground : CrashSiteBackground
 
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
       <div data-tutorial-id="grid-label" style={{ fontSize:9, color: scanLabelColor, fontFamily:'monospace', letterSpacing:3, opacity: isLight ? 0.9 : 0.5, fontWeight: isLight ? 700 : 400 }}>
-        {activeLevel.world === 'forest-trail' ? 'ORBITAL SCAN - FOREST TRAIL W2' : 'ORBITAL SCAN - CRASH SITE W1'}
+        {isForestTrail ? 'ORBITAL SCAN - FOREST TRAIL W2' : 'ORBITAL SCAN - CRASH SITE W1'}
       </div>
 
       <AnimatePresence>
@@ -1076,7 +1255,7 @@ export default function GameGrid({
                   }}/>
                 )}
 
-                {isWall && <div style={{ filter:'drop-shadow(0 4px 8px rgba(0,0,0,0.8))' }}><RockObstacle /></div>}
+                {isWall && <div style={{ filter:'drop-shadow(0 4px 8px rgba(0,0,0,0.8))' }}><ObstacleVisual /></div>}
                 {isGoal && !isWall && <GoalBeacon />}
                 {obj?.type === 'ship_part' && !isWall && !isGoal && (() => {
                   const partIndex = objects.filter(o => o.type === 'ship_part').findIndex(p => p.x === col && p.y === row)
@@ -1091,7 +1270,7 @@ export default function GameGrid({
                   )
                 })()}
                 {obj?.type === 'rock' && !isWall && !isGoal && (
-                  <div style={{ filter:'drop-shadow(0 4px 8px rgba(0,0,0,0.7))' }}><RockObstacle /></div>
+                  <div style={{ filter:'drop-shadow(0 4px 8px rgba(0,0,0,0.7))' }}><ObstacleVisual /></div>
                 )}
               </div>
             )
