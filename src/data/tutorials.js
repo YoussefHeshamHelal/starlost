@@ -13,8 +13,8 @@ function hasRepeatBlock(sequence = []) {
 export const LEVEL_TUTORIALS = {
   1: [
     levelStep('level-1-welcome', {
-      targetId: 'level-title',
-      placement: 'bottom',
+      targetId: 'luma-marker',
+      placement: 'right',
       title: 'Meet LUMA',
       body: 'This is LUMA. We help her get home.',
       nextLabel: 'Let\'s go',
@@ -67,20 +67,6 @@ export const LEVEL_TUTORIALS = {
       actionLabel: 'Add 3 FORWARD blocks',
       completeWhen: ({ sequence }) => sequence.length >= 3,
     }),
-    levelStep('level-1-reset', {
-      targetId: 'command-builder',
-      placement: 'left',
-      title: 'Need another try?',
-      body: 'If something goes wrong, use Reset and try again.',
-      nextLabel: 'Okay',
-    }),
-    levelStep('level-1-preview', {
-      targetId: 'level-title',
-      placement: 'bottom',
-      title: 'More puzzles are coming',
-      body: 'Later you will use turns, radio clues, and ship fragments too.',
-      nextLabel: 'I\'m ready',
-    }),
     levelStep('level-1-run', {
       targetId: 'run-button',
       placement: 'top',
@@ -103,12 +89,23 @@ export const LEVEL_TUTORIALS = {
 }
 
 export const FEATURE_TUTORIALS = {
+  'level-1-reset': [
+    featureStep('level-1-reset', 'level-1-reset', {
+      targetId: 'reset-button',
+      placement: 'top',
+      title: 'Need another try?',
+      body: 'If something goes wrong, use Reset and try again.',
+      waitForTarget: true,
+      hideProgress: true,
+      nextLabel: 'Okay',
+    }),
+  ],
   'luma-confused': [
     featureStep('luma-confused-intro', 'luma-confused', {
       targetId: 'luma-marker',
       placement: 'right',
-      title: 'LUMA feels turned around',
-      body: 'LUMA is confused and does not know which way she is facing. Help her figure it out.',
+      title: 'LUMA is confused',
+      body: 'She does not know which way she is facing. Help her figure it out.',
       nextLabel: 'I can help',
     }),
   ],

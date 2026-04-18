@@ -488,7 +488,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
         ? dropTarget.getAttribute('data-repeat-drop-path')
         : null
     )
-  }, [computeInsert, dragIndex, layout.totalHeight])
+  }, [computeInsert, dragIndex, layout.totalHeight, sequence])
 
   const handlePointerUp = useCallback((event, index) => {
     if (dragIndex !== index) return

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { THEMES, useTheme } from '../context/theme'
 
@@ -89,7 +89,7 @@ export default function TutorialOverlay({
   const [targetRect, setTargetRect] = useState(null)
   const [bubbleRect, setBubbleRect] = useState(null)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!step) return undefined
 
     const updateRects = () => {
@@ -236,24 +236,26 @@ export default function TutorialOverlay({
               🤖
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '4px 10px',
-                  borderRadius: 999,
-                  background: t.tutorialStepPillBg,
-                  border: `1px solid ${t.tutorialStepPillBorder}`,
-                  fontSize: 10,
-                  fontFamily: 'monospace',
-                  letterSpacing: 1.5,
-                  fontWeight: 800,
-                  marginBottom: 10,
-                }}
-              >
-                STEP {stepIndex + 1} / {totalSteps}
-              </div>
+              {!step.hideProgress && (
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '4px 10px',
+                    borderRadius: 999,
+                    background: t.tutorialStepPillBg,
+                    border: `1px solid ${t.tutorialStepPillBorder}`,
+                    fontSize: 10,
+                    fontFamily: 'monospace',
+                    letterSpacing: 1.5,
+                    fontWeight: 800,
+                    marginBottom: 10,
+                  }}
+                >
+                  STEP {stepIndex + 1} / {totalSteps}
+                </div>
+              )}
               <h3
                 style={{
                   fontSize: 20,

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, memo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LEVELS } from './data/levels'
 import {
@@ -874,6 +874,7 @@ function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER
 
 const TUTORIAL_LEVELS_KEY = 'starlost:tutorial:levels'
 const TUTORIAL_FEATURES_KEY = 'starlost:tutorial:features'
+const LEVEL_1_RESET_TUTORIAL_KEY = 'level-1-reset'
 
 function readTutorialSessionSet(key) {
   try {
@@ -912,6 +913,90 @@ function markTutorialPlanSeen(plan, levelId) {
   }
 }
 
+function buildCurrentLevelTutorialPlan(levelId, featureKeys) {
+  return levelId === 1
+    ? getLevelTutorialSteps(levelId)
+    : getFeatureTutorialSteps(featureKeys)
+}
+
+function getFirstRenderableTutorialStep(plan, tutorialContext) {
+  return plan.find(step => !step.showWhen || step.showWhen(tutorialContext)) ?? null
+}
+
+function getTutorialTargetElement(targetId) {
+  if (!targetId) return null
+  return document.querySelector(`[data-tutorial-id="${targetId}"]`)
+}
+
+function isStableRect(currentRect, previousRect) {
+  if (!currentRect || currentRect.width <= 0 || currentRect.height <= 0) return false
+  if (!previousRect) return true
+
+  return Math.abs(currentRect.top - previousRect.top) < 0.5 &&
+    Math.abs(currentRect.left - previousRect.left) < 0.5 &&
+    Math.abs(currentRect.width - previousRect.width) < 0.5 &&
+    Math.abs(currentRect.height - previousRect.height) < 0.5
+}
+
+function waitForTutorialTarget(targetId, { signal, maxFrames = 120, settleFrames = 2 } = {}) {
+  if (!targetId || typeof window === 'undefined') return Promise.resolve(false)
+
+  return new Promise(resolve => {
+    let frameCount = 0
+    let stableFrames = 0
+    let previousRect = null
+    let rafId = null
+
+    const finish = (isReady) => {
+      if (rafId !== null) window.cancelAnimationFrame(rafId)
+      resolve(isReady)
+    }
+
+    const checkTarget = () => {
+      if (signal?.aborted) {
+        finish(false)
+        return
+      }
+
+      frameCount += 1
+      const target = getTutorialTargetElement(targetId)
+      const rect = target?.getBoundingClientRect() ?? null
+
+      if (isStableRect(rect, previousRect)) {
+        stableFrames += 1
+      } else {
+        stableFrames = 0
+      }
+
+      previousRect = rect
+
+      if (target && stableFrames >= settleFrames) {
+        finish(true)
+        return
+      }
+
+      if (frameCount >= maxFrames) {
+        finish(false)
+        return
+      }
+
+      rafId = window.requestAnimationFrame(checkTarget)
+    }
+
+    rafId = window.requestAnimationFrame(checkTarget)
+  })
+}
+
+function hasUnseenTutorialStep(plan, levelId) {
+  const seenLevels = readTutorialSessionSet(TUTORIAL_LEVELS_KEY)
+  const seenFeatures = readTutorialSessionSet(TUTORIAL_FEATURES_KEY)
+
+  return plan.some(step => {
+    if (step.scope === 'level') return !seenLevels.has(String(levelId))
+    if (step.scope === 'feature') return step.featureKey && !seenFeatures.has(step.featureKey)
+    return false
+  })
+}
 
 // ── Level Screen ──────────────────────────────────────────────────────────────
 function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, onGoHome, onHeaderControls, topOffset = HEADER_H }) {
@@ -965,10 +1050,20 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     visorActive,
     visorFlipCount,
   ])
+  const tutorialContextRef = useRef(tutorialContext)
+
+  useEffect(() => {
+    tutorialContextRef.current = tutorialContext
+  }, [tutorialContext])
 
   const tutorialFeatureKeys = useMemo(
     () => getTutorialFeatureKeys(levelConfig, effectiveLevel),
     [effectiveLevel, levelConfig]
+  )
+
+  const currentLevelTutorialPlan = useMemo(
+    () => buildCurrentLevelTutorialPlan(levelConfig.id, tutorialFeatureKeys),
+    [levelConfig.id, tutorialFeatureKeys]
   )
 
   const currentTutorialStep = tutorialSteps[tutorialIndex] ?? null
@@ -988,33 +1083,78 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     setTutorialIndex(0)
   }, [closeTutorial, levelConfig.id])
 
-  useEffect(() => {
-    const seenLevels = readTutorialSessionSet(TUTORIAL_LEVELS_KEY)
-    const seenFeatures = readTutorialSessionSet(TUTORIAL_FEATURES_KEY)
-    const featureTutorialReady =
-      (levelConfig.id !== 5 && levelConfig.id !== 7) || phase === 'develop'
-
-    let nextTutorialPlan = []
-
-    if (levelConfig.id === 1) {
-      if (!seenLevels.has(String(levelConfig.id))) {
-        nextTutorialPlan = getLevelTutorialSteps(levelConfig.id)
-      }
-    } else if (featureTutorialReady) {
-      const unseenFeatureKeys = tutorialFeatureKeys.filter(featureKey => !seenFeatures.has(featureKey))
-      nextTutorialPlan = getFeatureTutorialSteps(unseenFeatureKeys)
+  const launchTutorialWhenReady = useCallback(async (plan, { persist = false, signal } = {}) => {
+    if (!plan.length) {
+      closeTutorial()
+      return
     }
 
-    const timer = window.setTimeout(() => {
-      if (nextTutorialPlan.length > 0) {
-        startTutorial(nextTutorialPlan, { persist: true })
-      } else {
-        closeTutorial()
-      }
-    }, 0)
+    const firstRenderableStep = getFirstRenderableTutorialStep(plan, tutorialContextRef.current)
+    if (!firstRenderableStep) {
+      closeTutorial()
+      return
+    }
 
-    return () => window.clearTimeout(timer)
-  }, [closeTutorial, levelConfig.id, phase, startTutorial, tutorialFeatureKeys])
+    const targetReady = await waitForTutorialTarget(firstRenderableStep.targetId, { signal })
+    if (signal?.aborted) return
+
+    if (targetReady) {
+      startTutorial(plan, { persist })
+    } else {
+      closeTutorial()
+    }
+  }, [closeTutorial, startTutorial])
+
+  useEffect(() => {
+    if (tutorialSteps.length > 0) return undefined
+
+    const autoTutorialReady =
+      (levelConfig.id !== 5 && levelConfig.id !== 7) || phase === 'develop'
+
+    if (!autoTutorialReady) {
+      return undefined
+    }
+
+    if (!currentLevelTutorialPlan.length || !hasUnseenTutorialStep(currentLevelTutorialPlan, levelConfig.id)) {
+      return undefined
+    }
+
+    const controller = new AbortController()
+    const launchFrame = window.requestAnimationFrame(() => {
+      launchTutorialWhenReady(currentLevelTutorialPlan, {
+        persist: true,
+        signal: controller.signal,
+      })
+    })
+
+    return () => {
+      window.cancelAnimationFrame(launchFrame)
+      controller.abort()
+    }
+  }, [currentLevelTutorialPlan, launchTutorialWhenReady, levelConfig.id, phase, tutorialSteps.length])
+
+  useEffect(() => {
+    if (levelConfig.id !== 1 || !needsReset || tutorialSteps.length > 0) return undefined
+
+    const seenFeatures = readTutorialSessionSet(TUTORIAL_FEATURES_KEY)
+    if (seenFeatures.has(LEVEL_1_RESET_TUTORIAL_KEY)) return undefined
+
+    const resetTutorialPlan = getFeatureTutorialSteps([LEVEL_1_RESET_TUTORIAL_KEY])
+    if (!resetTutorialPlan.length) return undefined
+
+    const controller = new AbortController()
+    const launchFrame = window.requestAnimationFrame(() => {
+      launchTutorialWhenReady(resetTutorialPlan, {
+        persist: true,
+        signal: controller.signal,
+      })
+    })
+
+    return () => {
+      window.cancelAnimationFrame(launchFrame)
+      controller.abort()
+    }
+  }, [launchTutorialWhenReady, levelConfig.id, needsReset, tutorialSteps.length])
 
   useEffect(() => {
     if (!currentTutorialStep) return
@@ -1062,12 +1202,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   const handleReplayTutorial = useCallback(() => {
     if (!canReplayTutorial) return
 
-    const replayPlan = levelConfig.id === 1
-      ? getLevelTutorialSteps(levelConfig.id)
-      : getFeatureTutorialSteps(tutorialFeatureKeys)
-
-    startTutorial(replayPlan, { persist: false })
-  }, [canReplayTutorial, levelConfig.id, startTutorial, tutorialFeatureKeys])
+    launchTutorialWhenReady(currentLevelTutorialPlan, { persist: false })
+  }, [canReplayTutorial, currentLevelTutorialPlan, launchTutorialWhenReady])
 
   useEffect(() => {
     if (!onHeaderControls) return undefined
