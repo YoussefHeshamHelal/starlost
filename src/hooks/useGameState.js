@@ -212,6 +212,14 @@ export function nextCumulativeRotation(currentDeg, command) {
   return currentDeg
 }
 
+function findUncollectedShipPartIndex(shipParts, luma, collectedIndices) {
+  return shipParts.findIndex((part, index) =>
+    part.x === luma.x &&
+    part.y === luma.y &&
+    !collectedIndices.has(index)
+  )
+}
+
 // ── Layout generator lookup ───────────────────────────────────────────────────
 function generateLayout(generatorKey, facing) {
   switch (generatorKey) {
@@ -289,6 +297,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
   )
 
   const [collectedParts, setCollectedParts] = useState(() => new Set())
+  const [collectionEffects, setCollectionEffects] = useState([])
 
   // ── Level 2/3/4 uncertain radio ───────────────────────────────────────────
   // Pick a fixed uncertain message for this session (so it doesn't change on re-renders)
@@ -474,6 +483,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
       rotateDeg: FACING_DEG[initialFacingRef.current] ?? 0,
     })
     setCollectedParts(new Set())
+    setCollectionEffects([])
     setNeedsReset(false)
     setReportOverride(null)
     setPredictionResult(null)
@@ -494,6 +504,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     setAttemptCount(c => c + 1)
     setNeedsReset(false)
     setReportOverride(null)
+    setCollectionEffects([])
 
     let currentLuma = { ...luma }
     let localCollected = new Set(collectedParts)
@@ -584,13 +595,13 @@ export function useGameState(levelConfig, animSpeed = 50) {
           return
         } else {
           currentLuma = { ...currentLuma, x: newX, y: newY }
-          shipPartObjects.forEach((part, i) => {
-            if (part.x === currentLuma.x && part.y === currentLuma.y && !localCollected.has(i)) {
-              localCollected = new Set(localCollected)
-              localCollected.add(i)
-              justCollectedIndex = i
-            }
-          })
+        }
+      } else if (effectiveCmd === 'C') {
+        const partIndex = findUncollectedShipPartIndex(shipPartObjects, currentLuma, localCollected)
+        if (partIndex !== -1) {
+          localCollected = new Set(localCollected)
+          localCollected.add(partIndex)
+          justCollectedIndex = partIndex
         }
       } else if (effectiveCmd === 'TL') {
         const idx = DIRECTIONS.indexOf(currentLuma.facing)
@@ -608,6 +619,15 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
       if (justCollectedIndex !== null) {
         setCollectedParts(new Set(localCollected))
+        const collectedPart = shipPartObjects[justCollectedIndex]
+        const effectId = `${justCollectedIndex}-${Date.now()}`
+        setCollectionEffects((effects) => [
+          ...effects,
+          { id: effectId, index: justCollectedIndex, x: collectedPart.x, y: collectedPart.y },
+        ])
+        setTimeout(() => {
+          setCollectionEffects((effects) => effects.filter((effect) => effect.id !== effectId))
+        }, 900)
         const collectionMsg = buildCollectionReport(
           currentLuma,
           currentLuma.facing,
@@ -669,7 +689,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     sequence, setSequence, isRunning, isMirrored,
     addCommand, removeLastCommand, clearSequence, runSequence,
     attemptCount, editCount,
-    collectedParts,
+    collectedParts, collectionEffects,
     missedFragments, dismissMissedFragments,
     needsReset, resetLuma,
     predictionTile, setPrediction, predictionResult,

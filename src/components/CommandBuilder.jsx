@@ -84,10 +84,11 @@ const META = {
   F: { buttonLabel: 'MOVE FORWARD', rowLabel: 'FORWARD', icon: '↑', color: '#14b8d4', darkColor: '#2dd4bf', bg: 'rgba(20,184,212,0.12)', darkBg: 'rgba(45,212,191,0.20)' },
   TR: { buttonLabel: 'TURN RIGHT', rowLabel: 'TURN RIGHT', icon: '→', color: '#f59e0b', darkColor: '#f59e0b', bg: 'rgba(245,158,11,0.12)', darkBg: 'rgba(245,158,11,0.20)' },
   TL: { buttonLabel: 'TURN LEFT', rowLabel: 'TURN LEFT', icon: '←', color: '#8b5cf6', darkColor: '#a78bfa', bg: 'rgba(139,92,246,0.11)', darkBg: 'rgba(167,139,250,0.22)' },
+  C: { buttonLabel: 'COLLECT', rowLabel: 'COLLECT', icon: 'collect', color: '#38bdf8', darkColor: '#67e8f9', bg: 'rgba(56,189,248,0.12)', darkBg: 'rgba(103,232,249,0.16)' },
   REPEAT: { buttonLabel: 'REPEAT', rowLabel: 'REPEAT', icon: '↺', color: '#22c55e', darkColor: '#4ade80', bg: 'rgba(34,197,94,0.12)', darkBg: 'rgba(74,222,128,0.18)' },
 }
 
-const PALETTE_ORDER = ['F', 'TR', 'TL', 'REPEAT']
+const PALETTE_ORDER = ['F', 'TR', 'TL', 'C', 'REPEAT']
 
 function updateCommandsAtPath(sequence, path, updater) {
   if (path.length === 0) return updater(sequence)
@@ -138,6 +139,10 @@ function getRowEstimate(command) {
   const childCount = command.commands?.length ?? 0
   const nestedHeight = childCount === 0 ? 66 : childCount * (CHIP_HEIGHT + ITEM_GAP) + 22
   return 78 + nestedHeight
+}
+
+function CommandIcon({ meta, size = 20 }) {
+  return <span style={{ fontSize: size, lineHeight: 1 }}>{meta.icon === 'collect' ? '🫳' : meta.icon}</span>
 }
 
 function SpeedBar({ speed, onSpeedChange, theme }) {
@@ -202,7 +207,7 @@ function PaletteButton({ code, disabled, onAdd, theme, tutorialId, repeatDefault
       data-tutorial-id={tutorialId}
       style={{ width: '100%', padding: '10px 12px', background: meta.bg, border: `1.5px solid ${meta.color}`, borderRadius: 10, color: meta.color, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'monospace', opacity: disabled ? 0.35 : 1 }}
     >
-      <span style={{ fontSize: 20, lineHeight: 1 }}>{meta.icon}</span>
+      <CommandIcon meta={meta} size={20} />
       <span style={{ fontSize: 10, letterSpacing: 0.8, fontWeight: 800 }}>{meta.buttonLabel}</span>
     </motion.button>
   )
@@ -260,7 +265,9 @@ function CommandChip({ command, index, depth, path, theme, isRunning, onDelete }
   return (
     <div style={{ position: 'relative', minHeight: CHIP_HEIGHT, marginLeft: depth * 12, display: 'flex', alignItems: 'center', gap: 10, padding: '8px 34px 8px 10px', background: meta.bg, borderLeft: `3px solid ${meta.color}`, borderBottom: `1px solid ${meta.color}22`, borderRadius: 10 }}>
       <span style={{ fontSize: 8, color: meta.color, fontFamily: 'monospace', width: 14, textAlign: 'right', fontWeight: 700 }}>{String(index + 1).padStart(2, '0')}</span>
-      <span style={{ fontSize: 16, color: meta.color }}>{meta.icon}</span>
+      <span style={{ width: 18, height: 18, color: meta.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <CommandIcon meta={meta} size={16} />
+      </span>
       <span style={{ fontSize: 10, color: meta.color, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 700, flex: 1 }}>{meta.rowLabel}</span>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1.5, opacity: theme === 'light' ? 0.4 : 0.35, paddingRight: 14 }}>
         {[0, 1, 2].map((dotRow) => (
@@ -667,6 +674,7 @@ export default function CommandBuilder({
   targetCommands = null,
   showPhaseLabel = false,
   showRepeat = false,
+  showCollect = false,
   repeatDefaults = { times: 2 },
 }) {
   const theme = useContext(ThemeContext)
@@ -718,7 +726,11 @@ export default function CommandBuilder({
     onReorder(insertCommandAtPath(sequence, [], index, inserted))
   }, [onReorder, repeatDefaults.times, sequence])
 
-  const visibleCommands = PALETTE_ORDER.filter((code) => showRepeat || code !== 'REPEAT')
+  const visibleCommands = PALETTE_ORDER.filter((code) => {
+    if (code === 'REPEAT') return showRepeat
+    if (code === 'C') return showCollect
+    return true
+  })
 
   if (phase !== 'develop') return null
 
@@ -753,7 +765,7 @@ export default function CommandBuilder({
                   onAdd={handleTopLevelAdd}
                   theme={theme}
                   repeatDefaults={repeatDefaults}
-                  tutorialId={code === 'F' ? 'command-forward' : code === 'TR' || code === 'TL' ? 'command-turn' : 'command-repeat'}
+                  tutorialId={code === 'F' ? 'command-forward' : code === 'C' ? 'command-collect' : code === 'TR' || code === 'TL' ? 'command-turn' : 'command-repeat'}
                 />
               ))}
             </div>

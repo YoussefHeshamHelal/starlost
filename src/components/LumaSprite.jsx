@@ -618,13 +618,221 @@ function LumaStanding({ size, facing }) {
 }
 
 // ─── Main export ────────────────────────────────────────────────────────────────
+function LumaCollectAura({ size, effectKey }) {
+  return (
+    <AnimatePresence>
+      {effectKey && (
+        <motion.div
+          key={effectKey}
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.44, ease: 'easeOut' }}
+          style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none' }}
+        >
+          <motion.div
+            initial={{ scale: 0.52, opacity: 0.92 }}
+            animate={{ scale: 1.28, opacity: 0 }}
+            transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              width: size * 0.78,
+              height: size * 0.78,
+              borderRadius: '50%',
+              border: '2px solid rgba(103,232,249,0.72)',
+              transform: 'translate(-50%, -50%)',
+              boxShadow: '0 0 18px rgba(103,232,249,0.6), inset 0 0 18px rgba(254,240,138,0.32)',
+            }}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.65 }}
+            animate={{ opacity: [0, 0.78, 0], scale: [0.65, 1.02, 1.08] }}
+            transition={{ duration: 0.34, delay: 0.05, ease: 'easeOut' }}
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: '42%',
+              width: size * 0.52,
+              height: size * 0.7,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(254,240,138,0.28) 0%, rgba(103,232,249,0.22) 38%, transparent 72%)',
+              transform: 'translate(-50%, -50%)',
+              filter: 'blur(1px)',
+            }}
+          />
+          {[0, 1, 2].map((index) => (
+            <motion.span
+              key={index}
+              initial={{ x: 0, y: 0, opacity: 0.92, scale: 0.6 }}
+              animate={{
+                x: [0, (index - 1) * size * 0.16],
+                y: [size * 0.05, -size * (0.22 + index * 0.05)],
+                opacity: 0,
+                scale: 0,
+              }}
+              transition={{ duration: 0.32, delay: 0.04 + index * 0.04, ease: 'easeOut' }}
+              style={{
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
+                width: 5,
+                height: 5,
+                borderRadius: '50%',
+                background: index === 1 ? '#fef08a' : '#67e8f9',
+                boxShadow: '0 0 9px rgba(103,232,249,0.9)',
+              }}
+            />
+          ))}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+function collectHandPose(facing, side, size) {
+  const poses = {
+    south: {
+      left: { start: { x: -size * 0.25, y: size * 0.16, rotate: -24 }, gather: { x: -size * 0.05, y: -size * 0.04, rotate: 20 } },
+      right: { start: { x: size * 0.25, y: size * 0.16, rotate: 24 }, gather: { x: size * 0.05, y: -size * 0.04, rotate: -20 } },
+    },
+    north: {
+      left: { start: { x: -size * 0.24, y: size * 0.11, rotate: 16 }, gather: { x: -size * 0.07, y: -size * 0.09, rotate: 34 } },
+      right: { start: { x: size * 0.24, y: size * 0.11, rotate: -16 }, gather: { x: size * 0.07, y: -size * 0.09, rotate: -34 } },
+    },
+    east: {
+      left: { start: { x: -size * 0.02, y: size * 0.18, rotate: -8 }, gather: { x: size * 0.07, y: -size * 0.02, rotate: 18 } },
+      right: { start: { x: size * 0.3, y: size * 0.1, rotate: 22 }, gather: { x: size * 0.12, y: -size * 0.08, rotate: -20 } },
+    },
+    west: {
+      left: { start: { x: -size * 0.3, y: size * 0.1, rotate: -22 }, gather: { x: -size * 0.12, y: -size * 0.08, rotate: 20 } },
+      right: { start: { x: size * 0.02, y: size * 0.18, rotate: 8 }, gather: { x: -size * 0.07, y: -size * 0.02, rotate: -18 } },
+    },
+  }
+
+  return poses[facing]?.[side] ?? poses.south[side]
+}
+
+function LumaCollectArm({ side, isBackView, isTrailingSide }) {
+  const sleeveStart = side === 'left' ? '62%' : '0%'
+  const gloveStart = side === 'left' ? '2%' : '56%'
+  const armGradient = isBackView
+    ? 'linear-gradient(135deg, #4a6070, #1e3040 68%, #080f18)'
+    : 'linear-gradient(135deg, #d0e8f0, #8ab0c8 42%, #1a2c38)'
+  const gloveGradient = isBackView
+    ? 'radial-gradient(circle at 35% 28%, #1a6050 0%, #0a3a2a 64%, #021810 100%)'
+    : 'radial-gradient(circle at 35% 28%, #a8ffdc 0%, #52f0b0 34%, #0d7a52 100%)'
+
+  return (
+    <>
+      <div
+        style={{
+          position: 'absolute',
+          left: sleeveStart,
+          top: '34%',
+          width: '42%',
+          height: '34%',
+          borderRadius: 10,
+          background: armGradient,
+          border: '1px solid rgba(96,216,255,0.38)',
+          boxShadow: 'inset 0 1px 3px rgba(255,255,255,0.22)',
+          opacity: isTrailingSide ? 0.72 : 1,
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          left: gloveStart,
+          top: '18%',
+          width: '52%',
+          height: '60%',
+          borderRadius: '50% 46% 44% 52%',
+          background: gloveGradient,
+          border: '1px solid rgba(103,232,249,0.62)',
+          boxShadow: 'inset 0 0 6px rgba(255,255,255,0.25), 0 0 6px rgba(103,232,249,0.28)',
+          opacity: isTrailingSide ? 0.74 : 1,
+        }}
+      />
+      {[0, 1, 2].map((finger) => (
+        <span
+          key={finger}
+          style={{
+            position: 'absolute',
+            left: side === 'left' ? `${7 + finger * 8}%` : `${70 + finger * 7}%`,
+            top: `${14 + finger * 2}%`,
+            width: '14%',
+            height: '30%',
+            borderRadius: 8,
+            background: gloveGradient,
+            transform: `rotate(${side === 'left' ? -18 + finger * 7 : 18 - finger * 7}deg)`,
+            opacity: isTrailingSide ? 0.68 : 0.95,
+          }}
+        />
+      ))}
+    </>
+  )
+}
+
+function LumaCollectHands({ size, facing, effectKey }) {
+  if (!effectKey) return null
+
+  return (
+    <AnimatePresence>
+      {['left', 'right'].map((side) => {
+        const pose = collectHandPose(facing, side, size)
+        const isBackView = facing === 'north'
+        const isSideView = facing === 'east' || facing === 'west'
+        const isTrailingSide = isSideView && ((facing === 'east' && side === 'left') || (facing === 'west' && side === 'right'))
+        const opacityPeak = isBackView ? 0.74 : isTrailingSide ? 0.72 : 1
+        return (
+          <motion.div
+            key={`${effectKey}-${side}`}
+            initial={{
+              x: pose.start.x,
+              y: pose.start.y,
+              rotate: pose.start.rotate,
+              opacity: 0,
+              scale: 0.86,
+            }}
+            animate={{
+              x: [pose.start.x, pose.gather.x, pose.gather.x],
+              y: [pose.start.y, pose.gather.y, pose.gather.y],
+              rotate: [pose.start.rotate, pose.gather.rotate, pose.gather.rotate * 0.82],
+              opacity: [0, opacityPeak, 0],
+              scale: [0.88, 1.06, 0.96],
+            }}
+            exit={{ opacity: 0, transition: { duration: 0 } }}
+            transition={{ duration: 0.44, ease: [0.16, 1, 0.3, 1], times: [0, 0.45, 1] }}
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: '58%',
+              width: size * 0.34,
+              height: size * 0.18,
+              zIndex: 5,
+              pointerEvents: 'none',
+              transformOrigin: side === 'left' ? '80% 50%' : '20% 50%',
+              filter: 'drop-shadow(0 0 6px rgba(103,232,249,0.48))',
+            }}
+          >
+            <LumaCollectArm side={side} isBackView={isBackView} isTrailingSide={isTrailingSide}/>
+          </motion.div>
+        )
+      })}
+    </AnimatePresence>
+  )
+}
+
 export default function LumaSprite({
   x, y,
   facing     = 'south',
   tileSize,
   showFacing = false,
+  collectEffectKey = null,
 }) {
   const size = tileSize * 0.84
+  const isCollecting = Boolean(collectEffectKey)
 
   return (
     <motion.div
@@ -671,7 +879,31 @@ export default function LumaSprite({
       />
 
       {/* Sprite layer */}
-      <div style={{ position: 'relative', zIndex: 1 }}>
+      <motion.div
+        initial={false}
+        animate={isCollecting
+          ? {
+            y: [0, 0.6, 0],
+            scale: [1, 1.01, 1],
+            rotate: [
+              0,
+              facing === 'east' ? 2.2 : facing === 'west' ? -2.2 : facing === 'north' ? 1 : -1,
+              0,
+            ],
+            filter: [
+              'drop-shadow(0 0 0 rgba(103,232,249,0))',
+              'drop-shadow(0 0 16px rgba(103,232,249,0.72))',
+              'drop-shadow(0 0 0 rgba(103,232,249,0))',
+            ],
+          }
+          : { y: 0, scale: 1, rotate: 0, filter: 'drop-shadow(0 0 0 rgba(103,232,249,0))' }}
+        transition={isCollecting
+          ? { duration: 0.42, ease: [0.16, 1, 0.3, 1], times: [0, 0.5, 1] }
+          : { duration: 0 }}
+        style={{ position: 'relative', zIndex: 1, transformOrigin: '50% 72%' }}
+      >
+        <LumaCollectAura size={size} effectKey={collectEffectKey}/>
+        <LumaCollectHands size={size} facing={facing} effectKey={collectEffectKey}/>
         <AnimatePresence mode="wait">
           {showFacing
             ? (
@@ -688,7 +920,7 @@ export default function LumaSprite({
             : <LumaHiddenUnknown key="hidden-unknown" size={size}/>
           }
         </AnimatePresence>
-      </div>
+      </motion.div>
     </motion.div>
   )
 }

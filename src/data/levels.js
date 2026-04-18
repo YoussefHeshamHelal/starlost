@@ -9,7 +9,7 @@ import { createRepeatCommand } from '../utils/commands'
 //   L2: randomized, 4 commands, 1 rock, no identify, no fragments
 //   L3: randomized, 5 commands, 1 rock, identify starts, no fragments
 //   L4: randomized, 7 commands, 2 rocks, identify practice, no fragments
-//   L5: randomized, 7 commands, 2 rocks, 1 fragment, strategy card after
+//   L5: randomized, 8 commands, 2 rocks, 1 fragment, strategy card after
 // Forest Trail design targets:
 //   L6: pattern pressure, 2 rocks, no repeat yet
 //   L7: first repeat level
@@ -135,7 +135,7 @@ function computeOptimalSolution(lumaStart, goal, walls, objects, initialFacing =
       return current.path
     }
 
-    for (const command of ['F', 'TL', 'TR']) {
+    for (const command of ['F', 'TL', 'TR', 'C']) {
       let nextX = current.x
       let nextY = current.y
       let nextFacing = current.facing
@@ -147,7 +147,7 @@ function computeOptimalSolution(lumaStart, goal, walls, objects, initialFacing =
       } else if (command === 'TR') {
         const facingIndex = DIRECTIONS.indexOf(nextFacing)
         nextFacing = DIRECTIONS[(facingIndex + 1) % 4]
-      } else {
+      } else if (command === 'F') {
         const delta = MOVE_DELTAS[nextFacing]
         const candidateX = nextX + delta.x
         const candidateY = nextY + delta.y
@@ -162,7 +162,7 @@ function computeOptimalSolution(lumaStart, goal, walls, objects, initialFacing =
 
         nextX = candidateX
         nextY = candidateY
-
+      } else if (command === 'C') {
         shipParts.forEach((part, index) => {
           if (part.x === nextX && part.y === nextY) {
             nextCollectedMask |= (1 << index)
@@ -264,8 +264,10 @@ function buildPathTilesFromSolution(start, facing, solution) {
       return
     }
 
-    currentPos = stepTile(currentPos, currentFacing)
-    tiles.push({ ...currentPos })
+    if (command === 'F') {
+      currentPos = stepTile(currentPos, currentFacing)
+      tiles.push({ ...currentPos })
+    }
   })
 
   return tiles
@@ -443,7 +445,7 @@ export function generateLevel5Layout() {
             candidateFacing
           )
 
-          if (solution && solution.length === 7) {
+          if (solution && solution.length === 8) {
             return { walls, objects, solution, lumaFacing: candidateFacing }
           }
         }
@@ -485,7 +487,7 @@ export function generateLevel6Layout() {
       { type: 'ship_part', x: 1, y: 3 },
       { type: 'ship_part', x: 3, y: 2 },
     ],
-    solution: ['F', 'TR', 'F', 'TL', 'F', 'TR', 'F', 'TL', 'F'],
+    solution: ['F', 'C', 'TR', 'F', 'TL', 'F', 'TR', 'F', 'C', 'TL', 'F'],
     lumaStart: { ...L6_START },
     goal: { ...L6_GOAL },
     lumaFacing: 'north',
@@ -508,7 +510,11 @@ export function generateLevel7Layout() {
       { type: 'ship_part', x: 4, y: 4 },
       { type: 'ship_part', x: 4, y: 2 },
     ],
-    solution: [createRepeatCommand(4, ['F']), 'TL', createRepeatCommand(4, ['F'])],
+    solution: [
+      createRepeatCommand(2, ['F', 'F', 'C']),
+      'TL',
+      createRepeatCommand(2, ['F', 'F', 'C']),
+    ],
     lumaStart: { ...L7_START },
     goal: { ...L7_GOAL },
     lumaFacing: 'east',
@@ -533,13 +539,13 @@ export function generateLevel8Layout() {
       { type: 'ship_part', x: 4, y: 4 },
     ],
     solution: [
-      createRepeatCommand(4, ['F']),
+      createRepeatCommand(4, ['F', 'C']),
       'TR',
       createRepeatCommand(2, ['F']),
       'TR',
-      createRepeatCommand(4, ['F']),
+      createRepeatCommand(4, ['F', 'C']),
       'TL',
-      createRepeatCommand(2, ['F']),
+      createRepeatCommand(2, ['F', 'C']),
       'TL',
       createRepeatCommand(4, ['F']),
     ],
@@ -564,11 +570,11 @@ export function generateLevel9Layout() {
       { type: 'ship_part', x: 1, y: 0 },
     ],
     solution: [
-      createRepeatCommand(4, ['F']),
+      createRepeatCommand(4, ['F', 'C']),
       'TL',
-      createRepeatCommand(2, ['F']),
+      createRepeatCommand(2, ['F', 'C']),
       'TL',
-      createRepeatCommand(4, ['F']),
+      createRepeatCommand(4, ['F', 'C']),
     ],
     lumaStart: { ...L9_START },
     goal: { ...L9_GOAL },
@@ -592,13 +598,13 @@ export function generateLevel10Layout() {
       { type: 'ship_part', x: 0, y: 2 },
     ],
     solution: [
-      createRepeatCommand(4, ['F']),
+      createRepeatCommand(4, ['F', 'C']),
       'TL',
-      createRepeatCommand(4, ['F']),
+      createRepeatCommand(4, ['F', 'C']),
       'TL',
-      createRepeatCommand(4, ['F']),
+      createRepeatCommand(4, ['F', 'C']),
       'TL',
-      createRepeatCommand(2, ['F']),
+      createRepeatCommand(2, ['F', 'C']),
       'TL',
       createRepeatCommand(2, ['F']),
     ],
@@ -746,7 +752,7 @@ export const LEVELS = [
     skipIdentify: false,
     noRadio: false,
     layoutGenerator: 'level5',
-    targetCommands: 7,
+    targetCommands: 8,
     uncertainRadio: false,
   },
   {
@@ -776,7 +782,7 @@ export const LEVELS = [
     skipIdentify: false,
     noRadio: false,
     layoutGenerator: 'level6',
-    targetCommands: 9,
+    targetCommands: 11,
     uncertainRadio: false,
     allowRepeat: false,
   },

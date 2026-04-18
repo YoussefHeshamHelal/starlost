@@ -237,6 +237,16 @@ export const FEATURE_TUTORIALS = {
       nextLabel: 'Got it',
     }),
   ],
+  'collect-command': [
+    featureStep('collect-command-intro', 'collect-command', {
+      targetId: 'command-collect',
+      placement: 'left',
+      title: 'Use COLLECT on a fragment',
+      body: 'When LUMA stands on a ship fragment, add COLLECT to pick it up.',
+      waitForTarget: true,
+      nextLabel: 'I will collect it',
+    }),
+  ],
   'collect-all-fragments': [
     featureStep('collect-all-fragments-intro', 'collect-all-fragments', {
       targetId: 'goal-marker',
@@ -272,7 +282,7 @@ export const FEATURE_TUTORIALS = {
 const LEVEL_FEATURE_ORDER = {
   2: ['rock-obstacle', 'turn-commands'],
   3: ['luma-confused', 'helmet-radio', 'identify-phase', 'facing-question'],
-  5: ['ship-fragments', 'collect-all-fragments'],
+  5: ['ship-fragments', 'collect-command', 'collect-all-fragments'],
   7: ['repeat-intro'],
   9: ['uncertain-radio', 'visor-flip-level-9'],
 }
@@ -293,6 +303,9 @@ export function getTutorialFeatureKeys(levelConfig, effectiveLevel) {
     if (featureKey === 'repeat-builder') return Boolean(levelConfig.allowRepeat)
     if (featureKey === 'ship-fragments') {
       return (effectiveLevel?.objects ?? []).some(objectItem => objectItem.type === 'ship_part')
+    }
+    if (featureKey === 'collect-command') {
+      return levelConfig.id >= 5 && (effectiveLevel?.objects ?? []).some(objectItem => objectItem.type === 'ship_part')
     }
     if (featureKey === 'collect-all-fragments') {
       return (effectiveLevel?.objects ?? []).some(objectItem => objectItem.type === 'ship_part')

@@ -929,7 +929,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     visorActive, visorFlipCount, flipVisor, closeVisor,
     sequence, setSequence, isRunning, isMirrored,
     addCommand, removeLastCommand, clearSequence, runSequence,
-    collectedParts,
+    collectedParts, collectionEffects,
     missedFragments, dismissMissedFragments,
     needsReset, resetLuma,
     predictionTile, setPrediction, predictionResult,
@@ -1214,6 +1214,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
               predictionTile={predictionTile}
               predictionResult={predictionResult}
               onTileClick={handleTileClick}
+              collectionEffects={collectionEffects}
             />
           </div>
         </div>
@@ -1287,6 +1288,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                   targetCommands={levelConfig.targetCommands ?? null}
                   showPhaseLabel={!levelConfig.skipIdentify}
                   showRepeat={Boolean(levelConfig.allowRepeat)}
+                  showCollect={levelConfig.id >= 5}
                   repeatDefaults={levelConfig.repeatDefaults}
                 />
               </motion.div>

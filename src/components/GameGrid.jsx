@@ -282,6 +282,94 @@ function RockObstacle() {
   )
 }
 
+function CollectionBurst({ effect, tileSize, theme }) {
+  const left = effect.x * tileSize
+  const top = effect.y * tileSize
+  const glow = theme === 'light' ? '#0ea5e9' : '#67e8f9'
+  const core = theme === 'light' ? '#fef08a' : '#ecfeff'
+  const sparks = [
+    { x: -26, y: -20, delay: 0 },
+    { x: 24, y: -24, delay: 0.03 },
+    { x: -20, y: 22, delay: 0.06 },
+    { x: 28, y: 18, delay: 0.09 },
+    { x: 0, y: -32, delay: 0.12 },
+    { x: -34, y: 2, delay: 0.15 },
+  ]
+
+  return (
+    <motion.div
+      key={effect.id}
+      initial={{ opacity: 1 }}
+      animate={{ opacity: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.82, ease: 'easeOut' }}
+      style={{
+        position: 'absolute',
+        left,
+        top,
+        width: tileSize,
+        height: tileSize,
+        zIndex: 8,
+        pointerEvents: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <motion.div
+        initial={{ scale: 0.55, opacity: 0.9 }}
+        animate={{ scale: 2.1, opacity: 0 }}
+        transition={{ duration: 0.48, ease: 'easeOut' }}
+        style={{
+          position: 'absolute',
+          width: 46,
+          height: 46,
+          borderRadius: '50%',
+          border: `2px solid ${glow}`,
+          boxShadow: `0 0 18px ${glow}88, inset 0 0 14px ${core}66`,
+        }}
+      />
+      <motion.div
+        initial={{ y: 0, scale: 1, rotate: -8, opacity: 1 }}
+        animate={{ y: -18, scale: 0.22, rotate: 28, opacity: 0 }}
+        transition={{ duration: 0.58, ease: [0.16, 1, 0.3, 1] }}
+        style={{ filter: `drop-shadow(0 0 16px ${glow})` }}
+      >
+        <ShipPart />
+      </motion.div>
+      <motion.div
+        initial={{ scale: 0.1, opacity: 0.95 }}
+        animate={{ scale: 1.55, opacity: 0 }}
+        transition={{ duration: 0.36, delay: 0.16, ease: 'easeOut' }}
+        style={{
+          position: 'absolute',
+          width: 28,
+          height: 28,
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${core} 0%, ${glow} 42%, transparent 72%)`,
+          boxShadow: `0 0 24px ${glow}`,
+        }}
+      />
+      {sparks.map((spark, index) => (
+        <motion.span
+          key={index}
+          initial={{ x: 0, y: 0, scale: 0.6, opacity: 1 }}
+          animate={{ x: spark.x, y: spark.y, scale: 0, opacity: 0 }}
+          transition={{ duration: 0.52, delay: spark.delay, ease: 'easeOut' }}
+          style={{
+            position: 'absolute',
+            width: 7,
+            height: 7,
+            borderRadius: '50%',
+            background: index % 2 === 0 ? core : glow,
+            boxShadow: `0 0 10px ${glow}`,
+          }}
+        />
+      ))}
+    </motion.div>
+  )
+}
+
 function ForestTreeObstacle() {
   return (
     <svg width={66} height={66} viewBox="0 0 66 66" fill="none">
@@ -1118,6 +1206,7 @@ export default function GameGrid({
   predictionModeActive = false,
   predictionTile = null,
   predictionResult = null,
+  collectionEffects = [],
   onTileClick,
   // effectiveLevel: merged level with generated walls/objects (from useGameState)
   effectiveLevel,
@@ -1144,6 +1233,7 @@ export default function GameGrid({
     predictionResult === 'correct' ? '#4ade80' :
     predictionResult === 'wrong'   ? '#fb7185' :
     '#38bdf8'
+  const activeLumaCollection = collectionEffects.find((effect) => effect.x === luma.x && effect.y === luma.y)
 
   // Theme-specific label colors
   const scanLabelColor  = isLight ? '#0d9488' : '#2dd4bf'
@@ -1287,8 +1377,27 @@ export default function GameGrid({
           </div>
         )}
 
-        <div style={{ position:'absolute', inset:0, zIndex:7, pointerEvents:'none' }}>
-          <LumaSprite x={luma.x} y={luma.y} facing={luma.facing} rotateDeg={luma.rotateDeg ?? 0} tileSize={TILE_SIZE} showFacing={sptCorrect || !!levelConfig.skipIdentify} />
+        <AnimatePresence>
+          {collectionEffects.map((effect) => (
+            <CollectionBurst
+              key={effect.id}
+              effect={effect}
+              tileSize={TILE_SIZE}
+              theme={theme}
+            />
+          ))}
+        </AnimatePresence>
+
+        <div style={{ position:'absolute', inset:0, zIndex: activeLumaCollection ? 9 : 7, pointerEvents:'none' }}>
+          <LumaSprite
+            x={luma.x}
+            y={luma.y}
+            facing={luma.facing}
+            rotateDeg={luma.rotateDeg ?? 0}
+            tileSize={TILE_SIZE}
+            showFacing={sptCorrect || !!levelConfig.skipIdentify}
+            collectEffectKey={activeLumaCollection?.id ?? null}
+          />
         </div>
 
         <AnimatePresence>
