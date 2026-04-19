@@ -46,11 +46,11 @@ const L6_GOAL = { x: 3, y: 1 }
 const L7_START = { x: 0, y: 4 }
 const L7_GOAL = { x: 4, y: 0 }
 
-const L8_START = { x: 0, y: 4 }
-const L8_GOAL = { x: 4, y: 0 }
+const L8_START = { x: 0, y: 0 }
+const L8_GOAL = { x: 0, y: 4 }
 
 const L9_START = { x: 3, y: 4 }
-const L9_GOAL = { x: 1, y: 4 }
+const L9_GOAL = { x: 2, y: 4 }
 
 const L10_START = { x: 0, y: 4 }
 const L10_GOAL = { x: 2, y: 2 }
@@ -506,14 +506,13 @@ export function generateLevel7Layout() {
       { x: 3, y: 0 },
     ],
     objects: [
-      { type: 'ship_part', x: 2, y: 4 },
       { type: 'ship_part', x: 4, y: 4 },
-      { type: 'ship_part', x: 4, y: 2 },
     ],
     solution: [
-      createRepeatCommand(2, ['F', 'F', 'C']),
+      createRepeatCommand(4, ['F']),
+      'C',
       'TL',
-      createRepeatCommand(2, ['F', 'F', 'C']),
+      createRepeatCommand(4, ['F']),
     ],
     lumaStart: { ...L7_START },
     goal: { ...L7_GOAL },
@@ -524,55 +523,58 @@ export function generateLevel7Layout() {
 export function generateLevel8Layout() {
   return {
     walls: [
-      { x: 1, y: 1 },
-      { x: 1, y: 2 },
-      { x: 1, y: 3 },
-      { x: 1, y: 4 },
-      { x: 3, y: 0 },
-      { x: 3, y: 1 },
-      { x: 3, y: 2 },
-      { x: 3, y: 3 },
+      { x: 1, y: 1 }, { x: 1, y: 2 }, { x: 1, y: 3 },
+      { x: 2, y: 1 }, { x: 2, y: 2 }, { x: 2, y: 3 },
+      { x: 3, y: 1 }, { x: 3, y: 2 }, { x: 3, y: 3 },
     ],
     objects: [
-      { type: 'ship_part', x: 0, y: 0 },
-      { type: 'ship_part', x: 2, y: 2 },
+      { type: 'ship_part', x: 4, y: 0 },
       { type: 'ship_part', x: 4, y: 4 },
     ],
     solution: [
-      createRepeatCommand(4, ['F', 'C']),
+      createRepeatCommand(4, ['F']),
+      'C',
       'TR',
-      createRepeatCommand(2, ['F']),
+      createRepeatCommand(4, ['F']),
+      'C',
       'TR',
-      createRepeatCommand(4, ['F', 'C']),
-      'TL',
-      createRepeatCommand(2, ['F', 'C']),
-      'TL',
       createRepeatCommand(4, ['F']),
     ],
     lumaStart: { ...L8_START },
     goal: { ...L8_GOAL },
-    lumaFacing: 'north',
+    lumaFacing: 'east',
   }
 }
 
 export function generateLevel9Layout() {
   return {
     walls: [
-      { x: 2, y: 4 },
-      { x: 2, y: 2 },
+      { x: 0, y: 0 },
+      { x: 0, y: 1 },
+      { x: 0, y: 2 },
+      { x: 0, y: 3 },
+      { x: 0, y: 4 },
+      { x: 4, y: 0 },
+      { x: 4, y: 1 },
+      { x: 4, y: 2 },
+      { x: 4, y: 3 },
+      { x: 4, y: 4 },
     ],
     objects: [
-      { type: 'ship_part', x: 3, y: 2 },
-      { type: 'ship_part', x: 3, y: 1 },
+      { type: 'ship_part', x: 2, y: 0 },
+      { type: 'ship_part', x: 2, y: 1 },
+      { type: 'ship_part', x: 2, y: 2 },
+      { type: 'ship_part', x: 2, y: 3 },
       { type: 'ship_part', x: 3, y: 0 },
-      { type: 'ship_part', x: 1, y: 2 },
-      { type: 'ship_part', x: 1, y: 1 },
-      { type: 'ship_part', x: 1, y: 0 },
+      { type: 'ship_part', x: 3, y: 1 },
+      { type: 'ship_part', x: 3, y: 2 },
+      { type: 'ship_part', x: 3, y: 3 },
     ],
     solution: [
       createRepeatCommand(4, ['F', 'C']),
       'TL',
-      createRepeatCommand(2, ['F', 'C']),
+      'F',
+      'C',
       'TL',
       createRepeatCommand(4, ['F', 'C']),
     ],
@@ -813,7 +815,7 @@ export const LEVELS = [
     skipIdentify: false,
     noRadio: false,
     layoutGenerator: 'level7',
-    targetCommands: 3,
+    targetCommands: 4,
     uncertainRadio: false,
     allowRepeat: true,
     repeatDefaults: { times: 2 },
@@ -825,7 +827,7 @@ export const LEVELS = [
     tutorial: false,
     grid: { cols: COLS, rows: ROWS },
     lumaStart: { ...L8_START },
-    lumaFacing: 'north',
+    lumaFacing: 'east',
     goal: { ...L8_GOAL },
     walls: [],
     objects: [],
@@ -845,7 +847,7 @@ export const LEVELS = [
     skipIdentify: false,
     noRadio: false,
     layoutGenerator: 'level8',
-    targetCommands: 9,
+    targetCommands: 7,
     uncertainRadio: false,
     allowRepeat: true,
     repeatDefaults: { times: 2 },
@@ -877,7 +879,7 @@ export const LEVELS = [
     skipIdentify: false,
     noRadio: false,
     layoutGenerator: 'level9',
-    targetCommands: 5,
+    targetCommands: 6,
     uncertainRadio: true,
     allowRepeat: true,
     repeatDefaults: { times: 2 },

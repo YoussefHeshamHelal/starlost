@@ -283,6 +283,8 @@ function RockObstacle() {
 }
 
 function CollectionBurst({ effect, tileSize, theme }) {
+  if (!effect.carriesPart) return null
+
   const left = effect.x * tileSize
   const top = effect.y * tileSize
   const glow = theme === 'light' ? '#0ea5e9' : '#67e8f9'
@@ -1233,7 +1235,9 @@ export default function GameGrid({
     predictionResult === 'correct' ? '#4ade80' :
     predictionResult === 'wrong'   ? '#fb7185' :
     '#38bdf8'
-  const activeLumaCollection = collectionEffects.find((effect) => effect.x === luma.x && effect.y === luma.y)
+  const activeLumaCollection = collectionEffects.findLast
+    ? collectionEffects.findLast((effect) => effect.x === luma.x && effect.y === luma.y)
+    : [...collectionEffects].reverse().find((effect) => effect.x === luma.x && effect.y === luma.y)
 
   // Theme-specific label colors
   const scanLabelColor  = isLight ? '#0d9488' : '#2dd4bf'

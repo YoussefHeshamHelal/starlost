@@ -73,17 +73,26 @@ function getRandomFrom(arr) {
   return arr[Math.floor(Math.random() * arr.length)]
 }
 
+function getObstacleNoun(world) {
+  return world === 'forest-trail' ? 'tree' : 'rock'
+}
+
+function getObstacleArticle(world) {
+  return world === 'forest-trail' ? 'a tree' : 'a rock'
+}
+
 // ── Regular radio report builder ──────────────────────────────────────────────
-function buildRadioReport(lumaPos, facing, walls = [], objects = [], goal, collectedIndices = new Set()) {
+function buildRadioReport(lumaPos, facing, walls = [], objects = [], goal, collectedIndices = new Set(), world = 'crash-site') {
   const lumaCtx = { x: lumaPos.x, y: lumaPos.y, facing }
   const priority = ['front', 'right', 'left', 'back']
   const opener = "I'm okay… I think. Can you see where I am?"
+  const obstacleNoun = getObstacleNoun(world)
 
   const adjacentWalls = walls.filter(w => getRelativeDirection(lumaCtx, w) !== null)
   if (adjacentWalls.length > 0) {
     const relDirs = adjacentWalls.map(w => getRelativeDirection(lumaCtx, w)).filter(Boolean)
     const chosen  = priority.find(p => relDirs.includes(p)) ?? relDirs[0]
-    return `${opener} There is a rock ${RELATIVE_LABEL[chosen]}.`
+    return `${opener} There is a ${obstacleNoun} ${RELATIVE_LABEL[chosen]}.`
   }
 
   const adjacentParts = objects.filter(
@@ -105,18 +114,19 @@ function buildRadioReport(lumaPos, facing, walls = [], objects = [], goal, colle
 
 // ── Level 2 uncertain radio builder ──────────────────────────────────────────
 // Same info, but delivered with hesitation and slight uncertainty.
-function buildUncertainRadioReport(lumaPos, facing, walls = [], objects = [], goal, collectedIndices = new Set()) {
+function buildUncertainRadioReport(lumaPos, facing, walls = [], objects = [], goal, collectedIndices = new Set(), world = 'crash-site') {
   const lumaCtx = { x: lumaPos.x, y: lumaPos.y, facing }
   const priority = ['front', 'right', 'left', 'back']
+  const obstacleNoun = getObstacleNoun(world)
 
   const adjacentWalls = walls.filter(w => getRelativeDirection(lumaCtx, w) !== null)
   if (adjacentWalls.length > 0) {
     const relDirs = adjacentWalls.map(w => getRelativeDirection(lumaCtx, w)).filter(Boolean)
     const chosen  = priority.find(p => relDirs.includes(p)) ?? relDirs[0]
     const uncertainPhrases = {
-      front: "Umm… I think there's a rock in front of me? I'm not totally sure…",
+      front: `Umm… I think there's a ${obstacleNoun} in front of me? I'm not totally sure…`,
       right: "I'm not totally sure… but I think something is on my right.",
-      left:  "Wait… I think I sense a rock to my left? Hard to tell with all this dust.",
+      left:  `Wait… I think I sense a ${obstacleNoun} to my left? Hard to tell with all this dust.`,
       back:  "Something feels close behind me… but my sensors are a bit fuzzy.",
     }
     return uncertainPhrases[chosen] ?? getRandomFrom(UNCERTAIN_RADIO_MESSAGES)
@@ -147,33 +157,34 @@ function buildUncertainRadioReport(lumaPos, facing, walls = [], objects = [], go
 
 // ── Level 9 radio helpers ─────────────────────────────────────────────────────
 function buildLevel9UncertainRadioReport() {
-  return "I feel like there's a rock beside me, but I'm not sure if it's on my left or my right."
+  return "I sense a tall tree beside me, but my visor is fuzzy. It might be on my left or my right. I can also feel ship fragments running up the center path."
 }
 
 function buildLevel9IdentifyConfirmation(lumaPos, facing, walls = []) {
   const lumaCtx = { x: lumaPos.x, y: lumaPos.y, facing }
-  const sideRock = walls
+  const sideTree = walls
     .map(w => getRelativeDirection(lumaCtx, w))
     .find(rel => rel === 'left' || rel === 'right')
 
-  if (sideRock) {
-    return `Yes, that's right! The rock is on my ${sideRock}.`
+  if (sideTree) {
+    return `Yes, that's right! The tree is on my ${sideTree}, the ship core is to my left, and the fragments are straight ahead.`
   }
 
-  return "Yes, that's right! Now I know where the rock is."
+  return "Yes, that's right! Now I know where the tree line is."
 }
 
 // ── Collection report ─────────────────────────────────────────────────────────
-function buildCollectionReport(lumaPos, facing, walls = [], objects = [], goal, collectedIndices = new Set()) {
+function buildCollectionReport(lumaPos, facing, walls = [], objects = [], goal, collectedIndices = new Set(), world = 'crash-site') {
   const opener = "Got it! I found a ship fragment!"
   const lumaCtx = { x: lumaPos.x, y: lumaPos.y, facing }
   const priority = ['front', 'right', 'left', 'back']
+  const obstacleNoun = getObstacleNoun(world)
 
   const adjacentWalls = walls.filter(w => getRelativeDirection(lumaCtx, w) !== null)
   if (adjacentWalls.length > 0) {
     const relDirs = adjacentWalls.map(w => getRelativeDirection(lumaCtx, w)).filter(Boolean)
     const chosen  = priority.find(p => relDirs.includes(p)) ?? relDirs[0]
-    return `${opener} There's a rock ${RELATIVE_LABEL[chosen]} from here.`
+    return `${opener} There's a ${obstacleNoun} ${RELATIVE_LABEL[chosen]} from here.`
   }
 
   const remainingParts = objects.filter(
@@ -192,8 +203,8 @@ function buildCollectionReport(lumaPos, facing, walls = [], objects = [], goal, 
 }
 
 // ── Blocked report ────────────────────────────────────────────────────────────
-function buildBlockedReport(lumaPos, facing, blockedType) {
-  const blockedText = blockedType === 'rock' ? 'a rock' : 'the edge of the map'
+function buildBlockedReport(lumaPos, facing, blockedType, world = 'crash-site') {
+  const blockedText = blockedType === 'rock' ? getObstacleArticle(world) : 'the edge of the map'
   return `I can't move forward! There's ${blockedText} in front of me. My path is blocked.`
 }
 
@@ -218,6 +229,20 @@ function findUncollectedShipPartIndex(shipParts, luma, collectedIndices) {
     part.y === luma.y &&
     !collectedIndices.has(index)
   )
+}
+
+function createCollectionEffect(luma, partIndex = null) {
+  const kind = partIndex === null ? 'empty-collect' : 'real-collect'
+  const indexKey = partIndex === null ? 'empty' : partIndex
+
+  return {
+    id: `${kind}-${indexKey}-${Date.now()}`,
+    index: partIndex,
+    kind,
+    carriesPart: partIndex !== null,
+    x: luma.x,
+    y: luma.y,
+  }
 }
 
 // ── Layout generator lookup ───────────────────────────────────────────────────
@@ -299,6 +324,11 @@ export function useGameState(levelConfig, animSpeed = 50) {
   const [collectedParts, setCollectedParts] = useState(() => new Set())
   const [collectionEffects, setCollectionEffects] = useState([])
 
+  const [phase, setPhase] = useState(() => levelConfig.skipIdentify ? 'develop' : 'identify')
+  const [sptAnswer, setSptAnswer]         = useState(null)
+  const [sptCorrect, setSptCorrect]       = useState(false)
+
+
   // ── Level 2/3/4 uncertain radio ───────────────────────────────────────────
   // Pick a fixed uncertain message for this session (so it doesn't change on re-renders)
   const [uncertainMessage] = useState(() => {
@@ -313,7 +343,8 @@ export function useGameState(levelConfig, animSpeed = 50) {
         layout.walls,
         layout.objects,
         effectiveLevel.goal ?? levelConfig.goal,
-        new Set()
+        new Set(),
+        effectiveLevel.world ?? levelConfig.world,
       )
     }
     return null
@@ -327,14 +358,23 @@ export function useGameState(levelConfig, animSpeed = 50) {
   const [reportOverride, setReportOverride] = useState(null)
 
   const liveReport = useMemo(() => {
-    if (levelConfig.id === 9 && levelConfig.uncertainRadio) {
+    if (levelConfig.id === 9 && levelConfig.uncertainRadio && !sptCorrect) {
       return uncertainMessage
     }
 
     // Level 2/3: show uncertain message until the player flips the visor
     // After flipping, switch to the clear normal message
-    if (levelConfig.uncertainRadio && !visorFlippedThisLevel) {
+    if (levelConfig.id !== 9 && levelConfig.uncertainRadio && !visorFlippedThisLevel) {
       return uncertainMessage
+    }
+    if (
+      levelConfig.id === 8 &&
+      luma.x === resolvedStart.x &&
+      luma.y === resolvedStart.y &&
+      luma.facing === resolvedFacing &&
+      collectedParts.size === 0
+    ) {
+      return "There’s open path in front of me and on my right, but there’s no path behind me or to my left. Can you tell which way I’m facing?"
     }
     if (
       levelConfig.id === 10 &&
@@ -343,7 +383,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
       luma.facing === resolvedFacing &&
       collectedParts.size === 0
     ) {
-      return "I’m near the edge of the forest. I think there’s a wall on my right… and another wall behind me."
+      return "I’m near the edge of the forest. I think there’s a tree line on my right… and another tree line behind me."
     }
     if (
       levelConfig.id === 6 &&
@@ -352,7 +392,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
       luma.facing === resolvedFacing &&
       collectedParts.size === 0
     ) {
-      return "I'm okay... I think. Can you see where I am? There is a rock to my right and a ship fragment in front of me."
+      return "I'm okay... I think. Can you see where I am? There is a tree to my right and a ship fragment in front of me."
     }
     return buildRadioReport(
       luma,
@@ -361,10 +401,11 @@ export function useGameState(levelConfig, animSpeed = 50) {
       effectiveLevel.objects,
       effectiveLevel.goal ?? levelConfig.goal,
       collectedParts,
+      effectiveLevel.world ?? levelConfig.world,
     )
   }, [
     luma, effectiveLevel.walls, effectiveLevel.objects,
-    effectiveLevel.goal, levelConfig.goal,
+    effectiveLevel.goal, effectiveLevel.world, levelConfig.goal, levelConfig.world,
     collectedParts, levelConfig.id, levelConfig.uncertainRadio,
     resolvedStart.x, resolvedStart.y, resolvedFacing,
     visorFlippedThisLevel, uncertainMessage
@@ -372,12 +413,6 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
   const helmetReport = reportOverride ?? liveReport
 
-  // ── Phases & answers ──────────────────────────────────────────────────────
-  const [phase, setPhase] = useState(() => levelConfig.skipIdentify ? 'develop' : 'identify')
-  const [sptAnswer, setSptAnswer]         = useState(null)
-  const [sptCorrect, setSptCorrect]       = useState(false)
-
-  // ── Prediction prompt (Level 3+) ──────────────────────────────────────────
   const [predictionTile, setPredictionTile] = useState(null)
   const [predictionResult, setPredictionResult] = useState(null)
 
@@ -569,6 +604,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
         : cmd
 
       let justCollectedIndex = null
+      let collectEffect = null
       let blocked = false
 
       if (effectiveCmd === 'F') {
@@ -583,7 +619,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
           blockedType = hitWall ? 'rock' : 'boundary'
           stoppedEarly = true
 
-          const blockedMsg = buildBlockedReport(currentLuma, currentLuma.facing, blockedType)
+          const blockedMsg = buildBlockedReport(currentLuma, currentLuma.facing, blockedType, effectiveLevel.world ?? levelConfig.world)
           setReportOverride(blockedMsg)
           setLuma({ ...currentLuma })
 
@@ -603,6 +639,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
           localCollected.add(partIndex)
           justCollectedIndex = partIndex
         }
+        collectEffect = createCollectionEffect(currentLuma, justCollectedIndex)
       } else if (effectiveCmd === 'TL') {
         const idx = DIRECTIONS.indexOf(currentLuma.facing)
         const newFacing = DIRECTIONS[(idx + 3) % 4]
@@ -617,17 +654,15 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
       setLuma({ ...currentLuma })
 
+      if (collectEffect) {
+        setCollectionEffects((effects) => [...effects, collectEffect])
+        setTimeout(() => {
+          setCollectionEffects((effects) => effects.filter((effect) => effect.id !== collectEffect.id))
+        }, 900)
+      }
+
       if (justCollectedIndex !== null) {
         setCollectedParts(new Set(localCollected))
-        const collectedPart = shipPartObjects[justCollectedIndex]
-        const effectId = `${justCollectedIndex}-${Date.now()}`
-        setCollectionEffects((effects) => [
-          ...effects,
-          { id: effectId, index: justCollectedIndex, x: collectedPart.x, y: collectedPart.y },
-        ])
-        setTimeout(() => {
-          setCollectionEffects((effects) => effects.filter((effect) => effect.id !== effectId))
-        }, 900)
         const collectionMsg = buildCollectionReport(
           currentLuma,
           currentLuma.facing,
@@ -635,6 +670,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
           effectiveLevel.objects ?? [],
           goal,
           localCollected,
+          effectiveLevel.world ?? levelConfig.world,
         )
         setReportOverride(collectionMsg)
       }
