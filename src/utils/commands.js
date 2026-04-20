@@ -30,7 +30,7 @@ export function isRepeatCommand(command) {
 export function countProgramBlocks(sequence = []) {
   return sequence.reduce((total, command) => {
     if (isRepeatCommand(command)) {
-      return total + 1
+      return total + 1 + countProgramBlocks(command.commands ?? [])
     }
 
     return typeof command === 'string' ? total + 1 : total

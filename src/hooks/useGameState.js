@@ -82,17 +82,17 @@ function getObstacleArticle(world) {
 }
 
 // ── Regular radio report builder ──────────────────────────────────────────────
-function buildRadioReport(lumaPos, facing, walls = [], objects = [], goal, collectedIndices = new Set(), world = 'crash-site') {
+function buildRadioReport(lumaPos, facing, walls = [], objects = [], goal, collectedIndices = new Set(), world = 'crash-site', includeOpener = false) {
   const lumaCtx = { x: lumaPos.x, y: lumaPos.y, facing }
   const priority = ['front', 'right', 'left', 'back']
-  const opener = "I'm okay… I think. Can you see where I am?"
+  const opener = includeOpener ? "Can you see where I am? " : ''
   const obstacleNoun = getObstacleNoun(world)
 
   const adjacentWalls = walls.filter(w => getRelativeDirection(lumaCtx, w) !== null)
   if (adjacentWalls.length > 0) {
     const relDirs = adjacentWalls.map(w => getRelativeDirection(lumaCtx, w)).filter(Boolean)
     const chosen  = priority.find(p => relDirs.includes(p)) ?? relDirs[0]
-    return `${opener} There is a ${obstacleNoun} ${RELATIVE_LABEL[chosen]}.`
+    return `${opener}There is a ${obstacleNoun} ${RELATIVE_LABEL[chosen]}.`
   }
 
   const adjacentParts = objects.filter(
@@ -101,15 +101,15 @@ function buildRadioReport(lumaPos, facing, walls = [], objects = [], goal, colle
   if (adjacentParts.length > 0) {
     const relDirs = adjacentParts.map(o => getRelativeDirection(lumaCtx, o)).filter(Boolean)
     const chosen  = priority.find(p => relDirs.includes(p)) ?? relDirs[0]
-    return `${opener} I can sense a ship fragment ${RELATIVE_LABEL[chosen]}.`
+    return `${opener}I can sense a ship fragment ${RELATIVE_LABEL[chosen]}.`
   }
 
   if (goal) {
     const rel = getRelativeDirection(lumaCtx, goal)
-    if (rel) return `${opener} I can detect the ship core ${RELATIVE_LABEL[rel]}!`
+    if (rel) return `${opener}I can detect the ship core ${RELATIVE_LABEL[rel]}!`
   }
 
-  return `${opener} The path around me looks clear… but I can't tell which way I'm facing.`
+  return `${opener}The path around me looks clear… but I can't tell which way I'm facing.`
 }
 
 // ── Level 2 uncertain radio builder ──────────────────────────────────────────
@@ -157,7 +157,7 @@ function buildUncertainRadioReport(lumaPos, facing, walls = [], objects = [], go
 
 // ── Level 9 radio helpers ─────────────────────────────────────────────────────
 function buildLevel9UncertainRadioReport() {
-  return "I sense a tall tree beside me, but my visor is fuzzy. It might be on my left or my right. I can also feel ship fragments running up the center path."
+  return "I sense a tree beside me, but my visor is blurry. It might be on my left or my right."
 }
 
 function buildLevel9IdentifyConfirmation(lumaPos, facing, walls = []) {
@@ -214,6 +214,20 @@ const FACING_TO_ANSWER = {
   south: '↓ Down',
   west:  '← Left',
 }
+
+const RADIO_HINT_OPENERS = [
+  "Can you see where I am?",
+  "Can you tell where I am?",
+  "Can you figure out where I am?",
+  "Can you spot where I am?",
+]
+
+const IDENTIFY_SUCCESS_RADIO_MESSAGES = [
+  "Yes! You figured out which way I’m facing!",
+  "That’s right! You got my direction correct!",
+  "Yes! You guessed my direction correctly!",
+  "Great job! You knew which way I was facing!",
+]
 
 const FACING_DEG = { north: 0, east: 90, south: 180, west: 270 }
 
@@ -331,13 +345,20 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
   // ── Level 2/3/4 uncertain radio ───────────────────────────────────────────
   // Pick a fixed uncertain message for this session (so it doesn't change on re-renders)
-  const [uncertainMessage] = useState(() => {
-    if (levelConfig.uncertainRadio) {
-      if (levelConfig.id === 9) {
-        return buildLevel9UncertainRadioReport()
-      }
+  const [initialRadioHint] = useState(() => {
+    const opener = getRandomFrom(RADIO_HINT_OPENERS)
+    const withOpener = (hint) => `${opener} ${hint}`
 
-      return buildUncertainRadioReport(
+    if (levelConfig.noRadio) {
+      return null
+    }
+
+    if (levelConfig.id === 9 && levelConfig.uncertainRadio) {
+      return withOpener(buildLevel9UncertainRadioReport())
+    }
+
+    if (levelConfig.uncertainRadio) {
+      return withOpener(buildUncertainRadioReport(
         { x: resolvedStart.x, y: resolvedStart.y },
         resolvedFacing,
         layout.walls,
@@ -345,9 +366,30 @@ export function useGameState(levelConfig, animSpeed = 50) {
         effectiveLevel.goal ?? levelConfig.goal,
         new Set(),
         effectiveLevel.world ?? levelConfig.world,
-      )
+      ))
     }
-    return null
+
+    if (levelConfig.id === 8) {
+      return withOpener("There’s open path in front of me and on my right, but there’s no path behind me or to my left.")
+    }
+
+    if (levelConfig.id === 10) {
+      return withOpener("There is a tree on my left.")
+    }
+
+    if (levelConfig.id === 6) {
+      return withOpener("There is a tree to my right and a ship fragment in front of me.")
+    }
+
+    return withOpener(buildRadioReport(
+      { x: resolvedStart.x, y: resolvedStart.y },
+      resolvedFacing,
+      layout.walls,
+      layout.objects,
+      effectiveLevel.goal ?? levelConfig.goal,
+      new Set(),
+      effectiveLevel.world ?? levelConfig.world,
+    ))
   })
 
   // Whether the player has flipped the visor at least once (for Level 2 reinforcement)
@@ -356,8 +398,14 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
   // ── Reactive helmet report ────────────────────────────────────────────────
   const [reportOverride, setReportOverride] = useState(null)
+  const [successRadioMessage] = useState(() => getRandomFrom(IDENTIFY_SUCCESS_RADIO_MESSAGES))
+  const uncertainMessage = initialRadioHint
 
   const liveReport = useMemo(() => {
+    if (initialRadioHint !== undefined) {
+      return initialRadioHint
+    }
+
     if (levelConfig.id === 9 && levelConfig.uncertainRadio && !sptCorrect) {
       return uncertainMessage
     }
@@ -374,7 +422,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
       luma.facing === resolvedFacing &&
       collectedParts.size === 0
     ) {
-      return "There’s open path in front of me and on my right, but there’s no path behind me or to my left. Can you tell which way I’m facing?"
+      return "There’s open path in front of me and on my right, but there’s no path behind me or to my left."
     }
     if (
       levelConfig.id === 10 &&
@@ -383,7 +431,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
       luma.facing === resolvedFacing &&
       collectedParts.size === 0
     ) {
-      return "I’m near the edge of the forest. I think there’s a tree line on my right… and another tree line behind me."
+      return "There is a tree on my left."
     }
     if (
       levelConfig.id === 6 &&
@@ -392,7 +440,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
       luma.facing === resolvedFacing &&
       collectedParts.size === 0
     ) {
-      return "I'm okay... I think. Can you see where I am? There is a tree to my right and a ship fragment in front of me."
+      return "There is a tree to my right and a ship fragment in front of me."
     }
     return buildRadioReport(
       luma,
@@ -408,10 +456,14 @@ export function useGameState(levelConfig, animSpeed = 50) {
     effectiveLevel.goal, effectiveLevel.world, levelConfig.goal, levelConfig.world,
     collectedParts, levelConfig.id, levelConfig.uncertainRadio,
     resolvedStart.x, resolvedStart.y, resolvedFacing,
-    visorFlippedThisLevel, uncertainMessage
+    visorFlippedThisLevel, initialRadioHint, sptCorrect, uncertainMessage
   ])
 
-  const helmetReport = reportOverride ?? liveReport
+  const helmetReport = levelConfig.noRadio
+    ? reportOverride ?? liveReport
+    : sptCorrect
+      ? successRadioMessage
+      : liveReport
 
   const [predictionTile, setPredictionTile] = useState(null)
   const [predictionResult, setPredictionResult] = useState(null)
@@ -720,7 +772,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     sptAnswer, sptCorrect, answerSPT,
     helmetReport,
     // Level 2 specific: whether the radio is currently uncertain
-    radioIsUncertain: levelConfig.uncertainRadio && !reportOverride && (levelConfig.id === 9 ? !sptCorrect : !visorFlippedThisLevel),
+    radioIsUncertain: levelConfig.uncertainRadio && !sptCorrect,
     visorActive, visorFlipCount, flipVisor, closeVisor,
     sequence, setSequence, isRunning, isMirrored,
     addCommand, removeLastCommand, clearSequence, runSequence,
