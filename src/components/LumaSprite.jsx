@@ -12,7 +12,7 @@
 //   - Fixed disappearing turn: replaced AnimatePresence facing-remount
 //     with persistent layered sprite system (overlapping crossfade)
 //
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // ─── Shared gradient & filter defs ─────────────────────────────────────────────
@@ -527,6 +527,7 @@ function FacingWest({ collectEffectKey = null }) {
 
 // ─── Hidden / unknown facing ───────────────────────────────────────────────────
 const CONFUSED_TURN_MS = 240
+const COLLECT_ANIMATION_MS = 460
 const CONFUSED_DIRECTION_ORDER = ['south', 'east', 'north', 'west']
 
 function ConfusedQuestionMarks({ tileSize }) {
@@ -659,7 +660,7 @@ function LumaHiddenUnknown({ size }) {
   return <LumaConfusedUnknown size={size}/>
 }
 
-function LumaStanding({ size, facing, collectEffectKey = null }) {
+function LumaStanding({ size, facing, collectEffectKey = null, collectFacing = null }) {
   const directions = ['south', 'north', 'east', 'west']
   const sprites = {
     south: FacingSouth,
@@ -697,7 +698,7 @@ function LumaStanding({ size, facing, collectEffectKey = null }) {
               pointerEvents:   'none',
             }}
           >
-            <Sprite collectEffectKey={isActive ? collectEffectKey : null}/>
+            <Sprite collectEffectKey={isActive && collectFacing === dir ? collectEffectKey : null}/>
           </motion.div>
         )
       })}
@@ -787,7 +788,29 @@ export default function LumaSprite({
   collectEffectKey = null,
 }) {
   const size = tileSize * 0.84
-  const isCollecting = Boolean(collectEffectKey)
+  const facingRef = useRef(facing)
+  const lastCollectEffectKeyRef = useRef(null)
+  const [activeCollect, setActiveCollect] = useState(null)
+  const isCollecting = Boolean(activeCollect)
+
+  useEffect(() => {
+    facingRef.current = facing
+  }, [facing])
+
+  useEffect(() => {
+    if (!collectEffectKey || collectEffectKey === lastCollectEffectKeyRef.current) return
+
+    lastCollectEffectKeyRef.current = collectEffectKey
+    setActiveCollect({ key: collectEffectKey, facing: facingRef.current })
+
+    const timeout = window.setTimeout(() => {
+      setActiveCollect((current) => (
+        current?.key === collectEffectKey ? null : current
+      ))
+    }, COLLECT_ANIMATION_MS)
+
+    return () => window.clearTimeout(timeout)
+  }, [collectEffectKey])
 
   return (
     <motion.div
@@ -853,7 +876,7 @@ export default function LumaSprite({
           : { duration: 0 }}
         style={{ position: 'relative', zIndex: 1, transformOrigin: '50% 72%' }}
       >
-        <LumaCollectAura size={size} effectKey={collectEffectKey}/>
+        <LumaCollectAura size={size} effectKey={activeCollect?.key ?? null}/>
         <AnimatePresence mode="wait">
           {showFacing
             ? (
@@ -864,7 +887,12 @@ export default function LumaSprite({
                 exit={{    opacity: 0.5, scale: 0.93 }}
                 transition={{ duration: 0.15, ease: 'easeOut' }}
               >
-                <LumaStanding size={size} facing={facing} collectEffectKey={collectEffectKey}/>
+                <LumaStanding
+                  size={size}
+                  facing={facing}
+                  collectEffectKey={activeCollect?.key ?? null}
+                  collectFacing={activeCollect?.facing ?? null}
+                />
               </motion.div>
             )
             : <LumaHiddenUnknown key="hidden-unknown" size={size}/>

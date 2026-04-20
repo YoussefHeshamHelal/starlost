@@ -1367,9 +1367,9 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
             {phase === 'identify' && levelConfig.sptQuestion && (
               <motion.div
                 key="spt"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: 20, y: 30 }}
+                animate={{ opacity: 1, x: 0, y: 30 }}
+                exit={{ opacity: 0, x: -20, y: 30 }}
                 style={{ width: '100%' }}
               >
                 <SPTQuestion
@@ -1606,6 +1606,10 @@ export default function App() {
             fontFamily: 'monospace', letterSpacing: 2, margin: 0,
             transition: 'color 0.5s',
             fontWeight: 700,
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            textAlign: 'center',
           }}>
             Help LUMA find the way home.
           </p>
