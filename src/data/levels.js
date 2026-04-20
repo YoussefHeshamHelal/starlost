@@ -323,7 +323,7 @@ export function generateLevel3Layout(facing = 'north') {
     ],
   }
 
-  return generateSingleRockLayout({
+  const layout = generateSingleRockLayout({
     lumaStart: L3_START,
     goal: L3_GOAL,
     facing,
@@ -331,6 +331,23 @@ export function generateLevel3Layout(facing = 'north') {
     objects: [],
     pathCellsByFacing,
   })
+
+  if (layout.solution?.length === 5) {
+    return layout
+  }
+
+  const fallbackWallsByFacing = {
+    north: [{ x: 0, y: 3 }],
+    east: [{ x: 1, y: 2 }],
+  }
+  const fallbackWalls = fallbackWallsByFacing[facing] ?? fallbackWallsByFacing.north
+  const fallbackSolution = computeOptimalSolution(L3_START, L3_GOAL, fallbackWalls, [], facing)
+
+  return {
+    walls: fallbackWalls,
+    objects: [],
+    solution: fallbackSolution,
+  }
 }
 
 export function generateLevel4Layout() {
@@ -695,7 +712,7 @@ export const LEVELS = [
     skipIdentify: false,
     noRadio: false,
     layoutGenerator: 'level3',
-    targetCommands: 6,
+    targetCommands: 5,
     uncertainRadio: false,
   },
   {

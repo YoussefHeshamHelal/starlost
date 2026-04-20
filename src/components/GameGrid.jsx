@@ -533,7 +533,7 @@ function ZoneContent({ tile, zone, W, H }) {
   if (tile.type === 'forest_tree') {
     if (isFront) {
       return (
-        <g>
+        <g transform={`translate(${W * 0.5} ${H * 0.04}) scale(0.56 0.86) translate(${-W * 0.5} 0)`}>
           <ellipse cx={W * 0.5} cy={H * 0.93} rx={W * 0.29} ry={H * 0.055} fill="#020b04" opacity="0.64"/>
           <path
             d={`M${W * 0.39},${H} C${W * 0.43},${H * 0.76} ${W * 0.43},${H * 0.5} ${W * 0.42},${H * 0.25}
@@ -577,25 +577,56 @@ function ZoneContent({ tile, zone, W, H }) {
     }
 
     return (
-      <g>
-        <ellipse cx={isLeft ? W * 0.09 : W * 0.91} cy={H * 0.93} rx={W * 0.16} ry={H * 0.045} fill="#020b04" opacity="0.55"/>
+      <g transform={isLeft
+        ? `translate(${-W * 0.095} 0) scale(0.56 0.96)`
+        : `translate(${W * 1.095} 0) scale(0.56 0.96) translate(${-W} 0)`
+      }>
+        <ellipse cx={isLeft ? W * 0.13 : W * 0.87} cy={H * 0.94} rx={W * 0.2} ry={H * 0.05} fill="#020b04" opacity="0.58"/>
         <path
           d={isLeft
-            ? `M0,${H} C${W * 0.02},${H * 0.72} ${W * 0.04},${H * 0.45} ${W * 0.03},${H * 0.18}
-               L${W * 0.13},${H * 0.17} C${W * 0.12},${H * 0.44} ${W * 0.13},${H * 0.74} ${W * 0.2},${H} Z`
-            : `M${W},${H} C${W * 0.98},${H * 0.72} ${W * 0.96},${H * 0.45} ${W * 0.97},${H * 0.18}
-               L${W * 0.87},${H * 0.17} C${W * 0.88},${H * 0.44} ${W * 0.87},${H * 0.74} ${W * 0.8},${H} Z`
+            ? `M0,${H} C${W * 0.03},${H * 0.78} ${W * 0.04},${H * 0.52} ${W * 0.035},${H * 0.24}
+               C${W * 0.07},${H * 0.2} ${W * 0.13},${H * 0.2} ${W * 0.18},${H * 0.24}
+               C${W * 0.15},${H * 0.48} ${W * 0.17},${H * 0.76} ${W * 0.25},${H} Z`
+            : `M${W},${H} C${W * 0.97},${H * 0.78} ${W * 0.96},${H * 0.52} ${W * 0.965},${H * 0.24}
+               C${W * 0.93},${H * 0.2} ${W * 0.87},${H * 0.2} ${W * 0.82},${H * 0.24}
+               C${W * 0.85},${H * 0.48} ${W * 0.83},${H * 0.76} ${W * 0.75},${H} Z`
           }
           fill="url(#tree_front_trunk)" stroke="#140a04" strokeWidth="1.4"
         />
         <path
           d={isLeft
-            ? `M0,${H * 0.46} C0,${H * 0.3} ${W * 0.08},${H * 0.18} ${W * 0.2},${H * 0.21}
-               C${W * 0.31},${H * 0.23} ${W * 0.31},${H * 0.39} ${W * 0.2},${H * 0.45}
-               C${W * 0.12},${H * 0.52} ${W * 0.05},${H * 0.51} 0,${H * 0.46} Z`
-            : `M${W},${H * 0.46} C${W},${H * 0.3} ${W * 0.92},${H * 0.18} ${W * 0.8},${H * 0.21}
-               C${W * 0.69},${H * 0.23} ${W * 0.69},${H * 0.39} ${W * 0.8},${H * 0.45}
-               C${W * 0.88},${H * 0.52} ${W * 0.95},${H * 0.51} ${W},${H * 0.46} Z`
+            ? `M${W * 0.08},${H * 0.94} C${W * 0.05},${H * 0.7} ${W * 0.09},${H * 0.47} ${W * 0.08},${H * 0.25}`
+            : `M${W * 0.92},${H * 0.94} C${W * 0.95},${H * 0.7} ${W * 0.91},${H * 0.47} ${W * 0.92},${H * 0.25}`
+          }
+          stroke="#2b1708"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          fill="none"
+          opacity="0.72"
+        />
+        <path
+          d={isLeft
+            ? `M${W * 0.16},${H * 0.9} C${W * 0.23},${H * 0.94} ${W * 0.3},${H * 0.98} ${W * 0.35},${H}`
+            : `M${W * 0.84},${H * 0.9} C${W * 0.77},${H * 0.94} ${W * 0.7},${H * 0.98} ${W * 0.65},${H}`
+          }
+          stroke="#2b190b"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          fill="none"
+          opacity="0.7"
+        />
+        <path
+          d={isLeft
+            ? `M0,${H * 0.49} C0,${H * 0.32} ${W * 0.04},${H * 0.17} ${W * 0.17},${H * 0.16}
+               C${W * 0.18},${H * 0.06} ${W * 0.31},${H * 0.05} ${W * 0.38},${H * 0.13}
+               C${W * 0.49},${H * 0.13} ${W * 0.54},${H * 0.27} ${W * 0.47},${H * 0.38}
+               C${W * 0.5},${H * 0.5} ${W * 0.37},${H * 0.59} ${W * 0.24},${H * 0.52}
+               C${W * 0.14},${H * 0.59} ${W * 0.04},${H * 0.56} 0,${H * 0.49} Z`
+            : `M${W},${H * 0.49} C${W},${H * 0.32} ${W * 0.96},${H * 0.17} ${W * 0.83},${H * 0.16}
+               C${W * 0.82},${H * 0.06} ${W * 0.69},${H * 0.05} ${W * 0.62},${H * 0.13}
+               C${W * 0.51},${H * 0.13} ${W * 0.46},${H * 0.27} ${W * 0.53},${H * 0.38}
+               C${W * 0.5},${H * 0.5} ${W * 0.63},${H * 0.59} ${W * 0.76},${H * 0.52}
+               C${W * 0.86},${H * 0.59} ${W * 0.96},${H * 0.56} ${W},${H * 0.49} Z`
           }
           fill="url(#tree_front_leaf)"
           stroke="#0e2f17"
@@ -603,14 +634,37 @@ function ZoneContent({ tile, zone, W, H }) {
         />
         <path
           d={isLeft
-            ? `M${W * 0.02},${H * 0.34} C${W * 0.08},${H * 0.25} ${W * 0.2},${H * 0.27} ${W * 0.25},${H * 0.36}`
-            : `M${W * 0.98},${H * 0.34} C${W * 0.92},${H * 0.25} ${W * 0.8},${H * 0.27} ${W * 0.75},${H * 0.36}`
+            ? `M${W * 0.03},${H * 0.38} C${W * 0.08},${H * 0.27} ${W * 0.2},${H * 0.22} ${W * 0.31},${H * 0.27}
+               C${W * 0.39},${H * 0.25} ${W * 0.46},${H * 0.32} ${W * 0.44},${H * 0.41}
+               C${W * 0.34},${H * 0.47} ${W * 0.18},${H * 0.46} ${W * 0.03},${H * 0.38} Z`
+            : `M${W * 0.97},${H * 0.38} C${W * 0.92},${H * 0.27} ${W * 0.8},${H * 0.22} ${W * 0.69},${H * 0.27}
+               C${W * 0.61},${H * 0.25} ${W * 0.54},${H * 0.32} ${W * 0.56},${H * 0.41}
+               C${W * 0.66},${H * 0.47} ${W * 0.82},${H * 0.46} ${W * 0.97},${H * 0.38} Z`
+          }
+          fill="url(#tree_front_leaf_alt)"
+          opacity="0.66"
+        />
+        <path
+          d={isLeft
+            ? `M${W * 0.04},${H * 0.33} C${W * 0.15},${H * 0.22} ${W * 0.32},${H * 0.22} ${W * 0.43},${H * 0.34}`
+            : `M${W * 0.96},${H * 0.33} C${W * 0.85},${H * 0.22} ${W * 0.68},${H * 0.22} ${W * 0.57},${H * 0.34}`
           }
           stroke="#d9f99d"
           strokeWidth="1.2"
           strokeLinecap="round"
           fill="none"
           opacity="0.35"
+        />
+        <path
+          d={isLeft
+            ? `M${W * 0.05},${H * 0.5} C${W * 0.17},${H * 0.44} ${W * 0.31},${H * 0.45} ${W * 0.43},${H * 0.51}`
+            : `M${W * 0.95},${H * 0.5} C${W * 0.83},${H * 0.44} ${W * 0.69},${H * 0.45} ${W * 0.57},${H * 0.51}`
+          }
+          stroke="#a7f3d0"
+          strokeWidth="1"
+          strokeLinecap="round"
+          fill="none"
+          opacity="0.24"
         />
       </g>
     )
@@ -648,7 +702,10 @@ function ZoneContent({ tile, zone, W, H }) {
     }
     // Side rock — peeks in from the edge
     return (
-      <g>
+      <g transform={isLeft
+        ? `translate(${W * 0.01} 0) scale(0.88 1)`
+        : `translate(${W * 0.99} 0) scale(0.88 1) translate(${-W} 0)`
+      }>
         <path
           d={isLeft
             ? `M0,${H} Q0,${H*0.3} ${W*0.08},${H*0.18} Q${W*0.16},${H*0.08} ${W*0.26},${H*0.1}
@@ -687,20 +744,30 @@ function ZoneContent({ tile, zone, W, H }) {
             points={`${W*0.4},${H*0.44} ${W*0.6},${H*0.44} ${W*0.85},${H} ${W*0.15},${H}`}
             fill="#0e0c08" opacity="0.55"
           />
+          <ellipse cx={W*0.5} cy={H*0.43} rx={W*0.18} ry={H*0.04} fill="#38bdf8" opacity="0.14">
+            <animate attributeName="opacity" values="0.08;0.24;0.08" dur="1.5s" repeatCount="indefinite"/>
+          </ellipse>
           {/* Ship fragment floating */}
-          <g transform={`translate(${W*0.38}, ${H*0.08})`}>
+          <g transform={`translate(${W*0.34}, ${H*0.115})`}>
             <animate attributeName="transform"
-              values={`translate(${W*0.38}, ${H*0.08}); translate(${W*0.38}, ${H*0.06}); translate(${W*0.38}, ${H*0.08})`}
+              values={`translate(${W*0.34}, ${H*0.115}); translate(${W*0.34}, ${H*0.095}); translate(${W*0.34}, ${H*0.115})`}
               dur="2s" repeatCount="indefinite"/>
-            <path d={`M0,${H*0.14} L${W*0.07},${H*0.02} L${W*0.17},${H*0.04} L${W*0.22},${H*0.12} L${W*0.19},${H*0.2} L${W*0.05},${H*0.21} Z`}
+            <ellipse cx={W*0.16} cy={H*0.13} rx={W*0.18} ry={H*0.16} fill="url(#ship_fragment_glow)" opacity="0.55"/>
+            <path d={`M0,${H*0.16} L${W*0.08},${H*0.02} L${W*0.21},${H*0.035} L${W*0.29},${H*0.13} L${W*0.24},${H*0.24} L${W*0.06},${H*0.25} Z`}
               fill="url(#ship_part_front)" stroke="#38bdf8" strokeWidth="2"/>
-            <circle cx={W*0.165} cy={H*0.065} r={W*0.025} fill="#38bdf8" opacity="0.8">
+            <path d={`M${W*0.035},${H*0.16} L${W*0.11},${H*0.08} L${W*0.2},${H*0.09} L${W*0.255},${H*0.14}`}
+              stroke="#7dd3fc" strokeWidth="1.4" fill="none" opacity="0.65"/>
+            <path d={`M${W*0.07},${H*0.24} L${W*0.16},${H*0.16} L${W*0.24},${H*0.23}`}
+              stroke="#0ea5e9" strokeWidth="1.2" fill="none" opacity="0.55"/>
+            <circle cx={W*0.215} cy={H*0.085} r={W*0.032} fill="#38bdf8" opacity="0.8">
               <animate attributeName="opacity" values="0.4;1;0.5;0.9;0.4" dur="1.2s" repeatCount="indefinite"/>
             </circle>
-            <circle cx={W*0.165} cy={H*0.065} r={W*0.012} fill="#7dd3fc"/>
+            <circle cx={W*0.215} cy={H*0.085} r={W*0.014} fill="#e0faff"/>
+            <circle cx={W*0.1} cy={H*0.12} r={W*0.012} fill="#071927" stroke="#7dd3fc" strokeWidth="1"/>
+            <circle cx={W*0.18} cy={H*0.205} r={W*0.01} fill="#071927" stroke="#38bdf8" strokeWidth="0.9"/>
           </g>
           {/* Glow on ground */}
-          <ellipse cx={W*0.5} cy={H*0.44} rx={W*0.12} ry={H*0.025} fill="#38bdf8" opacity="0.18">
+          <ellipse cx={W*0.5} cy={H*0.47} rx={W*0.17} ry={H*0.032} fill="#38bdf8" opacity="0.18">
             <animate attributeName="opacity" values="0.1;0.28;0.1" dur="1.5s" repeatCount="indefinite"/>
           </ellipse>
         </g>
@@ -708,25 +775,40 @@ function ZoneContent({ tile, zone, W, H }) {
     }
     // Side ship part — glowing on the edge
     return (
-      <g>
-        <ellipse
-          cx={isLeft ? W*0.06 : W*0.94}
-          cy={H*0.35}
-          rx={W*0.07} ry={H*0.08}
-          fill="#38bdf8" opacity="0.2"
-        >
-          <animate attributeName="opacity" values="0.1;0.35;0.1" dur="1.5s" repeatCount="indefinite"/>
+      <g transform={isLeft
+        ? `translate(${-W * 0.075} 0) scale(0.82 1)`
+        : `translate(${W * 1.075} 0) scale(0.82 1) translate(${-W} 0)`
+      }>
+        <ellipse cx={isLeft ? W*0.11 : W*0.89} cy={H*0.36} rx={W*0.15} ry={H*0.13} fill="url(#ship_fragment_glow)" opacity="0.65">
+          <animate attributeName="opacity" values="0.35;0.78;0.35" dur="1.5s" repeatCount="indefinite"/>
         </ellipse>
-        <text
-          x={isLeft ? W*0.09 : W*0.91}
-          y={H*0.36}
-          textAnchor="middle"
-          fontSize={18}
-          fill="#38bdf8"
-          opacity="0.8"
-        >
-          🛸
-        </text>
+        <path
+          d={isLeft
+            ? `M0,${H*0.45} L${W*0.07},${H*0.22} L${W*0.24},${H*0.17} L${W*0.34},${H*0.32}
+               L${W*0.26},${H*0.5} L${W*0.08},${H*0.55} Z`
+            : `M${W},${H*0.45} L${W*0.93},${H*0.22} L${W*0.76},${H*0.17} L${W*0.66},${H*0.32}
+               L${W*0.74},${H*0.5} L${W*0.92},${H*0.55} Z`
+          }
+          fill="url(#ship_part_front)"
+          stroke="#38bdf8"
+          strokeWidth="1.8"
+        />
+        <path
+          d={isLeft
+            ? `M${W*0.03},${H*0.44} L${W*0.11},${H*0.28} L${W*0.25},${H*0.24} M${W*0.09},${H*0.53} L${W*0.18},${H*0.38} L${W*0.3},${H*0.34}`
+            : `M${W*0.97},${H*0.44} L${W*0.89},${H*0.28} L${W*0.75},${H*0.24} M${W*0.91},${H*0.53} L${W*0.82},${H*0.38} L${W*0.7},${H*0.34}`
+          }
+          stroke="#7dd3fc"
+          strokeWidth="1.1"
+          strokeLinecap="round"
+          fill="none"
+          opacity="0.68"
+        />
+        <circle cx={isLeft ? W*0.24 : W*0.76} cy={H*0.27} r={W*0.028} fill="#38bdf8" opacity="0.9">
+          <animate attributeName="opacity" values="0.45;1;0.45" dur="1.1s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx={isLeft ? W*0.24 : W*0.76} cy={H*0.27} r={W*0.012} fill="#e0faff"/>
+        <ellipse cx={isLeft ? W*0.17 : W*0.83} cy={H*0.57} rx={W*0.12} ry={H*0.025} fill="#38bdf8" opacity="0.14"/>
       </g>
     )
   }
@@ -739,52 +821,77 @@ function ZoneContent({ tile, zone, W, H }) {
             points={`${W*0.4},${H*0.44} ${W*0.6},${H*0.44} ${W*0.85},${H} ${W*0.15},${H}`}
             fill="#0e0c08" opacity="0.55"
           />
-          {/* Glowing beacon */}
-          <circle cx={W*0.5} cy={H*0.28} r={W*0.08} fill="#92400e" stroke="#f59e0b" strokeWidth="2.5">
-            <animate attributeName="r"
-              values={`${W*0.07};${W*0.1};${W*0.07}`} dur="2s" repeatCount="indefinite"/>
-          </circle>
-          <circle cx={W*0.5} cy={H*0.28} r={W*0.05} fill="#fcd34d">
-            <animate attributeName="opacity" values="0.7;1;0.7" dur="1.5s" repeatCount="indefinite"/>
-          </circle>
-          {/* Beacon rings */}
-          {[1.8, 2.6, 3.5].map((scale, i) => (
-            <circle key={i} cx={W*0.5} cy={H*0.28} r={W*0.08*scale}
-              fill="none" stroke="#f59e0b" strokeWidth="0.8" opacity="0.25">
+          <ellipse cx={W*0.5} cy={H*0.38} rx={W*0.15} ry={H*0.13} fill="url(#ship_core_glow)" opacity="0.36"/>
+          {[1, 1.48, 2.1].map((scale, i) => (
+            <circle key={i} cx={W*0.5} cy={H*0.35} r={W*0.056*scale}
+              fill="none" stroke="#f59e0b" strokeWidth="1" opacity="0.28">
               <animate attributeName="r"
-                values={`${W*0.06*scale};${W*0.12*scale};${W*0.06*scale}`}
-                dur="2s" begin={`${i*0.4}s`} repeatCount="indefinite"/>
+                values={`${W*0.048*scale};${W*0.068*scale};${W*0.048*scale}`}
+                dur="2s" begin={`${i*0.42}s`} repeatCount="indefinite"/>
               <animate attributeName="opacity"
-                values="0.3;0;0.3" dur="2s" begin={`${i*0.4}s`} repeatCount="indefinite"/>
+                values="0.35;0.06;0.35" dur="2s" begin={`${i*0.42}s`} repeatCount="indefinite"/>
             </circle>
           ))}
-          {/* Ground glow */}
-          <ellipse cx={W*0.5} cy={H*0.44} rx={W*0.14} ry={H*0.025} fill="#f59e0b" opacity="0.22">
+          <circle cx={W*0.5} cy={H*0.35} r={W*0.09} fill="#1a1008" stroke="#f59e0b" strokeWidth="2.2"/>
+          <circle cx={W*0.5} cy={H*0.35} r={W*0.058} fill="url(#ship_core_map)" filter="url(#glowFilter)">
+            <animate attributeName="opacity" values="0.72;1;0.72" dur="1.8s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx={W*0.5} cy={H*0.35} r={W*0.027} fill="#fcd34d"/>
+          <path d={`M${W*0.458},${H*0.315} Q${W*0.5},${H*0.29} ${W*0.542},${H*0.315}`}
+            stroke="#fff7c2" strokeWidth="1.3" strokeLinecap="round" fill="none" opacity="0.78"/>
+          {[0, 90, 180, 270].map((angle, i) => {
+            const rad = (angle * Math.PI) / 180
+            return (
+              <circle key={i}
+                cx={W*0.5 + W*0.076*Math.cos(rad)}
+                cy={H*0.35 + W*0.076*Math.sin(rad)}
+                r={W*0.012}
+                fill="#1a1008"
+                stroke="#f59e0b"
+                strokeWidth="0.9"
+              />
+            )
+          })}
+          <ellipse cx={W*0.5} cy={H*0.5} rx={W*0.15} ry={H*0.032} fill="#f59e0b" opacity="0.2">
             <animate attributeName="opacity" values="0.12;0.3;0.12" dur="1.8s" repeatCount="indefinite"/>
           </ellipse>
         </g>
       )
     }
     return (
-      <g>
-        <ellipse
-          cx={isLeft ? W*0.06 : W*0.94}
-          cy={H*0.35}
-          rx={W*0.07} ry={H*0.08}
-          fill="#f59e0b" opacity="0.25"
-        >
-          <animate attributeName="opacity" values="0.1;0.38;0.1" dur="2s" repeatCount="indefinite"/>
+      <g transform={isLeft
+        ? `translate(${-W * 0.17} ${-H * 0.035}) scale(1.42 1.42)`
+        : `translate(${W * 0.17} ${-H * 0.035}) scale(1.42 1.42)`
+      }>
+        <ellipse cx={isLeft ? W*0.14 : W*0.86} cy={H*0.36} rx={W*0.1} ry={H*0.12} fill="url(#ship_core_glow)" opacity="0.42">
+          <animate attributeName="opacity" values="0.32;0.74;0.32" dur="2s" repeatCount="indefinite"/>
         </ellipse>
-        <text
-          x={isLeft ? W*0.09 : W*0.91}
-          y={H*0.36}
-          textAnchor="middle"
-          fontSize={20}
-          fill="#fcd34d"
-          opacity="0.9"
-        >
-          ⭐
-        </text>
+        {[1, 1.55].map((scale, i) => (
+          <circle key={i} cx={isLeft ? W*0.15 : W*0.85} cy={H*0.35} r={W*0.042*scale}
+            fill="none" stroke="#f59e0b" strokeWidth="0.8" opacity="0.24">
+            <animate attributeName="r"
+              values={`${W*0.034*scale};${W*0.052*scale};${W*0.034*scale}`}
+              dur="2s" begin={`${i*0.35}s`} repeatCount="indefinite"/>
+            <animate attributeName="opacity"
+              values="0.35;0;0.35" dur="2s" begin={`${i*0.35}s`} repeatCount="indefinite"/>
+          </circle>
+        ))}
+        <circle cx={isLeft ? W*0.15 : W*0.85} cy={H*0.35} r={W*0.064} fill="#1a1008" stroke="#f59e0b" strokeWidth="1.7"/>
+        <circle cx={isLeft ? W*0.15 : W*0.85} cy={H*0.35} r={W*0.04} fill="url(#ship_core_map)" filter="url(#glowFilter)">
+          <animate attributeName="opacity" values="0.65;1;0.65" dur="1.4s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx={isLeft ? W*0.15 : W*0.85} cy={H*0.35} r={W*0.014} fill="#fff7c2"/>
+        {[-1, 1].map((dir, i) => (
+          <circle key={i}
+            cx={(isLeft ? W*0.15 : W*0.85) + dir*W*0.048}
+            cy={H*0.35}
+            r={W*0.009}
+            fill="#1a1008"
+            stroke="#f59e0b"
+            strokeWidth="0.7"
+          />
+        ))}
+        <ellipse cx={isLeft ? W*0.15 : W*0.85} cy={H*0.54} rx={W*0.08} ry={H*0.023} fill="#f59e0b" opacity="0.14"/>
       </g>
     )
   }
@@ -881,13 +988,28 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
             <stop offset="0%"  stopColor="#1e3a5a"/>
             <stop offset="100%" stopColor="#0a1828"/>
           </linearGradient>
+          <radialGradient id="ship_fragment_glow" cx="50%" cy="45%" r="56%">
+            <stop offset="0%"  stopColor="#7dd3fc" stopOpacity="0.68"/>
+            <stop offset="52%" stopColor="#38bdf8" stopOpacity="0.24"/>
+            <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0"/>
+          </radialGradient>
+          <radialGradient id="ship_core_glow" cx="50%" cy="50%" r="58%">
+            <stop offset="0%"  stopColor="#fff7c2" stopOpacity="0.82"/>
+            <stop offset="42%" stopColor="#fbbf24" stopOpacity="0.38"/>
+            <stop offset="100%" stopColor="#f59e0b" stopOpacity="0"/>
+          </radialGradient>
+          <radialGradient id="ship_core_map" cx="40%" cy="35%" r="60%">
+            <stop offset="0%"  stopColor="#fcd34d"/>
+            <stop offset="60%" stopColor="#f59e0b"/>
+            <stop offset="100%" stopColor="#92400e"/>
+          </radialGradient>
           {/* Left/right edge vignette */}
           <linearGradient id="vignette_left" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"   stopColor="#000508" stopOpacity="0.75"/>
+            <stop offset="0%"   stopColor="#000508" stopOpacity="0.34"/>
             <stop offset="100%" stopColor="#000508" stopOpacity="0"/>
           </linearGradient>
           <linearGradient id="vignette_right" x1="1" y1="0" x2="0" y2="0">
-            <stop offset="0%"   stopColor="#000508" stopOpacity="0.75"/>
+            <stop offset="0%"   stopColor="#000508" stopOpacity="0.34"/>
             <stop offset="100%" stopColor="#000508" stopOpacity="0"/>
           </linearGradient>
           {/* Scanline filter */}
@@ -898,6 +1020,15 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
           {/* Helmet oval clip */}
           <clipPath id="helmetOval">
             <ellipse cx={W/2} cy={H/2} rx={W*0.498} ry={H*0.498}/>
+          </clipPath>
+          <clipPath id="leftZoneClip">
+            <rect x="0" y="0" width={W*0.3} height={H}/>
+          </clipPath>
+          <clipPath id="frontZoneClip">
+            <rect x={W*0.3} y="0" width={W*0.4} height={H}/>
+          </clipPath>
+          <clipPath id="rightZoneClip">
+            <rect x={W*0.7} y="0" width={W*0.3} height={H}/>
           </clipPath>
           {/* Glow filter */}
           <filter id="glowFilter" x="-30%" y="-30%" width="160%" height="160%">
@@ -949,13 +1080,19 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
         })}
 
         {/* ── LEFT side content (peeks in from left edge) ── */}
-        <ZoneContent tile={leftTile} zone="left" W={W} H={H} />
+        <g clipPath="url(#leftZoneClip)">
+          <ZoneContent tile={leftTile} zone="left" W={W} H={H} />
+        </g>
 
         {/* ── RIGHT side content (peeks in from right edge) ── */}
-        <ZoneContent tile={rightTile} zone="right" W={W} H={H} />
+        <g clipPath="url(#rightZoneClip)">
+          <ZoneContent tile={rightTile} zone="right" W={W} H={H} />
+        </g>
 
         {/* ── FRONT center content ── */}
-        <ZoneContent tile={ahead} zone="front" W={W} H={H} />
+        <g clipPath="url(#frontZoneClip)">
+          <ZoneContent tile={ahead} zone="front" W={W} H={H} />
+        </g>
 
         {/* ── Left/Right edge vignette — blends side content naturally ── */}
         <rect width={W*0.28} height={H} fill="url(#vignette_left)"/>
