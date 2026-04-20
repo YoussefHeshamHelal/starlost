@@ -673,7 +673,7 @@ function ZoneContent({ tile, zone, W, H }) {
   if (tile.type === 'rock' || tile.type === 'boundary') {
     if (isFront) {
       return (
-        <g>
+        <g transform={`translate(${W * 0.5} ${H * 0.18}) scale(0.46 0.58) translate(${-W * 0.5} 0)`}>
           {/* Large rock blocking full front view */}
           <path
             d={`M${W*0.06},${H} Q${W*0.04},${H*0.36} ${W*0.2},${H*0.16}
@@ -703,8 +703,8 @@ function ZoneContent({ tile, zone, W, H }) {
     // Side rock — peeks in from the edge
     return (
       <g transform={isLeft
-        ? `translate(${W * 0.01} 0) scale(0.88 1)`
-        : `translate(${W * 0.99} 0) scale(0.88 1) translate(${-W} 0)`
+        ? `translate(${-W * 0.04} 0) scale(0.88 1)`
+        : `translate(${W * 1.04} 0) scale(0.88 1) translate(${-W} 0)`
       }>
         <path
           d={isLeft
@@ -861,7 +861,7 @@ function ZoneContent({ tile, zone, W, H }) {
     return (
       <g transform={isLeft
         ? `translate(${-W * 0.17} ${-H * 0.035}) scale(1.42 1.42)`
-        : `translate(${W * 0.17} ${-H * 0.035}) scale(1.42 1.42)`
+        : `translate(${-W * 0.25} ${-H * 0.035}) scale(1.42 1.42)`
       }>
         <ellipse cx={isLeft ? W*0.14 : W*0.86} cy={H*0.36} rx={W*0.1} ry={H*0.12} fill="url(#ship_core_glow)" opacity="0.42">
           <animate attributeName="opacity" values="0.32;0.74;0.32" dur="2s" repeatCount="indefinite"/>
@@ -915,6 +915,7 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
     ahead.type === 'ship_part' ? '#38bdf8' :
     ahead.type === 'goal'      ? '#f59e0b' :
     '#2dd4bf'
+  const visorLabel = tile => tile.type === 'boundary' ? 'BOUNDARY' : tile.label
 
   return (
     <motion.div
@@ -1005,11 +1006,11 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
           </radialGradient>
           {/* Left/right edge vignette */}
           <linearGradient id="vignette_left" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"   stopColor="#000508" stopOpacity="0.34"/>
+            <stop offset="0%"   stopColor="#000508" stopOpacity="0.22"/>
             <stop offset="100%" stopColor="#000508" stopOpacity="0"/>
           </linearGradient>
           <linearGradient id="vignette_right" x1="1" y1="0" x2="0" y2="0">
-            <stop offset="0%"   stopColor="#000508" stopOpacity="0.34"/>
+            <stop offset="0%"   stopColor="#000508" stopOpacity="0.22"/>
             <stop offset="100%" stopColor="#000508" stopOpacity="0"/>
           </linearGradient>
           {/* Scanline filter */}
@@ -1101,15 +1102,15 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
         {/* ── DIVIDER LINES — subtle borders separating zones ── */}
         {/* Left zone divider */}
         <line
-          x1={W*0.3} y1={H*0.0}
-          x2={W*0.3} y2={H}
+          x1={W*0.24} y1={H*0.0}
+          x2={W*0.24} y2={H}
           stroke="#a78bfa" strokeWidth="0.6" opacity="0.22"
           strokeDasharray="4 6"
         />
         {/* Right zone divider */}
         <line
-          x1={W*0.7} y1={H*0.0}
-          x2={W*0.7} y2={H}
+          x1={W*0.76} y1={H*0.0}
+          x2={W*0.76} y2={H}
           stroke="#a78bfa" strokeWidth="0.6" opacity="0.22"
           strokeDasharray="4 6"
         />
@@ -1169,11 +1170,11 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
           </span>
           <span style={{ fontSize: 16 }}>{leftTile.emoji}</span>
           <span style={{
-            fontSize: 8, color: leftTile.color,
+            fontSize: 8, color: '#ffffff',
             fontFamily: 'monospace', fontWeight: 700,
             letterSpacing: 1,
           }}>
-            {leftTile.label}
+            {visorLabel(leftTile)}
           </span>
         </div>
       </div>
@@ -1204,11 +1205,11 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
           </span>
           <span style={{ fontSize: 16 }}>{rightTile.emoji}</span>
           <span style={{
-            fontSize: 8, color: rightTile.color,
+            fontSize: 8, color: '#ffffff',
             fontFamily: 'monospace', fontWeight: 700,
             letterSpacing: 1,
           }}>
-            {rightTile.label}
+            {visorLabel(rightTile)}
           </span>
         </div>
       </div>
@@ -1248,7 +1249,7 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
               fontFamily: 'monospace', fontWeight: 900,
               letterSpacing: 1,
             }}>
-              {ahead.label}
+              {visorLabel(ahead)}
             </span>
           </div>
         </div>
