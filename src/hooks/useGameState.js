@@ -10,8 +10,9 @@ import {
   generateLevel8Layout,
   generateLevel9Layout,
   generateLevel10Layout,
+  generateLevel11Layout,
 } from '../data/levels'
-import { expandSequence } from '../utils/commands'
+import { clampRepeatTimes, countProgramBlocks, isIfBoxAheadCommand, isRepeatCommand } from '../utils/commands'
 
 const DIRECTIONS = ['north', 'east', 'south', 'west']
 
@@ -74,11 +75,15 @@ function getRandomFrom(arr) {
 }
 
 function getObstacleNoun(world) {
-  return world === 'forest-trail' ? 'tree' : 'rock'
+  if (world === 'forest-trail') return 'tree'
+  if (world === 'launch-site') return 'box'
+  return 'rock'
 }
 
 function getObstacleArticle(world) {
-  return world === 'forest-trail' ? 'a tree' : 'a rock'
+  if (world === 'forest-trail') return 'a tree'
+  if (world === 'launch-site') return 'a box'
+  return 'a rock'
 }
 
 // ── Regular radio report builder ──────────────────────────────────────────────
@@ -208,6 +213,14 @@ function buildBlockedReport(lumaPos, facing, blockedType, world = 'crash-site') 
   return `I can't move forward! There's ${blockedText} in front of me. My path is blocked.`
 }
 
+function isBoxAhead(luma, walls = [], grid, world) {
+  if (world !== 'launch-site') return false
+  const delta = MOVE_DELTAS[luma.facing]
+  const ahead = { x: luma.x + delta.x, y: luma.y + delta.y }
+  if (ahead.x < 0 || ahead.x >= grid.cols || ahead.y < 0 || ahead.y >= grid.rows) return false
+  return walls.some(wall => wall.x === ahead.x && wall.y === ahead.y)
+}
+
 const FACING_TO_ANSWER = {
   north: '↑ Up',
   east:  '→ Right',
@@ -272,6 +285,7 @@ function generateLayout(generatorKey, facing) {
     case 'level8': return generateLevel8Layout(facing)
     case 'level9': return generateLevel9Layout(facing)
     case 'level10': return generateLevel10Layout(facing)
+    case 'level11': return generateLevel11Layout(facing)
     default: return { walls: [], objects: [], solution: null }
   }
 }
@@ -595,16 +609,66 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
     let currentLuma = { ...luma }
     let localCollected = new Set(collectedParts)
-    const steps = expandSequence(sequence)
     const walls = effectiveLevel.walls ?? []
     const goal  = effectiveLevel.goal ?? levelConfig.goal
     const gridCols = levelConfig.grid.cols
     const gridRows = levelConfig.grid.rows
+    const grid = { cols: gridCols, rows: gridRows }
+    const world = effectiveLevel.world ?? levelConfig.world
+    const programStack = [{ commands: sequence, index: 0, type: 'root' }]
 
     let stoppedEarly = false
     let blockedType = null
 
-    const executeStep = (index) => {
+    const nextRuntimeCommand = () => {
+      while (programStack.length > 0) {
+        const frame = programStack[programStack.length - 1]
+
+        if (frame.index >= frame.commands.length) {
+          if (frame.type === 'repeat' && frame.remaining > 1) {
+            frame.remaining -= 1
+            frame.index = 0
+            continue
+          }
+
+          programStack.pop()
+          continue
+        }
+
+        const command = frame.commands[frame.index]
+        frame.index += 1
+
+        if (isRepeatCommand(command)) {
+          const times = clampRepeatTimes(command.times)
+          if (times > 0 && (command.commands?.length ?? 0) > 0) {
+            programStack.push({
+              commands: command.commands,
+              index: 0,
+              remaining: times,
+              type: 'repeat',
+            })
+          }
+          continue
+        }
+
+        if (isIfBoxAheadCommand(command)) {
+          if (isBoxAhead(currentLuma, walls, grid, world) && (command.commands?.length ?? 0) > 0) {
+            programStack.push({
+              commands: command.commands,
+              index: 0,
+              type: 'if',
+            })
+          }
+          continue
+        }
+
+        if (typeof command === 'string') return command
+      }
+
+      return null
+    }
+
+    const executeStep = () => {
       if (stoppedEarly) {
         setIsRunning(false)
         setHadErrorBefore(true)
@@ -614,7 +678,9 @@ export function useGameState(levelConfig, animSpeed = 50) {
         return
       }
 
-      if (index >= steps.length) {
+      const cmd = nextRuntimeCommand()
+
+      if (cmd === null) {
         setCollectedParts(new Set(localCollected))
         setIsRunning(false)
 
@@ -650,7 +716,6 @@ export function useGameState(levelConfig, animSpeed = 50) {
         return
       }
 
-      const cmd = steps[index]
       const effectiveCmd = isMirrored
         ? cmd === 'TL' ? 'TR' : cmd === 'TR' ? 'TL' : cmd
         : cmd
@@ -671,7 +736,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
           blockedType = hitWall ? 'rock' : 'boundary'
           stoppedEarly = true
 
-          const blockedMsg = buildBlockedReport(currentLuma, currentLuma.facing, blockedType, effectiveLevel.world ?? levelConfig.world)
+          const blockedMsg = buildBlockedReport(currentLuma, currentLuma.facing, blockedType, world)
           setReportOverride(blockedMsg)
           setLuma({ ...currentLuma })
 
@@ -722,18 +787,18 @@ export function useGameState(levelConfig, animSpeed = 50) {
           effectiveLevel.objects ?? [],
           goal,
           localCollected,
-          effectiveLevel.world ?? levelConfig.world,
+          world,
         )
         setReportOverride(collectionMsg)
       }
 
       if (!blocked) {
         const currentDelay = Math.round(25000 / Math.max(10, Math.min(100, animSpeedRef.current)))
-        setTimeout(() => executeStep(index + 1), currentDelay)
+        setTimeout(() => executeStep(), currentDelay)
       }
     }
 
-    executeStep(0)
+    executeStep()
   }, [
     isRunning, sequence, luma, levelConfig, effectiveLevel, isMirrored,
     firstFailTime, collectedParts, shipPartObjects,
@@ -756,7 +821,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     selfCorrected,
     predictionAccuracy: levelConfig.predictionPrompt ? predictionResult : null,
     sequenceEfficiency: effectiveLevel.solution
-      ? effectiveLevel.solution.length / Math.max(sequence.length, 1)
+      ? countProgramBlocks(effectiveLevel.solution) / Math.max(countProgramBlocks(sequence), 1)
       : null,
     persistenceScore: firstFailTime ? (Date.now() - firstFailTime) / 1000 : null,
     timeSpent: (Date.now() - startTime) / 1000,

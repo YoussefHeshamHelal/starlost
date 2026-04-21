@@ -10,6 +10,10 @@ function hasRepeatBlock(sequence = []) {
   return sequence.some(command => command && typeof command === 'object' && command.type === 'REPEAT')
 }
 
+function hasIfBoxAheadBlock(sequence = []) {
+  return sequence.some(command => command && typeof command === 'object' && command.type === 'IF_BOX_AHEAD')
+}
+
 export const LEVEL_TUTORIALS = {
   1: [
     levelStep('level-1-welcome', {
@@ -224,6 +228,56 @@ export const FEATURE_TUTORIALS = {
       nextLabel: 'Okay',
     }),
   ],
+  'if-box-ahead': [
+    featureStep('if-box-ahead-intro', 'if-box-ahead', {
+      targetId: 'command-if-box-ahead',
+      placement: 'top',
+      title: 'New command: IF BOX AHEAD',
+      body: 'IF BOX AHEAD checks the tile directly in front of LUMA for a box.',
+      waitForTarget: true,
+      nextLabel: 'What happens?',
+    }),
+    featureStep('if-box-ahead-true-false', 'if-box-ahead', {
+      targetId: 'command-if-box-ahead',
+      placement: 'top',
+      title: 'Only runs when true',
+      body: 'If a box is there, LUMA runs the commands inside. If there is no box, she skips the inside commands.',
+      nextLabel: 'Add one',
+    }),
+    featureStep('if-box-ahead-add', 'if-box-ahead', {
+      targetId: 'command-if-box-ahead',
+      placement: 'top',
+      title: 'Add an IF block',
+      body: 'Tap IF BOX AHEAD to add the conditional block to your program.',
+      requiresAction: true,
+      actionLabel: 'Add IF BOX AHEAD',
+      completeWhen: ({ sequence }) => hasIfBoxAheadBlock(sequence),
+    }),
+    featureStep('if-box-ahead-block', 'if-box-ahead', {
+      targetId: 'if-block',
+      placement: 'left',
+      title: 'Commands go inside',
+      body: 'Drag commands into the IF block just like you do with REPEAT.',
+      waitForTarget: true,
+      nextLabel: 'I see',
+    }),
+    featureStep('if-box-ahead-inside', 'if-box-ahead', {
+      targetId: 'if-block-dropzone',
+      placement: 'left',
+      title: 'The inside can be a pattern',
+      body: 'The inside can hold many commands, and you can move them up or down.',
+      waitForTarget: true,
+      nextLabel: 'Nice',
+    }),
+    featureStep('if-box-ahead-nesting', 'if-box-ahead', {
+      targetId: 'command-repeat',
+      placement: 'top',
+      title: 'IF and REPEAT can nest',
+      body: 'REPEAT can go inside IF, and IF can go inside REPEAT. That helps solve Launch Site paths.',
+      waitForTarget: true,
+      nextLabel: 'Ready',
+    }),
+  ],
   'ship-fragments': [
     featureStep('ship-fragments-intro', 'ship-fragments', {
       targetId: 'ship-fragment-tile',
@@ -282,6 +336,7 @@ const LEVEL_FEATURE_ORDER = {
   5: ['ship-fragments', 'collect-command', 'collect-all-fragments'],
   7: ['repeat-intro'],
   9: ['uncertain-radio', 'visor-flip-level-9'],
+  11: ['if-box-ahead'],
 }
 
 export function getTutorialFeatureKeys(levelConfig, effectiveLevel) {
@@ -298,6 +353,7 @@ export function getTutorialFeatureKeys(levelConfig, effectiveLevel) {
     if (featureKey === 'visor-flip-level-9') return levelConfig.id === 9 && !levelConfig.noVisorFlip
     if (featureKey === 'repeat-intro') return Boolean(levelConfig.allowRepeat)
     if (featureKey === 'repeat-builder') return Boolean(levelConfig.allowRepeat)
+    if (featureKey === 'if-box-ahead') return Boolean(levelConfig.allowIfBoxAhead)
     if (featureKey === 'ship-fragments') {
       return (effectiveLevel?.objects ?? []).some(objectItem => objectItem.type === 'ship_part')
     }

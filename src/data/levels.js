@@ -2,7 +2,7 @@
 // Ship parts are collectible waypoints; walls are rock obstacles that block LUMA.
 // lumaFacing: 'random-NE' means useGameState will pick north OR east randomly.
 //
-import { createRepeatCommand } from '../utils/commands'
+import { createIfBoxAheadCommand, createRepeatCommand } from '../utils/commands'
 
 // Crash Site design targets for this pass:
 //   L1: fixed, 3 commands, no rocks, no fragments, no identify
@@ -54,6 +54,9 @@ const L9_GOAL = { x: 2, y: 4 }
 
 const L10_START = { x: 0, y: 1 }
 const L10_GOAL = { x: 3, y: 3 }
+
+const L11_START = { x: 0, y: 3 }
+const L11_GOAL = { x: 0, y: 1 }
 
 const DIRECTIONS = ['north', 'east', 'south', 'west']
 const MOVE_DELTAS = {
@@ -634,6 +637,42 @@ export function generateLevel10Layout() {
   }
 }
 
+export function generateLevel11Layout() {
+  return {
+    walls: [
+      { x: 0, y: 4 },
+      { x: 1, y: 4 },
+      { x: 4, y: 4 },
+      { x: 4, y: 3 },
+      { x: 3, y: 0 },
+      { x: 4, y: 0 },
+      { x: 0, y: 0 },
+    ],
+    objects: [
+      { type: 'ship_part', x: 1, y: 3 },
+      { type: 'ship_part', x: 2, y: 3 },
+      { type: 'ship_part', x: 3, y: 3 },
+      { type: 'ship_part', x: 3, y: 2 },
+      { type: 'ship_part', x: 3, y: 1 },
+      { type: 'ship_part', x: 1, y: 1 },
+      { type: 'ship_part', x: 2, y: 1 },
+    ],
+    solution: [
+      createRepeatCommand(3, ['F', 'C']),
+      createIfBoxAheadCommand([
+        'TL',
+        createRepeatCommand(2, ['F', 'C']),
+        'TL',
+        createRepeatCommand(2, ['F', 'C']),
+        'F',
+      ]),
+    ],
+    lumaStart: { ...L11_START },
+    goal: { ...L11_GOAL },
+    lumaFacing: 'east',
+  }
+}
+
 export const LEVELS = [
   {
     id: 1,
@@ -932,6 +971,39 @@ export const LEVELS = [
     targetCommands: 14,
     uncertainRadio: false,
     allowRepeat: true,
+    repeatDefaults: { times: 2 },
+  },
+  {
+    id: 11,
+    name: 'Launch Site Logic',
+    world: 'launch-site',
+    tutorial: false,
+    grid: { cols: COLS, rows: ROWS },
+    lumaStart: { ...L11_START },
+    lumaFacing: 'east',
+    goal: { ...L11_GOAL },
+    walls: [],
+    objects: [],
+    fog: false,
+    sptQuestion: {
+      prompt: 'Which direction is LUMA facing?',
+      options: ['↑ Up', '→ Right', '↓ Down', '← Left'],
+      correct: null,
+    },
+    solution: null,
+    decompositionPrompt: false,
+    predictionPrompt: false,
+    mirrorControls: false,
+    echoPosition: null,
+    strategyCardAfter: false,
+    noVisorFlip: false,
+    skipIdentify: false,
+    noRadio: false,
+    layoutGenerator: 'level11',
+    targetCommands: 13,
+    uncertainRadio: false,
+    allowRepeat: true,
+    allowIfBoxAhead: true,
     repeatDefaults: { times: 2 },
   },
 ]

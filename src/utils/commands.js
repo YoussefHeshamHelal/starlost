@@ -7,6 +7,10 @@ function cloneNestedCommands(commands = []) {
       return createRepeatCommand(command.times, cloneNestedCommands(command.commands))
     }
 
+    if (isIfBoxAheadCommand(command)) {
+      return createIfBoxAheadCommand(cloneNestedCommands(command.commands))
+    }
+
     return command
   })
 }
@@ -23,13 +27,28 @@ export function createRepeatCommand(times = 2, commands = []) {
   }
 }
 
+export function createIfBoxAheadCommand(commands = []) {
+  return {
+    type: 'IF_BOX_AHEAD',
+    commands: cloneNestedCommands(commands),
+  }
+}
+
 export function isRepeatCommand(command) {
   return Boolean(command) && typeof command === 'object' && command.type === 'REPEAT'
 }
 
+export function isIfBoxAheadCommand(command) {
+  return Boolean(command) && typeof command === 'object' && command.type === 'IF_BOX_AHEAD'
+}
+
+export function isNestedBlockCommand(command) {
+  return isRepeatCommand(command) || isIfBoxAheadCommand(command)
+}
+
 export function countProgramBlocks(sequence = []) {
   return sequence.reduce((total, command) => {
-    if (isRepeatCommand(command)) {
+    if (isNestedBlockCommand(command)) {
       return total + 1 + countProgramBlocks(command.commands ?? [])
     }
 
@@ -52,6 +71,11 @@ export function expandSequence(sequence = []) {
       return
     }
 
+    if (isIfBoxAheadCommand(command)) {
+      expanded.push(command)
+      return
+    }
+
     if (typeof command === 'string') {
       expanded.push(command)
     }
@@ -67,7 +91,17 @@ export function formatSequenceCommand(command) {
       kind: 'repeat',
       label: `REPEAT x${command.times}`,
       summary: `${childCount} BLOCK${childCount === 1 ? '' : 'S'} INSIDE`,
-      icon: '↻',
+      icon: 'repeat',
+    }
+  }
+
+  if (isIfBoxAheadCommand(command)) {
+    const childCount = command.commands?.length ?? 0
+    return {
+      kind: 'if',
+      label: 'IF BOX AHEAD',
+      summary: `${childCount} BLOCK${childCount === 1 ? '' : 'S'} INSIDE`,
+      icon: 'if',
     }
   }
 

@@ -20,7 +20,7 @@ const GRID_PX  = 520   // 5 tiles × 104 px
 const PANEL_W  = 620
 const GAP      = 24
 const EARLY_MAP_SCALE = 1.1
-const PLAYABLE_LEVELS = 10
+const PLAYABLE_LEVELS = 11
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
 
 // ── CSS keyframe animations ───────────────────────────────────────────────────
@@ -1109,7 +1109,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     if (tutorialSteps.length > 0) return undefined
 
     const autoTutorialReady =
-      (levelConfig.id !== 5 && levelConfig.id !== 7) || phase === 'develop'
+      (levelConfig.id !== 5 && levelConfig.id !== 7 && levelConfig.id !== 11) || phase === 'develop'
 
     if (!autoTutorialReady) {
       return undefined
@@ -1198,7 +1198,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     levelConfig.id !== 4 &&
     levelConfig.id !== 8 &&
     (levelConfig.id !== 5 || phase === 'develop') &&
-    (levelConfig.id !== 7 || phase === 'develop')
+    (levelConfig.id !== 7 || phase === 'develop') &&
+    (levelConfig.id !== 11 || phase === 'develop')
   const handleReplayTutorial = useCallback(() => {
     if (!canReplayTutorial) return
 
@@ -1425,6 +1426,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                   showPhaseLabel={!levelConfig.skipIdentify}
                   showRepeat={Boolean(levelConfig.allowRepeat)}
                   showCollect={levelConfig.id >= 5}
+                  showIfBoxAhead={Boolean(levelConfig.allowIfBoxAhead)}
                   repeatDefaults={levelConfig.repeatDefaults}
                 />
               </motion.div>

@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import LumaSprite from './LumaSprite'
 import CrashSiteBackground from './CrashSiteBackground'
 import ForestTrailBackground from './ForestTrailBackground'
+import LaunchSiteBackground from './LaunchSiteBackground'
 import { ThemeContext } from '../context/theme'
 
 const DEFAULT_TILE_SIZE = 104
@@ -17,6 +18,9 @@ function getTileInDirection(luma, relDir, level) {
   const forestObstacle = level.world === 'forest-trail'
     ? { type: 'forest_tree', label: 'FOREST TREE!', emoji: '\u{1F332}', color: '#65a30d' }
     : { type: 'rock', label: 'BIG ROCK!', emoji: '🪨', color: '#c0845a' }
+  const worldObstacle = level.world === 'launch-site'
+    ? { type: 'launch_box', label: 'REPAIR BOX!', emoji: '\u{1F4E6}', color: '#38bdf8' }
+    : forestObstacle
   const facingIdx = DIRECTIONS.indexOf(luma.facing)
 
   const offsets = { front: 0, right: 1, back: 2, left: 3 }
@@ -29,14 +33,14 @@ function getTileInDirection(luma, relDir, level) {
   if (ax < 0 || ax >= grid.cols || ay < 0 || ay >= grid.rows)
     return { type: 'boundary', label: 'WALL!', emoji: '🚧', color: '#64748b' }
   if (walls.some(w => w.x === ax && w.y === ay))
-    return forestObstacle
+    return worldObstacle
   if (goal && goal.x === ax && goal.y === ay)
     return { type: 'goal', label: 'SHIP CORE!', emoji: '⭐', color: '#f59e0b' }
   const obj = objects.find(o => o.x === ax && o.y === ay)
   if (obj?.type === 'ship_part')
     return { type: 'ship_part', label: 'SHIP PIECE!', emoji: '🛸', color: '#38bdf8' }
   if (obj?.type === 'rock')
-    return forestObstacle
+    return worldObstacle
   return { type: 'open', label: 'ALL CLEAR!', emoji: '✅', color: '#4ade80' }
 }
 
@@ -282,6 +286,51 @@ function RockObstacle() {
   )
 }
 
+function CargoCrateObstacle() {
+  return (
+    <svg width={68} height={58} viewBox="0 0 68 58" fill="none">
+      <defs>
+        <linearGradient id="crate_top" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#9fb7c7" />
+          <stop offset="55%" stopColor="#5f788c" />
+          <stop offset="100%" stopColor="#283b4c" />
+        </linearGradient>
+        <linearGradient id="crate_front" x1="0" y1="0" x2="0.85" y2="1">
+          <stop offset="0%" stopColor="#7892a5" />
+          <stop offset="52%" stopColor="#40576a" />
+          <stop offset="100%" stopColor="#172535" />
+        </linearGradient>
+        <linearGradient id="crate_side" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#526b7f" />
+          <stop offset="100%" stopColor="#101c2a" />
+        </linearGradient>
+        <radialGradient id="crate_glow" cx="50%" cy="50%" r="60%">
+          <stop offset="0%" stopColor="#67e8f9" stopOpacity="0.8" />
+          <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0" />
+        </radialGradient>
+        <filter id="crate_shadow" x="-20%" y="-20%" width="140%" height="150%">
+          <feDropShadow dx="2" dy="5" stdDeviation="3" floodColor="#020617" floodOpacity="0.62" />
+        </filter>
+      </defs>
+      <ellipse cx="35" cy="53" rx="27" ry="5" fill="#020617" opacity="0.48" />
+      <g filter="url(#crate_shadow)">
+        <path d="M12 17 L28 7 L56 14 L40 25 Z" fill="url(#crate_top)" stroke="#b7d4e6" strokeWidth="1.2" />
+        <path d="M12 17 L40 25 L40 48 L12 39 Z" fill="url(#crate_front)" stroke="#b7d4e6" strokeWidth="1.2" />
+        <path d="M40 25 L56 14 L56 38 L40 48 Z" fill="url(#crate_side)" stroke="#8fb6cc" strokeWidth="1.2" />
+        <path d="M18 21 L34 26 L34 40 L18 35 Z" fill="#102132" opacity="0.34" />
+        <path d="M44 27 L52 22 L52 34 L44 39 Z" fill="#071522" opacity="0.38" />
+        <path d="M12 28 L40 37 M22 20 L22 42 M31 23 L31 45 M40 25 L40 48" stroke="#dff7ff" strokeOpacity="0.2" strokeWidth="1" />
+        <path d="M17 14 L45 21" stroke="#e0f2fe" strokeOpacity="0.36" strokeWidth="1.3" />
+        <rect x="21" y="28" width="12" height="4" rx="1.3" transform="rotate(16 21 28)" fill="#67e8f9" opacity="0.76" />
+        <circle cx="47" cy="31" r="7" fill="url(#crate_glow)" opacity="0.55">
+          <animate attributeName="opacity" values="0.3;0.7;0.3" dur="1.8s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="47" cy="31" r="2.2" fill="#e0faff" />
+      </g>
+    </svg>
+  )
+}
+
 function CollectionBurst({ effect, tileSize, theme }) {
   if (!effect.carriesPart) return null
 
@@ -504,6 +553,87 @@ const STAR_DATA = [
 
 // ── Helper: background scene fill per tile type ──────────────────────────
 // Returns SVG path/shape data for what occupies a zone
+function VisorRepairBox({ zone, W, H }) {
+  const isFront = zone === 'front'
+  const isLeft = zone === 'left'
+  const cx = isFront ? W * 0.5 : isLeft ? W * 0.06 : W * 0.94
+  const cy = isFront ? H * 0.45 : H * 0.48
+  const scale = isFront ? 1.35 : 1.18
+  const s = Math.min(W, H) * (isFront ? 0.23 : 0.22)
+  const mirror = !isFront
+  const u = s * scale
+  const point = (x, y) => ({ x: cx + x * u, y: cy + y * u })
+  const path = points => points.map((pt, index) => `${index === 0 ? 'M' : 'L'}${pt.x},${pt.y}`).join(' ') + ' Z'
+  const topLeft = point(-0.62, -0.18)
+  const topBack = point(-0.18, -0.48)
+  const topRightBack = point(0.64, -0.28)
+  const topRight = point(0.24, 0.08)
+  const bottomLeft = point(-0.62, 0.62)
+  const bottomRight = point(0.24, 0.86)
+  const sideBottom = point(0.64, 0.56)
+  const shadowCenter = point(0.04, isFront ? 0.99 : 0.94)
+  const panel = point(-0.44, 0.1)
+  const glow = point(0.36, 0.08)
+  const labelStart = point(-0.35, -0.31)
+  const labelEnd = point(0.3, -0.12)
+
+  return (
+    <g transform={mirror ? `translate(${2 * cx} 0) scale(-1 1)` : undefined}>
+      <ellipse cx={shadowCenter.x} cy={shadowCenter.y} rx={u * (isFront ? 0.6 : 0.58)} ry={u * (isFront ? 0.105 : 0.11)} fill="#020617" opacity={isFront ? 0.48 : 0.54} />
+      <g filter="url(#visor_box_shadow)">
+        <path
+          d={path([topLeft, topBack, topRightBack, topRight])}
+          fill="url(#box_front_top)"
+          stroke="#dbeafe"
+          strokeWidth={isFront ? 2 : 1.5}
+        />
+        <path
+          d={path([topLeft, topRight, bottomRight, bottomLeft])}
+          fill="url(#box_front_face)"
+          stroke="#dbeafe"
+          strokeWidth={isFront ? 2 : 1.5}
+        />
+        <path
+          d={path([topRight, topRightBack, sideBottom, bottomRight])}
+          fill="url(#box_front_side)"
+          stroke="#93c5fd"
+          strokeWidth={isFront ? 2 : 1.5}
+        />
+        <path
+          d={`M${topLeft.x + u * 0.11},${topLeft.y + u * 0.18} L${topRight.x - u * 0.18},${topRight.y + u * 0.16}
+              M${topLeft.x + u * 0.08},${topLeft.y + u * 0.44} L${topRight.x - u * 0.08},${topRight.y + u * 0.52}
+              M${topRight.x},${topRight.y} L${bottomRight.x},${bottomRight.y}`}
+          stroke="#e0f2fe"
+          strokeOpacity="0.24"
+          strokeWidth={isFront ? 2 : 1.4}
+          strokeLinecap="round"
+        />
+        <rect
+          x={panel.x}
+          y={panel.y}
+          width={u * 0.22}
+          height={u * 0.08}
+          rx={u * 0.025}
+          fill="#67e8f9"
+          opacity="0.75"
+          transform={`rotate(11 ${panel.x} ${panel.y})`}
+        />
+        <circle cx={glow.x} cy={glow.y} r={u * 0.085} fill="url(#box_light_glow)" opacity="0.72">
+          <animate attributeName="opacity" values="0.32;0.78;0.32" dur="1.7s" repeatCount="indefinite" />
+        </circle>
+        <circle cx={glow.x} cy={glow.y} r={u * 0.026} fill="#e0faff" />
+        <path
+          d={`M${labelStart.x},${labelStart.y} L${labelEnd.x},${labelEnd.y}`}
+          stroke="#e0f2fe"
+          strokeOpacity="0.38"
+          strokeWidth={isFront ? 1.8 : 1.2}
+          strokeLinecap="round"
+        />
+      </g>
+    </g>
+  )
+}
+
 function ZoneContent({ tile, zone, W, H }) {
   // zone: 'front' | 'left' | 'right'
   // Each zone renders its terrain from LUMA's POV perspective
@@ -668,6 +798,10 @@ function ZoneContent({ tile, zone, W, H }) {
         />
       </g>
     )
+  }
+
+  if (tile.type === 'launch_box') {
+    return <VisorRepairBox zone={zone} W={W} H={H} />
   }
 
   if (tile.type === 'rock' || tile.type === 'boundary') {
@@ -911,11 +1045,16 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
   const aheadAccent =
     ahead.type === 'forest_tree' ? '#65a30d' :
     ahead.type === 'rock'      ? '#c0845a' :
+    ahead.type === 'launch_box' ? '#38bdf8' :
     ahead.type === 'boundary'  ? '#64748b' :
     ahead.type === 'ship_part' ? '#38bdf8' :
     ahead.type === 'goal'      ? '#f59e0b' :
     '#2dd4bf'
-  const visorLabel = tile => tile.type === 'boundary' ? 'BOUNDARY' : tile.label
+  const visorLabel = tile => {
+    if (tile.type === 'boundary') return 'BOUNDARY'
+    if (tile.type === 'launch_box') return 'REPAIR BOX'
+    return tile.label
+  }
 
   return (
     <motion.div
@@ -968,6 +1107,25 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
             <stop offset="60%" stopColor="#7a4c22"/>
             <stop offset="100%" stopColor="#3c2008"/>
           </linearGradient>
+          <linearGradient id="box_front_top" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#a8c5d8"/>
+            <stop offset="55%" stopColor="#5d7890"/>
+            <stop offset="100%" stopColor="#26384a"/>
+          </linearGradient>
+          <linearGradient id="box_front_face" x1="0" y1="0" x2="0.9" y2="1">
+            <stop offset="0%" stopColor="#7c98ad"/>
+            <stop offset="58%" stopColor="#354d62"/>
+            <stop offset="100%" stopColor="#0d1b2b"/>
+          </linearGradient>
+          <linearGradient id="box_front_side" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#526e84"/>
+            <stop offset="100%" stopColor="#0a1624"/>
+          </linearGradient>
+          <radialGradient id="box_light_glow" cx="50%" cy="50%" r="56%">
+            <stop offset="0%" stopColor="#e0faff" stopOpacity="0.96"/>
+            <stop offset="42%" stopColor="#67e8f9" stopOpacity="0.54"/>
+            <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0"/>
+          </radialGradient>
           {/* Forest tree gradients */}
           <linearGradient id="tree_front_trunk" x1="0.15" y1="0" x2="0.85" y2="1">
             <stop offset="0%" stopColor="#8b5a2b"/>
@@ -1035,6 +1193,9 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
           <filter id="glowFilter" x="-30%" y="-30%" width="160%" height="160%">
             <feGaussianBlur stdDeviation="6" result="blur"/>
             <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="visor_box_shadow" x="-20%" y="-20%" width="140%" height="150%">
+            <feDropShadow dx="2" dy="5" stdDeviation="3" floodColor="#020617" floodOpacity="0.58" />
           </filter>
         </defs>
 
@@ -1383,17 +1544,23 @@ export default function GameGrid({
   const gridBoxShadow   = isLight
     ? '0 4px 32px rgba(20,184,166,0.18), 0 0 0 2px #14b8a644'
     : '0 0 60px rgba(45,212,191,0.08), 0 0 0 1.5px #1e2a42'
-  const firstRock = walls[0] ?? objects.find(objectItem => objectItem.type === 'rock') ?? null
+  const firstObstacle = walls[0] ?? objects.find(objectItem => objectItem.type === 'rock') ?? null
   const shipParts = objects.filter(objectItem => objectItem.type === 'ship_part')
   const firstShipFragment = shipParts.find((part, index) => !collectedParts.has(index)) ?? null
   const isForestTrail = activeLevel.world === 'forest-trail'
-  const ObstacleVisual = isForestTrail ? ForestTreeObstacle : RockObstacle
-  const BackgroundComponent = isForestTrail ? ForestTrailBackground : CrashSiteBackground
+  const isLaunchSite = activeLevel.world === 'launch-site'
+  const ObstacleVisual = isLaunchSite ? CargoCrateObstacle : isForestTrail ? ForestTreeObstacle : RockObstacle
+  const BackgroundComponent = isLaunchSite ? LaunchSiteBackground : isForestTrail ? ForestTrailBackground : CrashSiteBackground
+  const scanLabel = isLaunchSite
+    ? 'ORBITAL SCAN - LAUNCH SITE W3'
+    : isForestTrail
+      ? 'ORBITAL SCAN - FOREST TRAIL W2'
+      : 'ORBITAL SCAN - CRASH SITE W1'
 
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
       <div data-tutorial-id="grid-label" style={{ fontSize:9, color: scanLabelColor, fontFamily:'monospace', letterSpacing:3, opacity: isLight ? 0.9 : 0.5, fontWeight: isLight ? 700 : 400 }}>
-        {isForestTrail ? 'ORBITAL SCAN - FOREST TRAIL W2' : 'ORBITAL SCAN - CRASH SITE W1'}
+        {scanLabel}
       </div>
 
       <AnimatePresence>
@@ -1435,7 +1602,7 @@ export default function GameGrid({
                 data-tutorial-id={
                   luma.x === col && luma.y === row ? 'luma-marker'
                   : isGoal ? 'goal-marker'
-                  : firstRock && firstRock.x === col && firstRock.y === row ? 'rock-tile'
+                  : firstObstacle && firstObstacle.x === col && firstObstacle.y === row ? (isLaunchSite ? 'box-tile' : 'rock-tile')
                   : firstShipFragment && firstShipFragment.x === col && firstShipFragment.y === row ? 'ship-fragment-tile'
                   : undefined
                 }
