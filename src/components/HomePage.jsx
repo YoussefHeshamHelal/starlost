@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { useTheme, THEMES } from '../context/theme'
 
-const PLAYABLE_LEVELS = 11
+const PLAYABLE_LEVELS = 12
 const HOME_MAPS = [
   { id: 'crash-site', title: 'Crash Site', levels: [1, 2, 3, 4, 5], accent: 'teal' },
   { id: 'forest-trail', title: 'Forest Trail', levels: [6, 7, 8, 9, 10], accent: 'amber' },
@@ -145,7 +145,7 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                 color: t.textSecondary,
                 maxWidth: 620,
               }}>
-                Crash Site, Forest Trail, and the first Launch Site mission are live now.
+                Crash Site, Forest Trail, and the first two Launch Site missions are live now.
               </p>
             </div>
 
@@ -172,7 +172,7 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                 LIVE NOW
               </p>
               <p style={{ margin: 0, fontSize: 13, color: t.textSecondary, fontWeight: 700 }}>
-                Levels 1-11 ready to play
+                Levels 1-12 ready to play
               </p>
             </div>
           </motion.div>

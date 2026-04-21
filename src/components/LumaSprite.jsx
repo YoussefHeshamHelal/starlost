@@ -681,9 +681,10 @@ function LumaStanding({ size, facing, collectEffectKey = null, collectFacing = n
       {directions.map((dir) => {
         const Sprite = sprites[dir]
         const isActive = facing === dir
+        const activeCollectKey = isActive && collectFacing === dir ? collectEffectKey : null
         return (
           <motion.div
-            key={dir}
+            key={`${dir}-${activeCollectKey ?? 'idle'}`}
             animate={{ opacity: isActive ? 1 : 0, scale: isActive ? 1 : 0.97 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
             style={{
@@ -698,7 +699,7 @@ function LumaStanding({ size, facing, collectEffectKey = null, collectFacing = n
               pointerEvents:   'none',
             }}
           >
-            <Sprite collectEffectKey={isActive && collectFacing === dir ? collectEffectKey : null}/>
+            <Sprite collectEffectKey={activeCollectKey}/>
           </motion.div>
         )
       })}

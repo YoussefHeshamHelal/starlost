@@ -20,7 +20,7 @@ const GRID_PX  = 520   // 5 tiles × 104 px
 const PANEL_W  = 620
 const GAP      = 24
 const EARLY_MAP_SCALE = 1.1
-const PLAYABLE_LEVELS = 11
+const PLAYABLE_LEVELS = 12
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
 
 // ── CSS keyframe animations ───────────────────────────────────────────────────
@@ -233,6 +233,15 @@ const ARROW_META = {
   "← Left":  { symbol: '←', label: 'Left',  gridArea: 'left'   },
 }
 
+function normalizeDirectionOption(option) {
+  if (ARROW_META[option]) return option
+  if (option?.includes('Up')) return '↑ Up'
+  if (option?.includes('Right')) return '→ Right'
+  if (option?.includes('Down')) return '↓ Down'
+  if (option?.includes('Left')) return '← Left'
+  return option
+}
+
 const COMPASS_AREAS = `
   ".     top    ."
   "left  center right"
@@ -353,14 +362,15 @@ const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, s
           <div style={{ width: 5, height: 5, borderRadius: '50%', background: theme === 'light' ? '#38c9dd66' : '#2dd4bf44' }}/>
         </div>
         {question.options.map(option => {
-          const isSelected = sptAnswer === option
+          const normalizedOption = normalizeDirectionOption(option)
+          const isSelected = normalizeDirectionOption(sptAnswer) === normalizedOption
           const isCorrect  = isSelected && sptCorrect
           const isWrong    = isSelected && !sptCorrect
           return (
             <DiamondButton
-              key={option} option={option}
+              key={normalizedOption} option={normalizedOption}
               isSelected={isSelected} isCorrect={isCorrect} isWrong={isWrong}
-              disabled={sptCorrect} onClick={onAnswer}
+              disabled={sptCorrect} onClick={() => onAnswer(normalizedOption)}
             />
           )
         })}

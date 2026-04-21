@@ -11,6 +11,7 @@ import {
   generateLevel9Layout,
   generateLevel10Layout,
   generateLevel11Layout,
+  generateLevel12Layout,
 } from '../data/levels'
 import { clampRepeatTimes, countProgramBlocks, isIfBoxAheadCommand, isRepeatCommand } from '../utils/commands'
 
@@ -258,12 +259,15 @@ function findUncollectedShipPartIndex(shipParts, luma, collectedIndices) {
   )
 }
 
+let collectionEffectSerial = 0
+
 function createCollectionEffect(luma, partIndex = null) {
   const kind = partIndex === null ? 'empty-collect' : 'real-collect'
   const indexKey = partIndex === null ? 'empty' : partIndex
+  collectionEffectSerial += 1
 
   return {
-    id: `${kind}-${indexKey}-${Date.now()}`,
+    id: `${kind}-${indexKey}-${Date.now()}-${collectionEffectSerial}`,
     index: partIndex,
     kind,
     carriesPart: partIndex !== null,
@@ -286,6 +290,7 @@ function generateLayout(generatorKey, facing) {
     case 'level9': return generateLevel9Layout(facing)
     case 'level10': return generateLevel10Layout(facing)
     case 'level11': return generateLevel11Layout(facing)
+    case 'level12': return generateLevel12Layout(facing)
     default: return { walls: [], objects: [], solution: null }
   }
 }
@@ -355,6 +360,13 @@ export function useGameState(levelConfig, animSpeed = 50) {
   const [phase, setPhase] = useState(() => levelConfig.skipIdentify ? 'develop' : 'identify')
   const [sptAnswer, setSptAnswer]         = useState(null)
   const [sptCorrect, setSptCorrect]       = useState(false)
+
+  useEffect(() => {
+    if (levelConfig.id !== 12) return
+    setPhase(levelConfig.skipIdentify ? 'develop' : 'identify')
+    setSptAnswer(null)
+    setSptCorrect(false)
+  }, [levelConfig.id, levelConfig.skipIdentify])
 
 
   // ── Level 2/3/4 uncertain radio ───────────────────────────────────────────

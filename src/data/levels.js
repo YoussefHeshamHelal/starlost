@@ -56,7 +56,10 @@ const L10_START = { x: 0, y: 1 }
 const L10_GOAL = { x: 3, y: 3 }
 
 const L11_START = { x: 0, y: 3 }
-const L11_GOAL = { x: 0, y: 1 }
+const L11_GOAL = { x: 4, y: 1 }
+
+const L12_START = { x: 0, y: 3 }
+const L12_GOAL = { x: 0, y: 1 }
 
 const DIRECTIONS = ['north', 'east', 'south', 'west']
 const MOVE_DELTAS = {
@@ -640,6 +643,35 @@ export function generateLevel10Layout() {
 export function generateLevel11Layout() {
   return {
     walls: [
+      { x: 0, y: 0 },
+      { x: 4, y: 4 },
+      { x: 0, y: 4 },
+      { x: 4, y: 0 },
+    ],
+    objects: [
+      { type: 'ship_part', x: 0, y: 2 },
+      { type: 'ship_part', x: 0, y: 1 },
+      { type: 'ship_part', x: 2, y: 1 },
+      { type: 'ship_part', x: 3, y: 1 },
+    ],
+    solution: [
+      createRepeatCommand(2, ['F', 'C']),
+      createIfBoxAheadCommand([
+        'TR',
+        'F',
+        createRepeatCommand(2, ['F', 'C']),
+        'F',
+      ]),
+    ],
+    lumaStart: { ...L11_START },
+    goal: { ...L11_GOAL },
+    lumaFacing: 'north',
+  }
+}
+
+export function generateLevel12Layout() {
+  return {
+    walls: [
       { x: 0, y: 4 },
       { x: 1, y: 4 },
       { x: 4, y: 4 },
@@ -667,8 +699,8 @@ export function generateLevel11Layout() {
         'F',
       ]),
     ],
-    lumaStart: { ...L11_START },
-    goal: { ...L11_GOAL },
+    lumaStart: { ...L12_START },
+    goal: { ...L12_GOAL },
     lumaFacing: 'east',
   }
 }
@@ -980,7 +1012,7 @@ export const LEVELS = [
     tutorial: false,
     grid: { cols: COLS, rows: ROWS },
     lumaStart: { ...L11_START },
-    lumaFacing: 'east',
+    lumaFacing: 'north',
     goal: { ...L11_GOAL },
     walls: [],
     objects: [],
@@ -1000,6 +1032,39 @@ export const LEVELS = [
     skipIdentify: false,
     noRadio: false,
     layoutGenerator: 'level11',
+    targetCommands: 11,
+    uncertainRadio: false,
+    allowRepeat: true,
+    allowIfBoxAhead: true,
+    repeatDefaults: { times: 2 },
+  },
+  {
+    id: 12,
+    name: 'Launch Site Logic',
+    world: 'launch-site',
+    tutorial: false,
+    grid: { cols: COLS, rows: ROWS },
+    lumaStart: { ...L12_START },
+    lumaFacing: 'east',
+    goal: { ...L12_GOAL },
+    walls: [],
+    objects: [],
+    fog: false,
+    sptQuestion: {
+      prompt: 'Which direction is LUMA facing?',
+      options: ['↑ Up', '→ Right', '↓ Down', '← Left'],
+      correct: null,
+    },
+    solution: null,
+    decompositionPrompt: false,
+    predictionPrompt: false,
+    mirrorControls: false,
+    echoPosition: null,
+    strategyCardAfter: false,
+    noVisorFlip: false,
+    skipIdentify: false,
+    noRadio: false,
+    layoutGenerator: 'level12',
     targetCommands: 13,
     uncertainRadio: false,
     allowRepeat: true,
