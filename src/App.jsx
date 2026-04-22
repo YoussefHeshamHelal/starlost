@@ -1207,6 +1207,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     levelConfig.id !== 10 &&
     levelConfig.id !== 4 &&
     levelConfig.id !== 8 &&
+    levelConfig.id !== 12 &&
     (levelConfig.id !== 5 || phase === 'develop') &&
     (levelConfig.id !== 7 || phase === 'develop') &&
     (levelConfig.id !== 11 || phase === 'develop')

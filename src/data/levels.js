@@ -651,17 +651,19 @@ export function generateLevel11Layout() {
     objects: [
       { type: 'ship_part', x: 0, y: 2 },
       { type: 'ship_part', x: 0, y: 1 },
+      { type: 'ship_part', x: 1, y: 1 },
       { type: 'ship_part', x: 2, y: 1 },
       { type: 'ship_part', x: 3, y: 1 },
     ],
     solution: [
-      createRepeatCommand(2, ['F', 'C']),
-      createIfBoxAheadCommand([
-        'TR',
+      createRepeatCommand(5, [
+        createIfBoxAheadCommand([
+          'TR',
+        ]),
         'F',
-        createRepeatCommand(2, ['F', 'C']),
-        'F',
+        'C',
       ]),
+      'F',
     ],
     lumaStart: { ...L11_START },
     goal: { ...L11_GOAL },
@@ -690,14 +692,14 @@ export function generateLevel12Layout() {
       { type: 'ship_part', x: 2, y: 1 },
     ],
     solution: [
-      createRepeatCommand(3, ['F', 'C']),
-      createIfBoxAheadCommand([
-        'TL',
-        createRepeatCommand(2, ['F', 'C']),
-        'TL',
-        createRepeatCommand(2, ['F', 'C']),
+      createRepeatCommand(7, [
+        createIfBoxAheadCommand([
+          'TL',
+        ]),
         'F',
+        'C',
       ]),
+      'F',
     ],
     lumaStart: { ...L12_START },
     goal: { ...L12_GOAL },
@@ -1032,7 +1034,7 @@ export const LEVELS = [
     skipIdentify: false,
     noRadio: false,
     layoutGenerator: 'level11',
-    targetCommands: 11,
+    targetCommands: 6,
     uncertainRadio: false,
     allowRepeat: true,
     allowIfBoxAhead: true,
@@ -1065,7 +1067,7 @@ export const LEVELS = [
     skipIdentify: false,
     noRadio: false,
     layoutGenerator: 'level12',
-    targetCommands: 13,
+    targetCommands: 6,
     uncertainRadio: false,
     allowRepeat: true,
     allowIfBoxAhead: true,
