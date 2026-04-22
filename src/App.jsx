@@ -20,7 +20,7 @@ const GRID_PX  = 520   // 5 tiles × 104 px
 const PANEL_W  = 620
 const GAP      = 24
 const EARLY_MAP_SCALE = 1.1
-const PLAYABLE_LEVELS = 12
+const PLAYABLE_LEVELS = 13
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
 
 // ── CSS keyframe animations ───────────────────────────────────────────────────
@@ -885,6 +885,25 @@ function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER
 const TUTORIAL_LEVELS_KEY = 'starlost:tutorial:levels'
 const TUTORIAL_FEATURES_KEY = 'starlost:tutorial:features'
 const LEVEL_1_RESET_TUTORIAL_KEY = 'level-1-reset'
+const LEVEL_13_EFFICIENT_FRAGMENT = { x: 1, y: 1 }
+const LEVEL_13_CHECKPOINT_TILES = [
+  LEVEL_13_EFFICIENT_FRAGMENT,
+  { x: 3, y: 3 },
+]
+const LEVEL_13_CHECKPOINT_PROMPT = 'Choose which fragment LUMA should reach first to make the path most efficient.'
+const LEVEL_13_CHECKPOINT_SUCCESS = 'Great choice! That fragment makes the path shorter and easier to split into 2 routes.'
+const LEVEL_13_CHECKPOINT_RETRY = 'That could still work, but it would take more blocks. Try to find the fragment that makes the path more efficient.'
+const LEVEL_13_ROUTE_HINT_STEPS = [
+  {
+    id: 'level-13-route-hint-map',
+    targetId: 'grid-panel',
+    placement: 'right',
+    title: 'Now think in 2 routes.',
+    body: 'Route 1 goes to the first fragment. Route 2 goes to the second fragment, then the ship core.',
+    hideProgress: true,
+    nextLabel: 'Ready',
+  },
+]
 
 function readTutorialSessionSet(key) {
   try {
@@ -1030,6 +1049,14 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     predictionTile, setPrediction, predictionResult,
     effectiveLevel, getGBISnapshot,
   } = useGameState(levelConfig, animSpeed)
+  const [checkpointChoiceComplete, setCheckpointChoiceComplete] = useState(false)
+  const [checkpointChoiceFeedback, setCheckpointChoiceFeedback] = useState(null)
+  const [checkpointChoiceSelection, setCheckpointChoiceSelection] = useState(null)
+  const checkpointChoiceFinishTimerRef = useRef(null)
+  const checkpointChoiceActive =
+    levelConfig.id === 13 &&
+    phase === 'develop' &&
+    !checkpointChoiceComplete
 
   const tutorialContext = useMemo(() => ({
     phase,
@@ -1114,6 +1141,50 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
       closeTutorial()
     }
   }, [closeTutorial, startTutorial])
+
+  const handleCheckpointTileClick = useCallback((col, row) => {
+    if (!checkpointChoiceActive) return
+
+    const isEfficientChoice =
+      col === LEVEL_13_EFFICIENT_FRAGMENT.x &&
+      row === LEVEL_13_EFFICIENT_FRAGMENT.y
+
+    setCheckpointChoiceSelection({
+      x: col,
+      y: row,
+      result: isEfficientChoice ? 'success' : 'retry',
+    })
+
+    if (!isEfficientChoice) {
+      setCheckpointChoiceFeedback({
+        type: 'retry',
+        text: LEVEL_13_CHECKPOINT_RETRY,
+      })
+      return
+    }
+
+    setCheckpointChoiceFeedback({
+      type: 'success',
+      text: LEVEL_13_CHECKPOINT_SUCCESS,
+    })
+
+    if (checkpointChoiceFinishTimerRef.current) {
+      window.clearTimeout(checkpointChoiceFinishTimerRef.current)
+    }
+
+    checkpointChoiceFinishTimerRef.current = window.setTimeout(() => {
+      setCheckpointChoiceComplete(true)
+      setCheckpointChoiceFeedback(null)
+      setCheckpointChoiceSelection(null)
+      startTutorial(LEVEL_13_ROUTE_HINT_STEPS)
+    }, 900)
+  }, [checkpointChoiceActive, startTutorial])
+
+  useEffect(() => () => {
+    if (checkpointChoiceFinishTimerRef.current) {
+      window.clearTimeout(checkpointChoiceFinishTimerRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     if (tutorialSteps.length > 0) return undefined
@@ -1210,12 +1281,18 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     levelConfig.id !== 12 &&
     (levelConfig.id !== 5 || phase === 'develop') &&
     (levelConfig.id !== 7 || phase === 'develop') &&
-    (levelConfig.id !== 11 || phase === 'develop')
+    (levelConfig.id !== 11 || phase === 'develop') &&
+    (levelConfig.id !== 13 || phase === 'develop')
   const handleReplayTutorial = useCallback(() => {
     if (!canReplayTutorial) return
 
+    if (levelConfig.id === 13) {
+      launchTutorialWhenReady(LEVEL_13_ROUTE_HINT_STEPS, { persist: false })
+      return
+    }
+
     launchTutorialWhenReady(currentLevelTutorialPlan, { persist: false })
-  }, [canReplayTutorial, currentLevelTutorialPlan, launchTutorialWhenReady])
+  }, [canReplayTutorial, currentLevelTutorialPlan, launchTutorialWhenReady, levelConfig.id])
 
   useEffect(() => {
     if (!onHeaderControls) return undefined
@@ -1362,6 +1439,10 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
               predictionTile={predictionTile}
               predictionResult={predictionResult}
               onTileClick={handleTileClick}
+              checkpointChoiceActive={checkpointChoiceActive}
+              checkpointChoiceTiles={LEVEL_13_CHECKPOINT_TILES}
+              checkpointChoiceSelection={checkpointChoiceSelection}
+              onCheckpointTileClick={handleCheckpointTileClick}
               collectionEffects={collectionEffects}
             />
           </div>
@@ -1414,32 +1495,145 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                     />
                   </div>
                 )}
-                <CommandBuilder
-                  sequence={sequence}
-                  isRunning={isRunning}
-                  isMirrored={isMirrored}
-                  onAdd={handleAddCommand}
-                  onRemove={removeLastCommand}
-                  onClear={clearSequence}
-                  onRun={handleRunSequence}
-                  visorFlipCount={visorFlipCount}
-                  onVisorFlip={handleFlipVisor}
-                  phase={phase}
-                  onReorder={handleReorder}
-                  needsReset={needsReset}
-                  onReset={handleResetLuma}
-                  panelWidth={panelW}
-                  runBlocked={runBlocked}
-                  speed={animSpeed}
-                  onSpeedChange={setAnimSpeed}
-                  showVisorFlip={!levelConfig.noVisorFlip}
-                  targetCommands={levelConfig.targetCommands ?? null}
-                  showPhaseLabel={!levelConfig.skipIdentify}
-                  showRepeat={Boolean(levelConfig.allowRepeat)}
-                  showCollect={levelConfig.id >= 5}
-                  showIfBoxAhead={Boolean(levelConfig.allowIfBoxAhead)}
-                  repeatDefaults={levelConfig.repeatDefaults}
-                />
+                <AnimatePresence>
+                  {checkpointChoiceActive && (
+                    <motion.div
+                      key="checkpoint-choice"
+                      initial={{ opacity: 0, y: -10, scale: 0.94, rotate: -0.6 }}
+                      animate={{
+                        opacity: 1,
+                        y: [ -10, 3, 0 ],
+                        scale: [ 0.94, 1.025, 1 ],
+                        rotate: [ -0.6, 0.35, 0 ],
+                      }}
+                      exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                      transition={{ duration: 0.46, ease: [0.16, 1, 0.3, 1] }}
+                      style={{
+                        position: 'relative',
+                        flexShrink: 0,
+                        overflow: 'hidden',
+                        padding: '14px 16px',
+                        borderRadius: 18,
+                        border: `2px solid ${checkpointChoiceFeedback?.type === 'success' ? '#10b981' : checkpointChoiceFeedback?.type === 'retry' ? '#ef4444' : '#f59e0b'}`,
+                        background: theme === 'light'
+                          ? 'linear-gradient(135deg, rgba(255,255,255,0.97), rgba(255,247,237,0.94))'
+                          : 'linear-gradient(135deg, rgba(13,18,34,0.96), rgba(24,18,8,0.94))',
+                        boxShadow: checkpointChoiceFeedback?.type === 'success'
+                          ? '0 18px 34px rgba(16,185,129,0.20), inset 0 1px 0 rgba(255,255,255,0.42)'
+                          : checkpointChoiceFeedback?.type === 'retry'
+                            ? '0 18px 34px rgba(239,68,68,0.18), inset 0 1px 0 rgba(255,255,255,0.36)'
+                            : theme === 'light'
+                              ? '0 18px 34px rgba(245,158,11,0.18), inset 0 1px 0 rgba(255,255,255,0.72)'
+                              : '0 18px 34px rgba(0,0,0,0.46), 0 0 20px rgba(245,158,11,0.14)',
+                        boxSizing: 'border-box',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <motion.div
+                        aria-hidden="true"
+                        animate={{ x: ['-20%', '120%'], opacity: [0, 0.46, 0] }}
+                        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          bottom: 0,
+                          width: 70,
+                          transform: 'skewX(-18deg)',
+                          background: 'rgba(255,255,255,0.28)',
+                          pointerEvents: 'none',
+                        }}
+                      />
+                      <div style={{
+                        position: 'relative',
+                        display: 'flex',
+                        alignItems: checkpointChoiceFeedback ? 'flex-start' : 'center',
+                        justifyContent: checkpointChoiceFeedback ? 'flex-start' : 'center',
+                        gap: 12,
+                      }}>
+                        <motion.div
+                          animate={{ y: [0, -3, 0], rotate: [0, -4, 4, 0] }}
+                          transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                          style={{
+                            flexShrink: 0,
+                            width: 38,
+                            height: 38,
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: checkpointChoiceFeedback?.type === 'success'
+                              ? 'rgba(16,185,129,0.16)'
+                              : checkpointChoiceFeedback?.type === 'retry'
+                                ? 'rgba(239,68,68,0.14)'
+                                : 'rgba(245,158,11,0.16)',
+                            border: `1.5px solid ${checkpointChoiceFeedback?.type === 'success' ? '#10b98166' : checkpointChoiceFeedback?.type === 'retry' ? '#ef444466' : '#f59e0b66'}`,
+                            fontSize: 20,
+                            color: checkpointChoiceFeedback?.type === 'success' ? '#10b981' : checkpointChoiceFeedback?.type === 'retry' ? '#ef4444' : '#f59e0b',
+                            fontWeight: 1000,
+                            textShadow: '0 1px 0 rgba(0,0,0,0.18), 0 0 8px rgba(255,255,255,0.92), 0 0 14px rgba(245,158,11,0.42)',
+                            lineHeight: 1,
+                          }}
+                        >
+                          ?
+                        </motion.div>
+                        <div style={{ flex: checkpointChoiceFeedback ? 1 : '0 1 auto', minWidth: 0, textAlign: checkpointChoiceFeedback ? 'left' : 'center' }}>
+                          <p style={{
+                            margin: 0,
+                            fontSize: 13,
+                            lineHeight: 1.45,
+                            color: t.textPrimary,
+                            fontWeight: 900,
+                          }}>
+                            {LEVEL_13_CHECKPOINT_PROMPT}
+                          </p>
+                          {checkpointChoiceFeedback && (
+                            <motion.p
+                              initial={{ opacity: 0, y: 4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              style={{
+                                margin: '8px 0 0 0',
+                                fontSize: 12,
+                                lineHeight: 1.45,
+                                color: checkpointChoiceFeedback.type === 'success' ? '#10b981' : '#dc2626',
+                                fontWeight: 800,
+                              }}
+                            >
+                              {checkpointChoiceFeedback.text}
+                            </motion.p>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <div style={{ minHeight: 0, height: '100%', pointerEvents: checkpointChoiceActive ? 'none' : 'auto', opacity: checkpointChoiceActive ? 0.56 : 1 }}>
+                  <CommandBuilder
+                    sequence={sequence}
+                    isRunning={isRunning}
+                    isMirrored={isMirrored}
+                    onAdd={handleAddCommand}
+                    onRemove={removeLastCommand}
+                    onClear={clearSequence}
+                    onRun={handleRunSequence}
+                    visorFlipCount={visorFlipCount}
+                    onVisorFlip={handleFlipVisor}
+                    phase={phase}
+                    onReorder={handleReorder}
+                    needsReset={needsReset}
+                    onReset={handleResetLuma}
+                    panelWidth={panelW}
+                    runBlocked={runBlocked}
+                    speed={animSpeed}
+                    onSpeedChange={setAnimSpeed}
+                    showVisorFlip={!levelConfig.noVisorFlip}
+                    targetCommands={levelConfig.targetCommands ?? null}
+                    showPhaseLabel={!levelConfig.skipIdentify}
+                    showRepeat={Boolean(levelConfig.allowRepeat)}
+                    showCollect={levelConfig.id >= 5}
+                    showIfBoxAhead={Boolean(levelConfig.allowIfBoxAhead)}
+                    repeatDefaults={levelConfig.repeatDefaults}
+                  />
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

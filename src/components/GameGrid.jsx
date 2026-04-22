@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import LumaSprite from './LumaSprite'
 import CrashSiteBackground from './CrashSiteBackground'
 import ForestTrailBackground from './ForestTrailBackground'
-import LaunchSiteBackground from './LaunchSiteBackground'
+import RepairSiteBackground from './RepairSiteBackground'
 import { ThemeContext } from '../context/theme'
 
 const DEFAULT_TILE_SIZE = 104
@@ -18,8 +18,8 @@ function getTileInDirection(luma, relDir, level) {
   const forestObstacle = level.world === 'forest-trail'
     ? { type: 'forest_tree', label: 'FOREST TREE!', emoji: '\u{1F332}', color: '#65a30d' }
     : { type: 'rock', label: 'BIG ROCK!', emoji: '🪨', color: '#c0845a' }
-  const worldObstacle = level.world === 'launch-site'
-    ? { type: 'launch_box', label: 'REPAIR BOX!', emoji: '\u{1F4E6}', color: '#38bdf8' }
+  const worldObstacle = level.world === 'repair-site'
+    ? { type: 'repair_box', label: 'REPAIR BOX!', emoji: '\u{1F4E6}', color: '#38bdf8' }
     : forestObstacle
   const facingIdx = DIRECTIONS.indexOf(luma.facing)
 
@@ -800,7 +800,7 @@ function ZoneContent({ tile, zone, W, H }) {
     )
   }
 
-  if (tile.type === 'launch_box') {
+  if (tile.type === 'repair_box') {
     return <VisorRepairBox zone={zone} W={W} H={H} />
   }
 
@@ -1045,14 +1045,14 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
   const aheadAccent =
     ahead.type === 'forest_tree' ? '#65a30d' :
     ahead.type === 'rock'      ? '#c0845a' :
-    ahead.type === 'launch_box' ? '#38bdf8' :
+    ahead.type === 'repair_box' ? '#38bdf8' :
     ahead.type === 'boundary'  ? '#64748b' :
     ahead.type === 'ship_part' ? '#38bdf8' :
     ahead.type === 'goal'      ? '#f59e0b' :
     '#2dd4bf'
   const visorLabel = tile => {
     if (tile.type === 'boundary') return 'BOUNDARY'
-    if (tile.type === 'launch_box') return 'REPAIR BOX'
+    if (tile.type === 'repair_box') return 'REPAIR BOX'
     return tile.label
   }
 
@@ -1507,6 +1507,10 @@ export default function GameGrid({
   predictionModeActive = false,
   predictionTile = null,
   predictionResult = null,
+  checkpointChoiceActive = false,
+  checkpointChoiceTiles = [],
+  checkpointChoiceSelection = null,
+  onCheckpointTileClick,
   collectionEffects = [],
   onTileClick,
   // effectiveLevel: merged level with generated walls/objects (from useGameState)
@@ -1534,6 +1538,7 @@ export default function GameGrid({
     predictionResult === 'correct' ? '#4ade80' :
     predictionResult === 'wrong'   ? '#fb7185' :
     '#38bdf8'
+  const checkpointTiles = checkpointChoiceActive ? checkpointChoiceTiles : []
   const activeLumaCollection = collectionEffects.findLast
     ? collectionEffects.findLast((effect) => effect.x === luma.x && effect.y === luma.y)
     : [...collectionEffects].reverse().find((effect) => effect.x === luma.x && effect.y === luma.y)
@@ -1548,11 +1553,11 @@ export default function GameGrid({
   const shipParts = objects.filter(objectItem => objectItem.type === 'ship_part')
   const firstShipFragment = shipParts.find((part, index) => !collectedParts.has(index)) ?? null
   const isForestTrail = activeLevel.world === 'forest-trail'
-  const isLaunchSite = activeLevel.world === 'launch-site'
-  const ObstacleVisual = isLaunchSite ? CargoCrateObstacle : isForestTrail ? ForestTreeObstacle : RockObstacle
-  const BackgroundComponent = isLaunchSite ? LaunchSiteBackground : isForestTrail ? ForestTrailBackground : CrashSiteBackground
-  const scanLabel = isLaunchSite
-    ? 'ORBITAL SCAN - LAUNCH SITE W3'
+  const isRepairSite = activeLevel.world === 'repair-site'
+  const ObstacleVisual = isRepairSite ? CargoCrateObstacle : isForestTrail ? ForestTreeObstacle : RockObstacle
+  const BackgroundComponent = isRepairSite ? RepairSiteBackground : isForestTrail ? ForestTrailBackground : CrashSiteBackground
+  const scanLabel = isRepairSite
+    ? 'ORBITAL SCAN - REPAIR SITE W3'
     : isForestTrail
       ? 'ORBITAL SCAN - FOREST TRAIL W2'
       : 'ORBITAL SCAN - CRASH SITE W1'
@@ -1585,7 +1590,7 @@ export default function GameGrid({
         position:'relative', width: gridWidth, height: gridHeight,
         borderRadius: 12, overflow: 'hidden',
         boxShadow: gridBoxShadow,
-        cursor: predictionModeActive ? 'crosshair' : 'default',
+        cursor: predictionModeActive ? 'crosshair' : checkpointChoiceActive ? 'pointer' : 'default',
       }}>
         <BackgroundComponent width={gridWidth} height={gridHeight} cols={cols} rows={rows} />
 
@@ -1595,14 +1600,29 @@ export default function GameGrid({
             const isGoal  = goal && goal.x === col && goal.y === row
             const obj     = objects.find(o => o.x === col && o.y === row)
             const isPredicted = predictionTile && predictionTile.x === col && predictionTile.y === row
+            const isCheckpointChoice = checkpointTiles.some(tile => tile.x === col && tile.y === row)
+            const isCheckpointSelected =
+              checkpointChoiceSelection &&
+              checkpointChoiceSelection.x === col &&
+              checkpointChoiceSelection.y === row
+            const checkpointSelectedColor = checkpointChoiceSelection?.result === 'success'
+              ? '#22c55e'
+              : '#ef4444'
             return (
               <div
                 key={`${col}-${row}`}
-                onClick={() => predictionModeActive && onTileClick && onTileClick(col, row)}
+                onClick={() => {
+                  if (checkpointChoiceActive && isCheckpointChoice && onCheckpointTileClick) {
+                    onCheckpointTileClick(col, row)
+                    return
+                  }
+
+                  if (predictionModeActive && onTileClick) onTileClick(col, row)
+                }}
                 data-tutorial-id={
                   luma.x === col && luma.y === row ? 'luma-marker'
                   : isGoal ? 'goal-marker'
-                  : firstObstacle && firstObstacle.x === col && firstObstacle.y === row ? (isLaunchSite ? 'box-tile' : 'rock-tile')
+                  : firstObstacle && firstObstacle.x === col && firstObstacle.y === row ? (isRepairSite ? 'box-tile' : 'rock-tile')
                   : firstShipFragment && firstShipFragment.x === col && firstShipFragment.y === row ? 'ship-fragment-tile'
                   : undefined
                 }
@@ -1652,6 +1672,62 @@ export default function GameGrid({
                     zIndex:3, pointerEvents:'none',
                     transition:'background 0.1s',
                   }}/>
+                )}
+
+                {isCheckpointChoice && (
+                  <motion.div
+                    initial={{ opacity:0, scale:0.78 }}
+                    animate={isCheckpointSelected
+                      ? {
+                          opacity: 1,
+                          scale: [1, 1.08, 1],
+                          rotate: checkpointChoiceSelection.result === 'success' ? [0, -1.5, 1.5, 0] : [0, 1.4, -1.4, 0],
+                        }
+                      : { opacity:[0.76,1,0.76], scale:[1,1.04,1] }}
+                    transition={isCheckpointSelected
+                      ? { duration:0.46, ease:'easeOut' }
+                      : { duration:1.3, repeat:Infinity, ease:'easeInOut' }}
+                    style={{
+                      position:'absolute', inset:0,
+                      border:`4px solid ${isCheckpointSelected ? checkpointSelectedColor : '#f59e0b'}`,
+                      borderRadius:8,
+                      background:isCheckpointSelected
+                        ? `${checkpointSelectedColor}1f`
+                        : 'rgba(245,158,11,0.12)',
+                      zIndex:5,
+                      pointerEvents:'none',
+                      boxSizing:'border-box',
+                      boxShadow:isCheckpointSelected
+                        ? `0 0 26px ${checkpointSelectedColor}99, inset 0 0 22px ${checkpointSelectedColor}33`
+                        : '0 0 18px rgba(245,158,11,0.48), inset 0 0 16px rgba(255,255,255,0.2)',
+                    }}
+                  >
+                    {isCheckpointSelected && (
+                      <motion.div
+                        initial={{ scale: 0.2, opacity: 0 }}
+                        animate={{ scale: [0.2, 1.1, 1], opacity: [0, 1, 1] }}
+                        transition={{ duration: 0.34, ease: 'easeOut' }}
+                        style={{
+                          position:'absolute',
+                          right:6,
+                          top:6,
+                          width:24,
+                          height:24,
+                          borderRadius:'50%',
+                          background:checkpointSelectedColor,
+                          color:'#ffffff',
+                          display:'flex',
+                          alignItems:'center',
+                          justifyContent:'center',
+                          fontSize:15,
+                          fontWeight:900,
+                          boxShadow:`0 0 14px ${checkpointSelectedColor}aa`,
+                        }}
+                      >
+                        {checkpointChoiceSelection.result === 'success' ? '✓' : '!'}
+                      </motion.div>
+                    )}
+                  </motion.div>
                 )}
 
                 {isWall && <div style={{ filter:'drop-shadow(0 4px 8px rgba(0,0,0,0.8))' }}><ObstacleVisual /></div>}

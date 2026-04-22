@@ -12,6 +12,7 @@ import {
   generateLevel10Layout,
   generateLevel11Layout,
   generateLevel12Layout,
+  generateLevel13Layout,
 } from '../data/levels'
 import { clampRepeatTimes, countProgramBlocks, isIfBoxAheadCommand, isRepeatCommand } from '../utils/commands'
 
@@ -77,13 +78,13 @@ function getRandomFrom(arr) {
 
 function getObstacleNoun(world) {
   if (world === 'forest-trail') return 'tree'
-  if (world === 'launch-site') return 'box'
+  if (world === 'repair-site') return 'box'
   return 'rock'
 }
 
 function getObstacleArticle(world) {
   if (world === 'forest-trail') return 'a tree'
-  if (world === 'launch-site') return 'a box'
+  if (world === 'repair-site') return 'a box'
   return 'a rock'
 }
 
@@ -215,7 +216,7 @@ function buildBlockedReport(lumaPos, facing, blockedType, world = 'crash-site') 
 }
 
 function isBoxAhead(luma, walls = [], grid, world) {
-  if (world !== 'launch-site') return false
+  if (world !== 'repair-site') return false
   const delta = MOVE_DELTAS[luma.facing]
   const ahead = { x: luma.x + delta.x, y: luma.y + delta.y }
   if (ahead.x < 0 || ahead.x >= grid.cols || ahead.y < 0 || ahead.y >= grid.rows) return false
@@ -291,6 +292,7 @@ function generateLayout(generatorKey, facing) {
     case 'level10': return generateLevel10Layout(facing)
     case 'level11': return generateLevel11Layout(facing)
     case 'level12': return generateLevel12Layout(facing)
+    case 'level13': return generateLevel13Layout(facing)
     default: return { walls: [], objects: [], solution: null }
   }
 }

@@ -273,7 +273,7 @@ export const FEATURE_TUTORIALS = {
       targetId: 'command-repeat',
       placement: 'top',
       title: 'IF and REPEAT can nest',
-      body: 'REPEAT can go inside IF, and IF can go inside REPEAT. That helps solve Launch Site paths.',
+      body: 'REPEAT can go inside IF, and IF can go inside REPEAT. That helps solve Repair Site paths.',
       waitForTarget: true,
       nextLabel: 'Ready',
     }),
