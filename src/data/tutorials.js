@@ -90,6 +90,56 @@ export const LEVEL_TUTORIALS = {
       nextLabel: 'Yay!',
     }),
   ],
+  7: [
+    levelStep('level-7-repeat-forward', {
+      targetId: 'command-repeat',
+      placement: 'top',
+      title: 'Use Repeat for long straight paths',
+      body: 'Instead of adding four MOVE FORWARD blocks, use REPEAT 4 with MOVE FORWARD inside.',
+      waitForTarget: true,
+      nextLabel: 'Got it',
+    }),
+  ],
+  8: [
+    levelStep('level-8-repeat-then-turn', {
+      targetId: 'sequence-area',
+      placement: 'left',
+      title: 'Turns can stay outside',
+      body: 'Some commands stay outside Repeat when the path changes.',
+      waitForTarget: true,
+      nextLabel: 'Okay',
+    }),
+  ],
+  9: [
+    levelStep('level-9-repeat-pattern', {
+      targetId: 'command-repeat',
+      placement: 'top',
+      title: 'Repeat a pattern',
+      body: 'Repeat can hold more than one command. Everything inside repeats in order.',
+      waitForTarget: true,
+      nextLabel: 'I see',
+    }),
+  ],
+  10: [
+    levelStep('level-10-repeat-fragment', {
+      targetId: 'command-repeat',
+      placement: 'top',
+      title: 'Repeat to the fragment',
+      body: 'Use Repeat to reach the fragment, then Collect.',
+      waitForTarget: true,
+      nextLabel: 'Ready',
+    }),
+  ],
+  11: [
+    levelStep('level-11-repeat-collect-turn', {
+      targetId: 'sequence-area',
+      placement: 'left',
+      title: 'Two small Repeat blocks',
+      body: 'Now use two small Repeat blocks: one before collecting and one after turning.',
+      waitForTarget: true,
+      nextLabel: 'Ready',
+    }),
+  ],
 }
 
 export const FEATURE_TUTORIALS = {
@@ -334,9 +384,8 @@ const LEVEL_FEATURE_ORDER = {
   2: ['rock-obstacle', 'turn-commands'],
   3: ['luma-confused', 'helmet-radio', 'identify-phase', 'facing-question'],
   5: ['ship-fragments', 'collect-command', 'collect-all-fragments'],
-  7: ['repeat-intro'],
-  9: ['uncertain-radio', 'visor-flip-level-9'],
-  11: ['if-box-ahead'],
+  13: ['uncertain-radio', 'visor-flip-level-9'],
+  15: ['if-box-ahead'],
 }
 
 export function getTutorialFeatureKeys(levelConfig, effectiveLevel) {
@@ -350,7 +399,7 @@ export function getTutorialFeatureKeys(levelConfig, effectiveLevel) {
     if (featureKey === 'turn-commands') return levelConfig.id >= 2
     if (featureKey === 'uncertain-radio') return Boolean(levelConfig.uncertainRadio)
     if (featureKey === 'visor-flip') return !levelConfig.noVisorFlip
-    if (featureKey === 'visor-flip-level-9') return levelConfig.id === 9 && !levelConfig.noVisorFlip
+    if (featureKey === 'visor-flip-level-9') return levelConfig.id === 13 && !levelConfig.noVisorFlip
     if (featureKey === 'repeat-intro') return Boolean(levelConfig.allowRepeat)
     if (featureKey === 'repeat-builder') return Boolean(levelConfig.allowRepeat)
     if (featureKey === 'if-box-ahead') return Boolean(levelConfig.allowIfBoxAhead)

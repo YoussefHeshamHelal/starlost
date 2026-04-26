@@ -20,7 +20,7 @@ const GRID_PX  = 520   // 5 tiles × 104 px
 const PANEL_W  = 620
 const GAP      = 24
 const EARLY_MAP_SCALE = 1.1
-const PLAYABLE_LEVELS = 13
+const PLAYABLE_LEVELS = 17
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
 
 // ── CSS keyframe animations ───────────────────────────────────────────────────
@@ -885,17 +885,17 @@ function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER
 const TUTORIAL_LEVELS_KEY = 'starlost:tutorial:levels'
 const TUTORIAL_FEATURES_KEY = 'starlost:tutorial:features'
 const LEVEL_1_RESET_TUTORIAL_KEY = 'level-1-reset'
-const LEVEL_13_EFFICIENT_FRAGMENT = { x: 1, y: 1 }
-const LEVEL_13_CHECKPOINT_TILES = [
-  LEVEL_13_EFFICIENT_FRAGMENT,
+const LEVEL_17_EFFICIENT_FRAGMENT = { x: 1, y: 1 }
+const LEVEL_17_CHECKPOINT_TILES = [
+  LEVEL_17_EFFICIENT_FRAGMENT,
   { x: 3, y: 3 },
 ]
-const LEVEL_13_CHECKPOINT_PROMPT = 'Choose which fragment LUMA should reach first to make the path most efficient.'
-const LEVEL_13_CHECKPOINT_SUCCESS = 'Great choice! That fragment makes the path shorter and easier to split into 2 routes.'
-const LEVEL_13_CHECKPOINT_RETRY = 'That could still work, but it would take more blocks. Try to find the fragment that makes the path more efficient.'
-const LEVEL_13_ROUTE_HINT_STEPS = [
+const LEVEL_17_CHECKPOINT_PROMPT = 'Choose which fragment LUMA should reach first to make the path most efficient.'
+const LEVEL_17_CHECKPOINT_SUCCESS = 'Great choice! That fragment makes the path shorter and easier to split into 2 routes.'
+const LEVEL_17_CHECKPOINT_RETRY = 'That could still work, but it would take more blocks. Try to find the fragment that makes the path more efficient.'
+const LEVEL_17_ROUTE_HINT_STEPS = [
   {
-    id: 'level-13-route-hint-map',
+    id: 'level-17-route-hint-map',
     targetId: 'grid-panel',
     placement: 'right',
     title: 'Now think in 2 routes.',
@@ -943,9 +943,10 @@ function markTutorialPlanSeen(plan, levelId) {
 }
 
 function buildCurrentLevelTutorialPlan(levelId, featureKeys) {
-  return levelId === 1
-    ? getLevelTutorialSteps(levelId)
-    : getFeatureTutorialSteps(featureKeys)
+  return [
+    ...getLevelTutorialSteps(levelId),
+    ...getFeatureTutorialSteps(featureKeys),
+  ]
 }
 
 function getFirstRenderableTutorialStep(plan, tutorialContext) {
@@ -1054,7 +1055,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   const [checkpointChoiceSelection, setCheckpointChoiceSelection] = useState(null)
   const checkpointChoiceFinishTimerRef = useRef(null)
   const checkpointChoiceActive =
-    levelConfig.id === 13 &&
+    levelConfig.id === 17 &&
     phase === 'develop' &&
     !checkpointChoiceComplete
 
@@ -1146,8 +1147,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     if (!checkpointChoiceActive) return
 
     const isEfficientChoice =
-      col === LEVEL_13_EFFICIENT_FRAGMENT.x &&
-      row === LEVEL_13_EFFICIENT_FRAGMENT.y
+      col === LEVEL_17_EFFICIENT_FRAGMENT.x &&
+      row === LEVEL_17_EFFICIENT_FRAGMENT.y
 
     setCheckpointChoiceSelection({
       x: col,
@@ -1158,14 +1159,14 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     if (!isEfficientChoice) {
       setCheckpointChoiceFeedback({
         type: 'retry',
-        text: LEVEL_13_CHECKPOINT_RETRY,
+        text: LEVEL_17_CHECKPOINT_RETRY,
       })
       return
     }
 
     setCheckpointChoiceFeedback({
       type: 'success',
-      text: LEVEL_13_CHECKPOINT_SUCCESS,
+      text: LEVEL_17_CHECKPOINT_SUCCESS,
     })
 
     if (checkpointChoiceFinishTimerRef.current) {
@@ -1176,7 +1177,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
       setCheckpointChoiceComplete(true)
       setCheckpointChoiceFeedback(null)
       setCheckpointChoiceSelection(null)
-      startTutorial(LEVEL_13_ROUTE_HINT_STEPS)
+      startTutorial(LEVEL_17_ROUTE_HINT_STEPS)
     }, 900)
   }, [checkpointChoiceActive, startTutorial])
 
@@ -1190,7 +1191,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     if (tutorialSteps.length > 0) return undefined
 
     const autoTutorialReady =
-      (levelConfig.id !== 5 && levelConfig.id !== 7 && levelConfig.id !== 11) || phase === 'develop'
+      (levelConfig.id !== 5 && levelConfig.id !== 10 && levelConfig.id !== 11 && levelConfig.id !== 15) || phase === 'develop'
 
     if (!autoTutorialReady) {
       return undefined
@@ -1275,19 +1276,19 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   const handleRunSequence = useCallback(() => runSequence(), [runSequence])
   const handleResetLuma = useCallback(() => resetLuma(), [resetLuma])
   const canReplayTutorial =
-    levelConfig.id !== 10 &&
+    levelConfig.id !== 14 &&
     levelConfig.id !== 4 &&
-    levelConfig.id !== 8 &&
     levelConfig.id !== 12 &&
+    levelConfig.id !== 16 &&
     (levelConfig.id !== 5 || phase === 'develop') &&
-    (levelConfig.id !== 7 || phase === 'develop') &&
+    (levelConfig.id !== 10 || phase === 'develop') &&
     (levelConfig.id !== 11 || phase === 'develop') &&
-    (levelConfig.id !== 13 || phase === 'develop')
+    (levelConfig.id !== 17 || phase === 'develop')
   const handleReplayTutorial = useCallback(() => {
     if (!canReplayTutorial) return
 
-    if (levelConfig.id === 13) {
-      launchTutorialWhenReady(LEVEL_13_ROUTE_HINT_STEPS, { persist: false })
+    if (levelConfig.id === 17) {
+      launchTutorialWhenReady(LEVEL_17_ROUTE_HINT_STEPS, { persist: false })
       return
     }
 
@@ -1367,7 +1368,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
           minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
-          gap: levelConfig.id === 9 ? 14 : 10,
+          gap: levelConfig.id === 13 ? 14 : 10,
         }}
       >
       <div style={{
@@ -1407,14 +1408,14 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
         flex: phase === 'identify' ? '0 0 auto' : 1, width: '100%',
         display: 'flex', gap: GAP, alignItems: phase === 'identify' ? 'flex-start' : 'stretch',
         minHeight: phase === 'identify' ? 'auto' : 0,
-        overflow: phase === 'identify' || levelConfig.id === 9 || usesEarlyMapOnlyLayout ? 'visible' : 'hidden',
+        overflow: phase === 'identify' || levelConfig.id === 13 || usesEarlyMapOnlyLayout ? 'visible' : 'hidden',
       }}>
         <div style={{
           flex: '0 0 auto', width: mapFootprintW,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start',
           gap: 10,
           position: 'relative',
-          transform: levelConfig.id === 9 && phase === 'identify' ? 'translateY(-8px)' : 'none',
+          transform: levelConfig.id === 13 && phase === 'identify' ? 'translateY(-8px)' : 'none',
         }}>
           {!levelConfig.noRadio && (
             <div style={{ width: GRID_PX, flexShrink: 0 }}>
@@ -1440,7 +1441,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
               predictionResult={predictionResult}
               onTileClick={handleTileClick}
               checkpointChoiceActive={checkpointChoiceActive}
-              checkpointChoiceTiles={LEVEL_13_CHECKPOINT_TILES}
+              checkpointChoiceTiles={LEVEL_17_CHECKPOINT_TILES}
               checkpointChoiceSelection={checkpointChoiceSelection}
               onCheckpointTileClick={handleCheckpointTileClick}
               collectionEffects={collectionEffects}
@@ -1584,7 +1585,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                             color: t.textPrimary,
                             fontWeight: 900,
                           }}>
-                            {LEVEL_13_CHECKPOINT_PROMPT}
+                            {LEVEL_17_CHECKPOINT_PROMPT}
                           </p>
                           {checkpointChoiceFeedback && (
                             <motion.p
@@ -1629,7 +1630,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                     targetCommands={levelConfig.targetCommands ?? null}
                     showPhaseLabel={!levelConfig.skipIdentify}
                     showRepeat={Boolean(levelConfig.allowRepeat)}
-                    showCollect={levelConfig.id >= 5}
+                    showCollect={levelConfig.allowCollect ?? levelConfig.id >= 5}
                     showIfBoxAhead={Boolean(levelConfig.allowIfBoxAhead)}
                     repeatDefaults={levelConfig.repeatDefaults}
                   />

@@ -162,7 +162,7 @@ function buildUncertainRadioReport(lumaPos, facing, walls = [], objects = [], go
   return "Hmm… I can't tell which way I'm facing. My sensors are acting up. Can you help?"
 }
 
-// ── Level 9 radio helpers ─────────────────────────────────────────────────────
+// ── Old Level 9 / new Level 13 radio helpers ──────────────────────────────────
 function buildLevel9UncertainRadioReport() {
   return "I sense a tree beside me, but my visor is blurry. It might be on my left or my right."
 }
@@ -363,14 +363,6 @@ export function useGameState(levelConfig, animSpeed = 50) {
   const [sptAnswer, setSptAnswer]         = useState(null)
   const [sptCorrect, setSptCorrect]       = useState(false)
 
-  useEffect(() => {
-    if (levelConfig.id !== 12) return
-    setPhase(levelConfig.skipIdentify ? 'develop' : 'identify')
-    setSptAnswer(null)
-    setSptCorrect(false)
-  }, [levelConfig.id, levelConfig.skipIdentify])
-
-
   // ── Level 2/3/4 uncertain radio ───────────────────────────────────────────
   // Pick a fixed uncertain message for this session (so it doesn't change on re-renders)
   const [initialRadioHint] = useState(() => {
@@ -381,7 +373,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
       return null
     }
 
-    if (levelConfig.id === 9 && levelConfig.uncertainRadio) {
+    if (levelConfig.id === 13 && levelConfig.uncertainRadio) {
       return withOpener(buildLevel9UncertainRadioReport())
     }
 
@@ -397,11 +389,11 @@ export function useGameState(levelConfig, animSpeed = 50) {
       ))
     }
 
-    if (levelConfig.id === 8) {
+    if (levelConfig.id === 12) {
       return withOpener("There’s open path in front of me and on my right, but there’s no path behind me or to my left.")
     }
 
-    if (levelConfig.id === 10) {
+    if (levelConfig.id === 14) {
       return withOpener("There is a tree on my left.")
     }
 
@@ -434,17 +426,17 @@ export function useGameState(levelConfig, animSpeed = 50) {
       return initialRadioHint
     }
 
-    if (levelConfig.id === 9 && levelConfig.uncertainRadio && !sptCorrect) {
+    if (levelConfig.id === 13 && levelConfig.uncertainRadio && !sptCorrect) {
       return uncertainMessage
     }
 
     // Level 2/3: show uncertain message until the player flips the visor
     // After flipping, switch to the clear normal message
-    if (levelConfig.id !== 9 && levelConfig.uncertainRadio && !visorFlippedThisLevel) {
+    if (levelConfig.id !== 13 && levelConfig.uncertainRadio && !visorFlippedThisLevel) {
       return uncertainMessage
     }
     if (
-      levelConfig.id === 8 &&
+      levelConfig.id === 12 &&
       luma.x === resolvedStart.x &&
       luma.y === resolvedStart.y &&
       luma.facing === resolvedFacing &&
@@ -453,7 +445,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
       return "There’s open path in front of me and on my right, but there’s no path behind me or to my left."
     }
     if (
-      levelConfig.id === 10 &&
+      levelConfig.id === 14 &&
       luma.x === resolvedStart.x &&
       luma.y === resolvedStart.y &&
       luma.facing === resolvedFacing &&
@@ -527,7 +519,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     const correct = answer === sptCorrectAnswer
     setSptCorrect(correct)
     if (correct) {
-      if (levelConfig.id === 9) {
+      if (levelConfig.id === 13) {
         setReportOverride(buildLevel9IdentifyConfirmation(
           { x: resolvedStart.x, y: resolvedStart.y },
           resolvedFacing,
@@ -551,7 +543,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     // Mark that the visor was flipped and pick a reaction message where used.
     if (levelConfig.uncertainRadio && !visorFlippedThisLevel) {
       setVisorFlippedThisLevel(true)
-      setVisorFlipReaction(levelConfig.id === 9 ? null : getRandomFrom(VISOR_FLIP_REACTIONS))
+      setVisorFlipReaction(levelConfig.id === 13 ? null : getRandomFrom(VISOR_FLIP_REACTIONS))
     }
   }, [visorActive, visorFlipCount, visorFlipTiming, hadErrorBefore, levelConfig.id, levelConfig.uncertainRadio, visorFlippedThisLevel])
 
