@@ -118,8 +118,8 @@ const META = {
 
 const PALETTE_ORDER = ['F', 'TR', 'TL', 'C', 'REPEAT', 'IF_BOX_AHEAD']
 
-function createCommandFromCode(code, repeatDefaults = { times: 2 }) {
-  if (code === 'REPEAT') return createRepeatCommand(repeatDefaults.times)
+function createCommandFromCode(code) {
+  if (code === 'REPEAT') return createRepeatCommand()
   if (code === 'IF_BOX_AHEAD') return createIfBoxAheadCommand()
   return code
 }
@@ -262,12 +262,12 @@ function SpeedBar({ speed, onSpeedChange, theme }) {
   )
 }
 
-function PaletteButton({ code, disabled, onAdd, theme, tutorialId, repeatDefaults }) {
-  const meta = getMeta(createCommandFromCode(code, repeatDefaults), theme)
+function PaletteButton({ code, disabled, onAdd, theme, tutorialId }) {
+  const meta = getMeta(createCommandFromCode(code), theme)
   return (
     <motion.button
       whileTap={{ scale: 0.985 }}
-      onClick={() => !disabled && onAdd(createCommandFromCode(code, repeatDefaults))}
+      onClick={() => !disabled && onAdd(createCommandFromCode(code))}
       draggable
       onDragStart={(event) => {
         event.dataTransfer.setData('cmd', code)
@@ -879,13 +879,11 @@ export default function CommandBuilder({
   showRepeat = false,
   showCollect = false,
   showIfBoxAhead = false,
-  repeatDefaults = { times: 2 },
 }) {
   const theme = useContext(ThemeContext)
   const t = THEMES[theme]
   const [dragOver, setDragOver] = useState(false)
 
-  const repeatTimes = repeatDefaults?.times ?? 2
   const totalBlocks = countProgramBlocks(sequence)
   const isDisabled = isRunning || sequence.length === 0 || needsReset || runBlocked
   const wrapperBg = theme === 'light' ? 'rgba(255,255,255,0.18)' : 'rgba(6,11,20,0.16)'
@@ -923,14 +921,14 @@ export default function CommandBuilder({
   }, [onReorder, sequence])
 
   const handleDropIntoBlock = useCallback((path, raw, index = Number.MAX_SAFE_INTEGER) => {
-    const dropped = createCommandFromCode(raw, { times: repeatTimes })
+    const dropped = createCommandFromCode(raw)
     onReorder(insertCommandAtPath(sequence, path, index, dropped))
-  }, [onReorder, repeatTimes, sequence])
+  }, [onReorder, sequence])
 
   const handleInsertAt = useCallback((rawCommand, index) => {
-    const inserted = createCommandFromCode(rawCommand, { times: repeatTimes })
+    const inserted = createCommandFromCode(rawCommand)
     onReorder(insertCommandAtPath(sequence, [], index, inserted))
-  }, [onReorder, repeatTimes, sequence])
+  }, [onReorder, sequence])
 
   const visibleCommands = PALETTE_ORDER.filter((code) => {
     if (code === 'REPEAT') return showRepeat
@@ -971,7 +969,6 @@ export default function CommandBuilder({
                   disabled={isRunning}
                   onAdd={handleTopLevelAdd}
                   theme={theme}
-                  repeatDefaults={repeatDefaults}
                   tutorialId={code === 'F' ? 'command-forward' : code === 'C' ? 'command-collect' : code === 'TR' || code === 'TL' ? 'command-turn' : code === 'IF_BOX_AHEAD' ? 'command-if-box-ahead' : 'command-repeat'}
                 />
               ))}
@@ -1010,7 +1007,7 @@ export default function CommandBuilder({
               setDragOver(false)
               const rawCommand = event.dataTransfer.getData('cmd')
               if (!rawCommand) return
-              onReorder(insertCommandAtPath(sequence, [], sequence.length, createCommandFromCode(rawCommand, repeatDefaults)))
+              onReorder(insertCommandAtPath(sequence, [], sequence.length, createCommandFromCode(rawCommand)))
             }}
             style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', background: dragOver ? (theme === 'light' ? 'linear-gradient(180deg, rgba(210,248,255,0.98), rgba(239,240,255,0.96))' : 'rgba(45,212,191,0.04)') : t.scrollBg, border: `1.5px ${dragOver ? `dashed ${theme === 'light' ? '#2fc9df88' : '#2dd4bf55'}` : `solid ${t.scrollBorder}`}`, borderRadius: 8, padding: 10, boxSizing: 'border-box' }}
           >

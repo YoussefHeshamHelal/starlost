@@ -140,6 +140,54 @@ export const LEVEL_TUTORIALS = {
       nextLabel: 'Ready',
     }),
   ],
+  15: [
+    levelStep('level-15-meet-if-box-ahead', {
+      targetId: 'command-if-box-ahead',
+      placement: 'top',
+      title: 'Meet IF BOX AHEAD',
+      body: 'IF BOX AHEAD checks the tile in front of LUMA. If there is a box there, LUMA does the command inside the IF block.',
+      waitForTarget: true,
+      nextLabel: 'Got it',
+    }),
+    levelStep('level-15-use-if-to-turn', {
+      targetId: 'sequence-area',
+      placement: 'left',
+      title: 'Use IF to turn',
+      body: 'In this level, put TURN LEFT inside IF BOX AHEAD. Then put MOVE FORWARD after the IF inside the Repeat block.',
+      waitForTarget: true,
+      nextLabel: 'Okay',
+    }),
+    levelStep('level-15-repeat-checking', {
+      targetId: 'command-repeat',
+      placement: 'top',
+      title: 'Let Repeat keep checking',
+      body: 'Repeat makes LUMA check again and again. Most times she moves forward. When a box is ahead, she turns left first.',
+      waitForTarget: true,
+      nextLabel: 'Ready',
+    }),
+  ],
+  16: [
+    levelStep('level-16-same-rule-two-turns', {
+      targetId: 'sequence-area',
+      placement: 'left',
+      title: 'Same rule, two turns',
+      body: 'This path bends twice. You do not need two different plans. Repeat can keep checking IF BOX AHEAD.',
+      waitForTarget: true,
+      hideProgress: true,
+      nextLabel: 'Got it',
+    }),
+  ],
+  17: [
+    levelStep('level-17-collect-after-moving', {
+      targetId: 'command-collect',
+      placement: 'left',
+      title: 'Collect after moving',
+      body: 'This path has ship fragments. Put COLLECT after MOVE FORWARD inside the Repeat block so LUMA collects each fragment she lands on.',
+      waitForTarget: true,
+      hideProgress: true,
+      nextLabel: 'Got it',
+    }),
+  ],
 }
 
 export const FEATURE_TUTORIALS = {
@@ -385,7 +433,6 @@ const LEVEL_FEATURE_ORDER = {
   3: ['luma-confused', 'helmet-radio', 'identify-phase', 'facing-question'],
   5: ['ship-fragments', 'collect-command', 'collect-all-fragments'],
   13: ['uncertain-radio', 'visor-flip-level-9'],
-  15: ['if-box-ahead'],
 }
 
 export function getTutorialFeatureKeys(levelConfig, effectiveLevel) {

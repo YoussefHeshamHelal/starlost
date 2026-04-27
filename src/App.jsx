@@ -20,7 +20,7 @@ const GRID_PX  = 520   // 5 tiles × 104 px
 const PANEL_W  = 620
 const GAP      = 24
 const EARLY_MAP_SCALE = 1.1
-const PLAYABLE_LEVELS = 17
+const PLAYABLE_LEVELS = 18
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
 
 // ── CSS keyframe animations ───────────────────────────────────────────────────
@@ -885,17 +885,17 @@ function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER
 const TUTORIAL_LEVELS_KEY = 'starlost:tutorial:levels'
 const TUTORIAL_FEATURES_KEY = 'starlost:tutorial:features'
 const LEVEL_1_RESET_TUTORIAL_KEY = 'level-1-reset'
-const LEVEL_17_EFFICIENT_FRAGMENT = { x: 1, y: 1 }
-const LEVEL_17_CHECKPOINT_TILES = [
-  LEVEL_17_EFFICIENT_FRAGMENT,
+const LEVEL_18_EFFICIENT_FRAGMENT = { x: 1, y: 1 }
+const LEVEL_18_CHECKPOINT_TILES = [
+  LEVEL_18_EFFICIENT_FRAGMENT,
   { x: 3, y: 3 },
 ]
-const LEVEL_17_CHECKPOINT_PROMPT = 'Choose which fragment LUMA should reach first to make the path most efficient.'
-const LEVEL_17_CHECKPOINT_SUCCESS = 'Great choice! That fragment makes the path shorter and easier to split into 2 routes.'
-const LEVEL_17_CHECKPOINT_RETRY = 'That could still work, but it would take more blocks. Try to find the fragment that makes the path more efficient.'
-const LEVEL_17_ROUTE_HINT_STEPS = [
+const LEVEL_18_CHECKPOINT_PROMPT = 'Choose which fragment LUMA should reach first to make the path most efficient.'
+const LEVEL_18_CHECKPOINT_SUCCESS = 'Great choice! That fragment makes the path shorter and easier to split into 2 routes.'
+const LEVEL_18_CHECKPOINT_RETRY = 'That could still work, but it would take more blocks. Try to find the fragment that makes the path more efficient.'
+const LEVEL_18_ROUTE_HINT_STEPS = [
   {
-    id: 'level-17-route-hint-map',
+    id: 'level-18-route-hint-map',
     targetId: 'grid-panel',
     placement: 'right',
     title: 'Now think in 2 routes.',
@@ -1055,7 +1055,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   const [checkpointChoiceSelection, setCheckpointChoiceSelection] = useState(null)
   const checkpointChoiceFinishTimerRef = useRef(null)
   const checkpointChoiceActive =
-    levelConfig.id === 17 &&
+    levelConfig.id === 18 &&
     phase === 'develop' &&
     !checkpointChoiceComplete
 
@@ -1147,8 +1147,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     if (!checkpointChoiceActive) return
 
     const isEfficientChoice =
-      col === LEVEL_17_EFFICIENT_FRAGMENT.x &&
-      row === LEVEL_17_EFFICIENT_FRAGMENT.y
+      col === LEVEL_18_EFFICIENT_FRAGMENT.x &&
+      row === LEVEL_18_EFFICIENT_FRAGMENT.y
 
     setCheckpointChoiceSelection({
       x: col,
@@ -1159,14 +1159,14 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     if (!isEfficientChoice) {
       setCheckpointChoiceFeedback({
         type: 'retry',
-        text: LEVEL_17_CHECKPOINT_RETRY,
+        text: LEVEL_18_CHECKPOINT_RETRY,
       })
       return
     }
 
     setCheckpointChoiceFeedback({
       type: 'success',
-      text: LEVEL_17_CHECKPOINT_SUCCESS,
+      text: LEVEL_18_CHECKPOINT_SUCCESS,
     })
 
     if (checkpointChoiceFinishTimerRef.current) {
@@ -1177,7 +1177,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
       setCheckpointChoiceComplete(true)
       setCheckpointChoiceFeedback(null)
       setCheckpointChoiceSelection(null)
-      startTutorial(LEVEL_17_ROUTE_HINT_STEPS)
+      startTutorial(LEVEL_18_ROUTE_HINT_STEPS)
     }, 900)
   }, [checkpointChoiceActive, startTutorial])
 
@@ -1191,7 +1191,14 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     if (tutorialSteps.length > 0) return undefined
 
     const autoTutorialReady =
-      (levelConfig.id !== 5 && levelConfig.id !== 10 && levelConfig.id !== 11 && levelConfig.id !== 15) || phase === 'develop'
+      (levelConfig.id !== 5 &&
+        levelConfig.id !== 10 &&
+        levelConfig.id !== 11 &&
+        levelConfig.id !== 15 &&
+        levelConfig.id !== 16 &&
+        levelConfig.id !== 17 &&
+        levelConfig.id !== 18) ||
+      phase === 'develop'
 
     if (!autoTutorialReady) {
       return undefined
@@ -1279,16 +1286,18 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     levelConfig.id !== 14 &&
     levelConfig.id !== 4 &&
     levelConfig.id !== 12 &&
-    levelConfig.id !== 16 &&
     (levelConfig.id !== 5 || phase === 'develop') &&
     (levelConfig.id !== 10 || phase === 'develop') &&
     (levelConfig.id !== 11 || phase === 'develop') &&
-    (levelConfig.id !== 17 || phase === 'develop')
+    (levelConfig.id !== 15 || phase === 'develop') &&
+    (levelConfig.id !== 16 || phase === 'develop') &&
+    (levelConfig.id !== 17 || phase === 'develop') &&
+    (levelConfig.id !== 18 || phase === 'develop')
   const handleReplayTutorial = useCallback(() => {
     if (!canReplayTutorial) return
 
-    if (levelConfig.id === 17) {
-      launchTutorialWhenReady(LEVEL_17_ROUTE_HINT_STEPS, { persist: false })
+    if (levelConfig.id === 18) {
+      launchTutorialWhenReady(LEVEL_18_ROUTE_HINT_STEPS, { persist: false })
       return
     }
 
@@ -1441,7 +1450,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
               predictionResult={predictionResult}
               onTileClick={handleTileClick}
               checkpointChoiceActive={checkpointChoiceActive}
-              checkpointChoiceTiles={LEVEL_17_CHECKPOINT_TILES}
+              checkpointChoiceTiles={LEVEL_18_CHECKPOINT_TILES}
               checkpointChoiceSelection={checkpointChoiceSelection}
               onCheckpointTileClick={handleCheckpointTileClick}
               collectionEffects={collectionEffects}
@@ -1585,7 +1594,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                             color: t.textPrimary,
                             fontWeight: 900,
                           }}>
-                            {LEVEL_17_CHECKPOINT_PROMPT}
+                            {LEVEL_18_CHECKPOINT_PROMPT}
                           </p>
                           {checkpointChoiceFeedback && (
                             <motion.p
@@ -1632,7 +1641,6 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                     showRepeat={Boolean(levelConfig.allowRepeat)}
                     showCollect={levelConfig.allowCollect ?? levelConfig.id >= 5}
                     showIfBoxAhead={Boolean(levelConfig.allowIfBoxAhead)}
-                    repeatDefaults={levelConfig.repeatDefaults}
                   />
                 </div>
               </motion.div>

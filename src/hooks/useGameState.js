@@ -10,9 +10,10 @@ import {
   generateLevel8Layout,
   generateLevel9Layout,
   generateLevel10Layout,
-  generateLevel11Layout,
   generateLevel12Layout,
   generateLevel13Layout,
+  generateLevel15Layout,
+  generateLevel16Layout,
 } from '../data/levels'
 import { clampRepeatTimes, countProgramBlocks, isIfBoxAheadCommand, isRepeatCommand } from '../utils/commands'
 
@@ -290,9 +291,10 @@ function generateLayout(generatorKey, facing) {
     case 'level8': return generateLevel8Layout(facing)
     case 'level9': return generateLevel9Layout(facing)
     case 'level10': return generateLevel10Layout(facing)
-    case 'level11': return generateLevel11Layout(facing)
     case 'level12': return generateLevel12Layout(facing)
     case 'level13': return generateLevel13Layout(facing)
+    case 'level15': return generateLevel15Layout(facing)
+    case 'level16': return generateLevel16Layout(facing)
     default: return { walls: [], objects: [], solution: null }
   }
 }

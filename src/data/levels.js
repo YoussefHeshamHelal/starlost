@@ -56,9 +56,6 @@ const L9_GOAL = { x: 2, y: 4 }
 const L10_START = { x: 0, y: 1 }
 const L10_GOAL = { x: 3, y: 3 }
 
-const L11_START = { x: 0, y: 3 }
-const L11_GOAL = { x: 4, y: 1 }
-
 const L12_START = { x: 0, y: 3 }
 const L12_GOAL = { x: 0, y: 1 }
 
@@ -644,37 +641,6 @@ export function generateLevel10Layout() {
   }
 }
 
-export function generateLevel11Layout() {
-  return {
-    walls: [
-      { x: 0, y: 0 },
-      { x: 4, y: 4 },
-      { x: 0, y: 4 },
-      { x: 4, y: 0 },
-    ],
-    objects: [
-      { type: 'ship_part', x: 0, y: 2 },
-      { type: 'ship_part', x: 0, y: 1 },
-      { type: 'ship_part', x: 1, y: 1 },
-      { type: 'ship_part', x: 2, y: 1 },
-      { type: 'ship_part', x: 3, y: 1 },
-    ],
-    solution: [
-      createRepeatCommand(5, [
-        createIfBoxAheadCommand([
-          'TR',
-        ]),
-        'F',
-        'C',
-      ]),
-      'F',
-    ],
-    lumaStart: { ...L11_START },
-    goal: { ...L11_GOAL },
-    lumaFacing: 'north',
-  }
-}
-
 export function generateLevel12Layout() {
   return {
     walls: [
@@ -744,6 +710,49 @@ export function generateLevel13Layout() {
     lumaStart: { ...L13_START },
     goal: { ...L13_GOAL },
     lumaFacing: 'north',
+  }
+}
+
+export function generateLevel15Layout() {
+  return {
+    walls: [
+      { x: 4, y: 0 },
+      { x: 0, y: 4 },
+      { x: 4, y: 4 },
+      { x: 0, y: 0 },
+    ],
+    objects: [],
+    solution: [
+      createRepeatCommand(6, [
+        createIfBoxAheadCommand(['TR']),
+        'F',
+      ]),
+    ],
+    lumaStart: { x: 0, y: 3 },
+    goal: { x: 4, y: 1 },
+    lumaFacing: 'north',
+  }
+}
+
+export function generateLevel16Layout() {
+  return {
+    walls: [
+      { x: 0, y: 4 },
+      { x: 1, y: 1 },
+      { x: 0, y: 0 },
+      { x: 4, y: 0 },
+      { x: 4, y: 3 },
+    ],
+    objects: [],
+    solution: [
+      createRepeatCommand(8, [
+        createIfBoxAheadCommand(['TR']),
+        'F',
+      ]),
+    ],
+    lumaStart: { x: 4, y: 4 },
+    goal: { x: 4, y: 2 },
+    lumaFacing: 'west',
   }
 }
 
@@ -1218,19 +1227,19 @@ export const LEVELS = [
   },
   {
     id: 15,
-    name: 'Repair Site Logic',
+    name: 'IF Turn Helper',
     world: 'repair-site',
     tutorial: false,
     grid: { cols: COLS, rows: ROWS },
-    lumaStart: { ...L11_START },
+    lumaStart: { x: 0, y: 3 },
     lumaFacing: 'north',
-    goal: { ...L11_GOAL },
+    goal: { x: 4, y: 1 },
     walls: [],
     objects: [],
     fog: false,
     sptQuestion: {
       prompt: 'Which direction is LUMA facing?',
-      options: ['↑ Up', '→ Right', '↓ Down', '← Left'],
+      options: ['â†‘ Up', 'â†’ Right', 'â†“ Down', 'â† Left'],
       correct: null,
     },
     solution: null,
@@ -1239,18 +1248,53 @@ export const LEVELS = [
     mirrorControls: false,
     echoPosition: null,
     strategyCardAfter: false,
-    noVisorFlip: false,
+    noVisorFlip: true,
     skipIdentify: false,
     noRadio: false,
-    layoutGenerator: 'level11',
-    targetCommands: 6,
+    layoutGenerator: 'level15',
+    targetCommands: 4,
     uncertainRadio: false,
     allowRepeat: true,
     allowIfBoxAhead: true,
-    repeatDefaults: { times: 2 },
+    allowCollect: false,
+    repeatDefaults: { times: 6 },
   },
   {
     id: 16,
+    name: 'IF U-Turn Path',
+    world: 'repair-site',
+    tutorial: false,
+    grid: { cols: COLS, rows: ROWS },
+    lumaStart: { x: 4, y: 4 },
+    lumaFacing: 'west',
+    goal: { x: 4, y: 2 },
+    walls: [],
+    objects: [],
+    fog: false,
+    sptQuestion: {
+      prompt: 'Which direction is LUMA facing?',
+      options: ['â†‘ Up', 'â†’ Right', 'â†“ Down', 'â† Left'],
+      correct: null,
+    },
+    solution: null,
+    decompositionPrompt: false,
+    predictionPrompt: false,
+    mirrorControls: false,
+    echoPosition: null,
+    strategyCardAfter: false,
+    noVisorFlip: true,
+    skipIdentify: false,
+    noRadio: false,
+    layoutGenerator: 'level16',
+    targetCommands: 4,
+    uncertainRadio: false,
+    allowRepeat: true,
+    allowIfBoxAhead: true,
+    allowCollect: false,
+    repeatDefaults: { times: 8 },
+  },
+  {
+    id: 17,
     name: 'Repair Site Logic',
     world: 'repair-site',
     tutorial: false,
@@ -1283,7 +1327,7 @@ export const LEVELS = [
     repeatDefaults: { times: 2 },
   },
   {
-    id: 17,
+    id: 18,
     name: 'Decomposition Relay Prep',
     world: 'repair-site',
     tutorial: false,
