@@ -2,7 +2,7 @@
 // Ship parts are collectible waypoints; walls are rock obstacles that block LUMA.
 // lumaFacing: 'random-NE' means useGameState will pick north OR east randomly.
 //
-import { createIfBoxAheadCommand, createRepeatCommand } from '../utils/commands'
+import { createIfPathCommand, createRepeatCommand } from '../utils/commands'
 
 // Crash Site design targets for this pass:
 //   L1: fixed, 3 commands, no rocks, no fragments, no identify
@@ -651,6 +651,9 @@ export function generateLevel12Layout() {
       { x: 3, y: 0 },
       { x: 4, y: 0 },
       { x: 0, y: 0 },
+      { x: 0, y: 2 },
+      { x: 1, y: 2 },
+      { x: 2, y: 2 },
     ],
     objects: [
       { type: 'ship_part', x: 1, y: 3 },
@@ -662,14 +665,11 @@ export function generateLevel12Layout() {
       { type: 'ship_part', x: 2, y: 1 },
     ],
     solution: [
-      createRepeatCommand(7, [
-        createIfBoxAheadCommand([
-          'TL',
-        ]),
+      createRepeatCommand(8, [
         'F',
         'C',
+        createIfPathCommand('left', ['TL']),
       ]),
-      'F',
     ],
     lumaStart: { ...L12_START },
     goal: { ...L12_GOAL },
@@ -691,19 +691,14 @@ export function generateLevel13Layout() {
       { type: 'ship_part', x: 3, y: 3 },
     ],
     solution: [
-      createRepeatCommand(4, [
-        'F',
-        createIfBoxAheadCommand([
-          'TR',
-        ]),
-      ]),
+      createRepeatCommand(3, ['F']),
+      'TR',
+      'F',
       'C',
-      createRepeatCommand(4, [
-        'F',
-        createIfBoxAheadCommand([
-          'TL',
-        ]),
-      ]),
+      'TR',
+      createRepeatCommand(2, ['F']),
+      'TL',
+      createRepeatCommand(2, ['F']),
       'C',
       'F',
     ],
@@ -716,16 +711,20 @@ export function generateLevel13Layout() {
 export function generateLevel15Layout() {
   return {
     walls: [
-      { x: 4, y: 0 },
       { x: 0, y: 4 },
-      { x: 4, y: 4 },
       { x: 0, y: 0 },
+      { x: 1, y: 2 },
+      { x: 1, y: 3 },
+      { x: 2, y: 2 },
+      { x: 3, y: 2 },
+      { x: 2, y: 3 },
+      { x: 3, y: 3 },
     ],
     objects: [],
     solution: [
       createRepeatCommand(6, [
-        createIfBoxAheadCommand(['TR']),
         'F',
+        createIfPathCommand('right', ['TR']),
       ]),
     ],
     lumaStart: { x: 0, y: 3 },
@@ -742,12 +741,14 @@ export function generateLevel16Layout() {
       { x: 0, y: 0 },
       { x: 4, y: 0 },
       { x: 4, y: 3 },
+      { x: 2, y: 3 },
+      { x: 3, y: 3 },
     ],
     objects: [],
     solution: [
       createRepeatCommand(8, [
-        createIfBoxAheadCommand(['TR']),
         'F',
+        createIfPathCommand('right', ['TR']),
       ]),
     ],
     lumaStart: { x: 4, y: 4 },
@@ -964,7 +965,7 @@ export const LEVELS = [
     targetCommands: 2,
     uncertainRadio: false,
     allowRepeat: true,
-    allowIfBoxAhead: false,
+    allowIfPath: false,
     allowCollect: false,
     repeatDefaults: { times: 4 },
   },
@@ -1006,7 +1007,7 @@ export const LEVELS = [
     targetCommands: 5,
     uncertainRadio: false,
     allowRepeat: true,
-    allowIfBoxAhead: false,
+    allowIfPath: false,
     allowCollect: false,
     repeatDefaults: { times: 4 },
   },
@@ -1049,7 +1050,7 @@ export const LEVELS = [
     targetCommands: 5,
     uncertainRadio: false,
     allowRepeat: true,
-    allowIfBoxAhead: false,
+    allowIfPath: false,
     allowCollect: false,
     repeatDefaults: { times: 4 },
   },
@@ -1093,7 +1094,7 @@ export const LEVELS = [
     targetCommands: 4,
     uncertainRadio: false,
     allowRepeat: true,
-    allowIfBoxAhead: false,
+    allowIfPath: false,
     allowCollect: true,
     repeatDefaults: { times: 3 },
   },
@@ -1255,8 +1256,9 @@ export const LEVELS = [
     targetCommands: 4,
     uncertainRadio: false,
     allowRepeat: true,
-    allowIfBoxAhead: true,
+    allowIfPath: true,
     allowCollect: false,
+    defaultIfPathCondition: 'right',
     repeatDefaults: { times: 6 },
   },
   {
@@ -1289,8 +1291,9 @@ export const LEVELS = [
     targetCommands: 4,
     uncertainRadio: false,
     allowRepeat: true,
-    allowIfBoxAhead: true,
+    allowIfPath: true,
     allowCollect: false,
+    defaultIfPathCondition: 'right',
     repeatDefaults: { times: 8 },
   },
   {
@@ -1320,10 +1323,11 @@ export const LEVELS = [
     skipIdentify: false,
     noRadio: false,
     layoutGenerator: 'level12',
-    targetCommands: 6,
+    targetCommands: 5,
     uncertainRadio: false,
     allowRepeat: true,
-    allowIfBoxAhead: true,
+    allowIfPath: true,
+    allowCollect: true,
     repeatDefaults: { times: 2 },
   },
   {
@@ -1353,10 +1357,10 @@ export const LEVELS = [
     skipIdentify: false,
     noRadio: false,
     layoutGenerator: 'level13',
-    targetCommands: 11,
+    targetCommands: 13,
     uncertainRadio: false,
     allowRepeat: true,
-    allowIfBoxAhead: true,
+    allowIfPath: true,
     repeatDefaults: { times: 2 },
   },
 ]

@@ -1,14 +1,14 @@
 const MIN_REPEAT_TIMES = 1
 const MAX_REPEAT_TIMES = 100
 
-function cloneNestedCommands(commands = []) {
+export function cloneNestedCommands(commands = []) {
   return commands.map((command) => {
     if (isRepeatCommand(command)) {
       return createRepeatCommand(command.times, cloneNestedCommands(command.commands))
     }
 
-    if (isIfBoxAheadCommand(command)) {
-      return createIfBoxAheadCommand(cloneNestedCommands(command.commands))
+    if (isIfPathCommand(command)) {
+      return createIfPathCommand(command.condition, cloneNestedCommands(command.commands))
     }
 
     return command
@@ -27,9 +27,10 @@ export function createRepeatCommand(times = 2, commands = []) {
   }
 }
 
-export function createIfBoxAheadCommand(commands = []) {
+export function createIfPathCommand(condition = 'ahead', commands = []) {
   return {
-    type: 'IF_BOX_AHEAD',
+    type: 'IF_PATH',
+    condition,
     commands: cloneNestedCommands(commands),
   }
 }
@@ -38,12 +39,12 @@ export function isRepeatCommand(command) {
   return Boolean(command) && typeof command === 'object' && command.type === 'REPEAT'
 }
 
-export function isIfBoxAheadCommand(command) {
-  return Boolean(command) && typeof command === 'object' && command.type === 'IF_BOX_AHEAD'
+export function isIfPathCommand(command) {
+  return Boolean(command) && typeof command === 'object' && command.type === 'IF_PATH'
 }
 
 export function isNestedBlockCommand(command) {
-  return isRepeatCommand(command) || isIfBoxAheadCommand(command)
+  return isRepeatCommand(command) || isIfPathCommand(command)
 }
 
 export function countProgramBlocks(sequence = []) {
@@ -71,7 +72,7 @@ export function expandSequence(sequence = []) {
       return
     }
 
-    if (isIfBoxAheadCommand(command)) {
+    if (isIfPathCommand(command)) {
       expanded.push(command)
       return
     }
@@ -95,11 +96,17 @@ export function formatSequenceCommand(command) {
     }
   }
 
-  if (isIfBoxAheadCommand(command)) {
+  if (isIfPathCommand(command)) {
     const childCount = command.commands?.length ?? 0
+    const conditionLabel = {
+      ahead: 'AHEAD',
+      left: 'TO THE LEFT',
+      right: 'TO THE RIGHT',
+    }[command.condition ?? 'ahead'] ?? 'AHEAD'
+
     return {
       kind: 'if',
-      label: 'IF BOX AHEAD',
+      label: `IF PATH ${conditionLabel}`,
       summary: `${childCount} BLOCK${childCount === 1 ? '' : 'S'} INSIDE`,
       icon: 'if',
     }

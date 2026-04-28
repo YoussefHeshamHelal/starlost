@@ -4,9 +4,9 @@ import { ThemeContext } from '../context/theme'
 import {
   clampRepeatTimes,
   countProgramBlocks,
-  createIfBoxAheadCommand,
+  createIfPathCommand,
   createRepeatCommand,
-  isIfBoxAheadCommand,
+  isIfPathCommand,
   isNestedBlockCommand,
   isRepeatCommand,
 } from '../utils/commands'
@@ -113,15 +113,36 @@ const META = {
   TL: { buttonLabel: 'TURN LEFT', rowLabel: 'TURN LEFT', icon: '←', color: '#8b5cf6', darkColor: '#a78bfa', bg: 'rgba(139,92,246,0.11)', darkBg: 'rgba(167,139,250,0.22)' },
   C: { buttonLabel: 'COLLECT', rowLabel: 'COLLECT', icon: 'collect', color: '#38bdf8', darkColor: '#67e8f9', bg: 'rgba(56,189,248,0.12)', darkBg: 'rgba(103,232,249,0.16)' },
   REPEAT: { buttonLabel: 'REPEAT', rowLabel: 'REPEAT', icon: '↺', color: '#22c55e', darkColor: '#4ade80', bg: 'rgba(34,197,94,0.12)', darkBg: 'rgba(74,222,128,0.18)' },
-  IF_BOX_AHEAD: { buttonLabel: 'IF BOX AHEAD', rowLabel: 'IF BOX AHEAD', icon: '?', color: '#0ea5e9', darkColor: '#7dd3fc', bg: 'rgba(14,165,233,0.13)', darkBg: 'rgba(125,211,252,0.17)' },
+  IF_PATH: { buttonLabel: 'IF PATH', rowLabel: 'IF PATH', icon: '?', color: '#0ea5e9', darkColor: '#7dd3fc', bg: 'rgba(14,165,233,0.13)', darkBg: 'rgba(125,211,252,0.17)' },
 }
 
-const PALETTE_ORDER = ['F', 'TR', 'TL', 'C', 'REPEAT', 'IF_BOX_AHEAD']
+const PALETTE_ORDER = ['F', 'TR', 'TL', 'C', 'REPEAT', 'IF_PATH']
 
-function createCommandFromCode(code) {
+const IF_PATH_OPTIONS = [
+  { value: 'ahead', label: 'ahead' },
+  { value: 'left', label: 'to the left' },
+  { value: 'right', label: 'to the right' },
+]
+
+function createCommandFromCode(code, ifPathCondition = 'ahead') {
   if (code === 'REPEAT') return createRepeatCommand()
-  if (code === 'IF_BOX_AHEAD') return createIfBoxAheadCommand()
+  if (code === 'IF_PATH') return createIfPathCommand(ifPathCondition)
   return code
+}
+
+function getIfPathSelectStyle({ color, fontSize, letterSpacing = 1, theme }) {
+  return {
+    padding: '2px 6px',
+    background: theme === 'light' ? 'rgba(255,255,255,0.82)' : 'rgba(3,7,14,0.78)',
+    border: `1px solid ${color}55`,
+    borderRadius: 6,
+    color,
+    fontSize,
+    fontFamily: 'monospace',
+    fontWeight: 800,
+    letterSpacing,
+    cursor: 'pointer',
+  }
 }
 
 function updateCommandsAtPath(sequence, path, updater) {
@@ -200,8 +221,8 @@ function adjustPathAfterTopLevelRemoval(path, removedIndex) {
 function getMeta(command, theme) {
   const base = isRepeatCommand(command)
     ? META.REPEAT
-    : isIfBoxAheadCommand(command)
-      ? META.IF_BOX_AHEAD
+    : isIfPathCommand(command)
+      ? META.IF_PATH
       : META[command]
   const color = theme === 'light' ? base.color : base.darkColor
   const bg = theme === 'light' ? base.bg : base.darkBg
@@ -262,22 +283,54 @@ function SpeedBar({ speed, onSpeedChange, theme }) {
   )
 }
 
-function PaletteButton({ code, disabled, onAdd, theme, tutorialId }) {
-  const meta = getMeta(createCommandFromCode(code), theme)
+function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathCondition, onIfPathConditionChange }) {
+  const meta = getMeta(createCommandFromCode(code, ifPathCondition), theme)
+  const isIfPath = code === 'IF_PATH'
+  const labelStyle = { fontSize: 10, letterSpacing: 0.8, fontWeight: 800, fontFamily: 'monospace', color: meta.color }
+  const selectStyle = getIfPathSelectStyle({ color: meta.color, fontSize: 10, letterSpacing: 0.8, theme })
+  const stopSelectDrag = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
   return (
     <motion.button
       whileTap={{ scale: 0.985 }}
-      onClick={() => !disabled && onAdd(createCommandFromCode(code))}
+      onClick={() => !disabled && onAdd(createCommandFromCode(code, ifPathCondition))}
       draggable
       onDragStart={(event) => {
         event.dataTransfer.setData('cmd', code)
+        if (isIfPath) event.dataTransfer.setData('ifPathCondition', ifPathCondition)
         event.dataTransfer.effectAllowed = 'copy'
       }}
       disabled={disabled}
       data-tutorial-id={tutorialId}
       style={{ width: '100%', padding: '10px 12px', background: meta.bg, border: `1.5px solid ${meta.color}`, borderRadius: 10, color: meta.color, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'monospace', opacity: disabled ? 0.35 : 1 }}
     >
-      <span style={{ fontSize: 10, letterSpacing: 0.8, fontWeight: 800 }}>{meta.buttonLabel}</span>
+      {isIfPath ? (
+        <>
+          <span style={labelStyle}>IF PATH</span>
+          <select
+            value={ifPathCondition}
+            disabled={disabled}
+            onPointerDown={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
+            onDragStart={stopSelectDrag}
+            onChange={(event) => {
+              event.stopPropagation()
+              onIfPathConditionChange(event.target.value)
+            }}
+            style={selectStyle}
+          >
+            {IF_PATH_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value} style={selectStyle}>{option.label}</option>
+            ))}
+          </select>
+        </>
+      ) : (
+        <span style={labelStyle}>{meta.buttonLabel}</span>
+      )}
     </motion.button>
   )
 }
@@ -358,11 +411,17 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
   const isDropActive = isDragOver || activeNestedDropPath?.pathKey === pathKey
   const dropPath = JSON.stringify(path)
   const isRepeat = isRepeatCommand(command)
-  const title = isRepeat ? `REPEAT x${command.times}` : 'IF BOX AHEAD'
   const subtitle = isRepeat ? 'LOOP BLOCK' : 'CONDITION BLOCK'
   const blockTutorialId = isRepeat ? 'repeat-block' : 'if-block'
   const dropTutorialId = isRepeat ? undefined : 'if-block-dropzone'
   const layout = getDepthLayout(depth)
+  const labelFontSize = layout.labelSize
+  const labelStyle = { fontSize: labelFontSize, color: meta.color, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800 }
+  const selectStyle = getIfPathSelectStyle({ color: meta.color, fontSize: labelFontSize, theme })
+  const stopControlDrag = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+  }
 
   return (
     <div
@@ -375,7 +434,30 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap', minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: layout.rowGap, minWidth: 0, flex: '1 1 110px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3 }}>
-                <span style={{ fontSize: layout.labelSize, color: meta.color, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800, overflowWrap: 'anywhere' }}>{title}</span>
+                {isRepeat ? (
+                  <span style={{ fontSize: layout.labelSize, color: meta.color, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800, overflowWrap: 'anywhere' }}>{`REPEAT x${command.times}`}</span>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={labelStyle}>IF PATH</span>
+                    <select
+                      value={command.condition ?? 'ahead'}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onMouseDown={(event) => event.stopPropagation()}
+                      onClick={(event) => event.stopPropagation()}
+                      onDragStart={stopControlDrag}
+                      onChange={(event) => {
+                        event.stopPropagation()
+                        onUpdateBlock(path, { ...command, condition: event.target.value })
+                      }}
+                      disabled={isRunning}
+                      style={{ ...selectStyle, cursor: isRunning ? 'not-allowed' : 'pointer' }}
+                    >
+                      {IF_PATH_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value} style={selectStyle}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 {!isRepeat && (
                   <span onPointerDown={(event) => event.stopPropagation()} style={{ padding: `${Math.max(3, 5 - Math.min(depth, 2))}px ${Math.max(6, 8 - Math.min(depth, 2))}px`, background: `${meta.color}12`, border: `1px solid ${meta.color}33`, borderRadius: 8, color: meta.color, fontSize: layout.controlFontSize, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800, flexShrink: 0 }}>
                     DO
@@ -414,7 +496,7 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
               onNestedPaletteHoverChange?.(null)
               const raw = event.dataTransfer.getData('cmd')
               if (!raw) return
-              onDropIntoBlock(path, raw, childCount)
+              onDropIntoBlock(path, raw, childCount, event.dataTransfer.getData('ifPathCondition') || 'ahead')
             }}
             data-tutorial-id={dropTutorialId}
             data-nested-drop-path={dropPath}
@@ -509,7 +591,7 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
     const raw = event.dataTransfer.getData('cmd')
     if (raw && stripRef.current) {
       const rect = stripRef.current.getBoundingClientRect()
-      onDropIntoBlock(parentPath, raw, computeInsert(event.clientY - rect.top))
+      onDropIntoBlock(parentPath, raw, computeInsert(event.clientY - rect.top), event.dataTransfer.getData('ifPathCondition') || 'ahead')
     }
     setPaletteInsertAt(null)
     onNestedPaletteHoverChange?.(null)
@@ -763,7 +845,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
     const cmd = event.dataTransfer.getData('cmd')
     if (cmd && stripRef.current) {
       const rect = stripRef.current.getBoundingClientRect()
-      onInsertAt(cmd, computeInsert(event.clientY - rect.top))
+      onInsertAt(cmd, computeInsert(event.clientY - rect.top), event.dataTransfer.getData('ifPathCondition') || 'ahead')
     }
     setPaletteInsertAt(null)
     setDragOver(false)
@@ -878,11 +960,13 @@ export default function CommandBuilder({
   showPhaseLabel = false,
   showRepeat = false,
   showCollect = false,
-  showIfBoxAhead = false,
+  showIfPath = false,
+  defaultIfPathCondition = 'ahead',
 }) {
   const theme = useContext(ThemeContext)
   const t = THEMES[theme]
   const [dragOver, setDragOver] = useState(false)
+  const [ifPathPaletteCondition, setIfPathPaletteCondition] = useState(defaultIfPathCondition)
 
   const totalBlocks = countProgramBlocks(sequence)
   const isDisabled = isRunning || sequence.length === 0 || needsReset || runBlocked
@@ -915,24 +999,24 @@ export default function CommandBuilder({
   const handleUpdateBlock = useCallback((path, nextBlock) => {
     onReorder(updateBlockAtPath(sequence, path, (block) => {
       if (isRepeatCommand(block)) return createRepeatCommand(nextBlock.times, nextBlock.commands ?? [])
-      if (isIfBoxAheadCommand(block)) return createIfBoxAheadCommand(nextBlock.commands ?? [])
+      if (isIfPathCommand(block)) return createIfPathCommand(nextBlock.condition ?? block.condition ?? 'ahead', nextBlock.commands ?? block.commands ?? [])
       return block
     }))
   }, [onReorder, sequence])
 
-  const handleDropIntoBlock = useCallback((path, raw, index = Number.MAX_SAFE_INTEGER) => {
-    const dropped = createCommandFromCode(raw)
+  const handleDropIntoBlock = useCallback((path, raw, index = Number.MAX_SAFE_INTEGER, ifPathCondition = 'ahead') => {
+    const dropped = createCommandFromCode(raw, ifPathCondition)
     onReorder(insertCommandAtPath(sequence, path, index, dropped))
   }, [onReorder, sequence])
 
-  const handleInsertAt = useCallback((rawCommand, index) => {
-    const inserted = createCommandFromCode(rawCommand)
+  const handleInsertAt = useCallback((rawCommand, index, ifPathCondition = 'ahead') => {
+    const inserted = createCommandFromCode(rawCommand, ifPathCondition)
     onReorder(insertCommandAtPath(sequence, [], index, inserted))
   }, [onReorder, sequence])
 
   const visibleCommands = PALETTE_ORDER.filter((code) => {
     if (code === 'REPEAT') return showRepeat
-    if (code === 'IF_BOX_AHEAD') return showIfBoxAhead
+    if (code === 'IF_PATH') return showIfPath
     if (code === 'C') return showCollect
     return true
   })
@@ -969,7 +1053,9 @@ export default function CommandBuilder({
                   disabled={isRunning}
                   onAdd={handleTopLevelAdd}
                   theme={theme}
-                  tutorialId={code === 'F' ? 'command-forward' : code === 'C' ? 'command-collect' : code === 'TR' || code === 'TL' ? 'command-turn' : code === 'IF_BOX_AHEAD' ? 'command-if-box-ahead' : 'command-repeat'}
+                  tutorialId={code === 'F' ? 'command-forward' : code === 'C' ? 'command-collect' : code === 'TR' || code === 'TL' ? 'command-turn' : code === 'IF_PATH' ? 'command-if-path' : 'command-repeat'}
+                  ifPathCondition={ifPathPaletteCondition}
+                  onIfPathConditionChange={setIfPathPaletteCondition}
                 />
               ))}
             </div>
@@ -1007,7 +1093,7 @@ export default function CommandBuilder({
               setDragOver(false)
               const rawCommand = event.dataTransfer.getData('cmd')
               if (!rawCommand) return
-              onReorder(insertCommandAtPath(sequence, [], sequence.length, createCommandFromCode(rawCommand)))
+              onReorder(insertCommandAtPath(sequence, [], sequence.length, createCommandFromCode(rawCommand, event.dataTransfer.getData('ifPathCondition') || 'ahead')))
             }}
             style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', background: dragOver ? (theme === 'light' ? 'linear-gradient(180deg, rgba(210,248,255,0.98), rgba(239,240,255,0.96))' : 'rgba(45,212,191,0.04)') : t.scrollBg, border: `1.5px ${dragOver ? `dashed ${theme === 'light' ? '#2fc9df88' : '#2dd4bf55'}` : `solid ${t.scrollBorder}`}`, borderRadius: 8, padding: 10, boxSizing: 'border-box' }}
           >

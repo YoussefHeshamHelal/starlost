@@ -270,7 +270,7 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                           ? 'Explore the crash site and learn how to guide LUMA.'
                           : mapConfig.id === 'forest-trail'
                             ? 'Follow the glowing forest trail and start using repeat, visor help, and fragment routes.'
-                            : 'Reach the repair bay, learn IF BOX AHEAD, and collect every fragment.'
+                            : 'Reach the repair bay, learn IF PATH, and collect every fragment.'
                         : 'New worlds are still powering up for future rescue missions.'}
                     </p>
                   </div>

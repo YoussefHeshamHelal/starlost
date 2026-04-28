@@ -421,6 +421,77 @@ function CollectionBurst({ effect, tileSize, theme }) {
   )
 }
 
+function IfPathSignal({ signal, tileSize }) {
+  if (!signal) return null
+
+  const facingIndex = DIRECTIONS.indexOf(signal.from.facing)
+  const offset = signal.condition === 'left' ? -1 : signal.condition === 'right' ? 1 : 0
+  const absoluteDirection = DIRECTIONS[(facingIndex + offset + DIRECTIONS.length) % DIRECTIONS.length]
+  const angleByDirection = { east: 0, south: 90, west: 180, north: -90 }
+  const [dx, dy] = MOVE_DELTAS[absoluteDirection]
+  const originX = (signal.from.x + 0.5) * tileSize + dx * tileSize * 0.18
+  const originY = (signal.from.y + 0.5) * tileSize + dy * tileSize * 0.18
+  const unit = tileSize / 104
+  const strokeWidth = Math.max(4, tileSize * 0.045)
+  const viewBoxSize = 84
+  const stroke = '#2dd4bf'
+  const glow = '#67e8f9'
+  const paths = [
+    'M 10 -8 Q 22 0 10 8',
+    'M 18 -13 Q 36 0 18 13',
+    'M 26 -18 Q 50 0 26 18',
+  ]
+
+  return (
+    <svg
+      key={signal.id}
+      width={tileSize * 1.35}
+      height={tileSize * 1.35}
+      viewBox={`${-viewBoxSize / 2} ${-viewBoxSize / 2} ${viewBoxSize} ${viewBoxSize}`}
+      style={{
+        position: 'absolute',
+        left: originX,
+        top: originY,
+        transform: 'translate(-50%, -50%)',
+        zIndex: 8,
+        pointerEvents: 'none',
+        overflow: 'visible',
+      }}
+    >
+      <defs>
+        <filter id={`if-path-glow-${signal.id}`} x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="2.4" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      <g transform={`rotate(${angleByDirection[absoluteDirection]}) scale(${unit})`} filter={`url(#if-path-glow-${signal.id})`}>
+        {paths.map((path, index) => (
+          <motion.path
+            key={path}
+            d={path}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={strokeWidth / unit}
+            strokeLinecap="round"
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: [0, 1, 0], scale: [0.85, 1, 1.08] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35, delay: index * 0.08, ease: 'easeOut' }}
+            style={{
+              transformBox: 'fill-box',
+              transformOrigin: 'center',
+              filter: `drop-shadow(0 0 5px ${glow})`,
+            }}
+          />
+        ))}
+      </g>
+    </svg>
+  )
+}
+
 function ForestTreeObstacle() {
   return (
     <svg width={66} height={66} viewBox="0 0 66 66" fill="none">
@@ -1512,6 +1583,7 @@ export default function GameGrid({
   checkpointChoiceSelection = null,
   onCheckpointTileClick,
   collectionEffects = [],
+  activeIfPathSignal = null,
   onTileClick,
   // effectiveLevel: merged level with generated walls/objects (from useGameState)
   effectiveLevel,
@@ -1761,6 +1833,16 @@ export default function GameGrid({
             />
           </div>
         )}
+
+        <AnimatePresence>
+          {activeIfPathSignal && isRepairSite && activeLevel.id >= 15 && activeLevel.id <= 18 && (
+            <IfPathSignal
+              key={activeIfPathSignal.id}
+              signal={activeIfPathSignal}
+              tileSize={TILE_SIZE}
+            />
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {collectionEffects.map((effect) => (

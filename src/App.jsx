@@ -1044,7 +1044,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     visorActive, visorFlipCount, flipVisor, closeVisor,
     sequence, setSequence, isRunning, isMirrored,
     addCommand, removeLastCommand, clearSequence, runSequence,
-    collectedParts, collectionEffects,
+    collectedParts, collectionEffects, activeIfPathSignal,
     missedFragments, dismissMissedFragments,
     needsReset, resetLuma,
     predictionTile, setPrediction, predictionResult,
@@ -1454,6 +1454,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
               checkpointChoiceSelection={checkpointChoiceSelection}
               onCheckpointTileClick={handleCheckpointTileClick}
               collectionEffects={collectionEffects}
+              activeIfPathSignal={activeIfPathSignal}
             />
           </div>
         </div>
@@ -1618,6 +1619,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                 </AnimatePresence>
                 <div style={{ minHeight: 0, height: '100%', pointerEvents: checkpointChoiceActive ? 'none' : 'auto', opacity: checkpointChoiceActive ? 0.56 : 1 }}>
                   <CommandBuilder
+                    key={`command-builder-${levelConfig.id}`}
                     sequence={sequence}
                     isRunning={isRunning}
                     isMirrored={isMirrored}
@@ -1640,7 +1642,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                     showPhaseLabel={!levelConfig.skipIdentify}
                     showRepeat={Boolean(levelConfig.allowRepeat)}
                     showCollect={levelConfig.allowCollect ?? levelConfig.id >= 5}
-                    showIfBoxAhead={Boolean(levelConfig.allowIfBoxAhead)}
+                    showIfPath={Boolean(levelConfig.allowIfPath)}
+                    defaultIfPathCondition={levelConfig.defaultIfPathCondition ?? 'ahead'}
                   />
                 </div>
               </motion.div>

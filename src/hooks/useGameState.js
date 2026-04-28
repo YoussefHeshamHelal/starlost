@@ -15,7 +15,7 @@ import {
   generateLevel15Layout,
   generateLevel16Layout,
 } from '../data/levels'
-import { clampRepeatTimes, countProgramBlocks, isIfBoxAheadCommand, isRepeatCommand } from '../utils/commands'
+import { clampRepeatTimes, countProgramBlocks, isIfPathCommand, isRepeatCommand } from '../utils/commands'
 
 const DIRECTIONS = ['north', 'east', 'south', 'west']
 
@@ -216,12 +216,28 @@ function buildBlockedReport(lumaPos, facing, blockedType, world = 'crash-site') 
   return `I can't move forward! There's ${blockedText} in front of me. My path is blocked.`
 }
 
-function isBoxAhead(luma, walls = [], grid, world) {
-  if (world !== 'repair-site') return false
-  const delta = MOVE_DELTAS[luma.facing]
-  const ahead = { x: luma.x + delta.x, y: luma.y + delta.y }
-  if (ahead.x < 0 || ahead.x >= grid.cols || ahead.y < 0 || ahead.y >= grid.rows) return false
-  return walls.some(wall => wall.x === ahead.x && wall.y === ahead.y)
+function getRelativeFacing(facing, condition = 'ahead') {
+  const facingIndex = DIRECTIONS.indexOf(facing)
+  if (condition === 'left') return DIRECTIONS[(facingIndex + 3) % 4]
+  if (condition === 'right') return DIRECTIONS[(facingIndex + 1) % 4]
+  return facing
+}
+
+function getIfPathTarget(luma, condition = 'ahead') {
+  const pathFacing = getRelativeFacing(luma.facing, condition)
+  const delta = MOVE_DELTAS[pathFacing]
+  return { x: luma.x + delta.x, y: luma.y + delta.y }
+}
+
+function hasPath(luma, walls = [], grid, condition = 'ahead', objects = []) {
+  const target = getIfPathTarget(luma, condition)
+  if (target.x < 0 || target.x >= grid.cols || target.y < 0 || target.y >= grid.rows) return false
+  if (walls.some(wall => wall.x === target.x && wall.y === target.y)) return false
+  return !objects.some(objectItem =>
+    objectItem.type !== 'ship_part' &&
+    objectItem.x === target.x &&
+    objectItem.y === target.y
+  )
 }
 
 const FACING_TO_ANSWER = {
@@ -360,6 +376,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
   const [collectedParts, setCollectedParts] = useState(() => new Set())
   const [collectionEffects, setCollectionEffects] = useState([])
+  const [activeIfPathSignal, setActiveIfPathSignal] = useState(null)
 
   const [phase, setPhase] = useState(() => levelConfig.skipIdentify ? 'develop' : 'identify')
   const [sptAnswer, setSptAnswer]         = useState(null)
@@ -397,6 +414,10 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
     if (levelConfig.id === 14) {
       return withOpener("There is a tree on my left.")
+    }
+
+    if (levelConfig.id === 15) {
+      return "Can you tell where I am? There is a box behind me and a box on my right."
     }
 
     if (levelConfig.id === 6) {
@@ -516,6 +537,23 @@ export function useGameState(levelConfig, animSpeed = 50) {
   }, [animSpeed])
 
   // ── SPT ──────────────────────────────────────────────────────────────────
+  const ifPathSignalTimeoutRef = useRef(null)
+  const ifPathSignalSerialRef = useRef(0)
+
+  const clearIfPathSignal = useCallback(() => {
+    if (ifPathSignalTimeoutRef.current) {
+      clearTimeout(ifPathSignalTimeoutRef.current)
+      ifPathSignalTimeoutRef.current = null
+    }
+    setActiveIfPathSignal(null)
+  }, [])
+
+  useEffect(() => () => {
+    if (ifPathSignalTimeoutRef.current) {
+      clearTimeout(ifPathSignalTimeoutRef.current)
+    }
+  }, [])
+
   const answerSPT = useCallback((answer) => {
     setSptAnswer(answer)
     const correct = answer === sptCorrectAnswer
@@ -596,7 +634,8 @@ export function useGameState(levelConfig, animSpeed = 50) {
     setNeedsReset(false)
     setReportOverride(null)
     setPredictionResult(null)
-  }, [isRunning, resolvedStart])
+    clearIfPathSignal()
+  }, [isRunning, resolvedStart, clearIfPathSignal])
 
   // ── PREDICTION PROMPT ────────────────────────────────────────────────────
   const setPrediction = useCallback((tile) => {
@@ -614,6 +653,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     setNeedsReset(false)
     setReportOverride(null)
     setCollectionEffects([])
+    clearIfPathSignal()
 
     let currentLuma = { ...luma }
     let localCollected = new Set(collectedParts)
@@ -623,10 +663,42 @@ export function useGameState(levelConfig, animSpeed = 50) {
     const gridRows = levelConfig.grid.rows
     const grid = { cols: gridCols, rows: gridRows }
     const world = effectiveLevel.world ?? levelConfig.world
+    const shouldShowIfPathSignal =
+      world === 'repair-site' &&
+      levelConfig.allowIfPath &&
+      levelConfig.id >= 15 &&
+      levelConfig.id <= 18
     const programStack = [{ commands: sequence, index: 0, type: 'root' }]
 
     let stoppedEarly = false
     let blockedType = null
+
+    const triggerIfPathSignal = (command, result, target) => {
+      if (!shouldShowIfPathSignal) return
+
+      if (ifPathSignalTimeoutRef.current) {
+        clearTimeout(ifPathSignalTimeoutRef.current)
+      }
+
+      ifPathSignalSerialRef.current += 1
+      const id = `if-path-${Date.now()}-${ifPathSignalSerialRef.current}`
+      setActiveIfPathSignal({
+        id,
+        condition: command.condition ?? 'ahead',
+        result,
+        from: {
+          x: currentLuma.x,
+          y: currentLuma.y,
+          facing: currentLuma.facing,
+        },
+        to: target,
+      })
+
+      ifPathSignalTimeoutRef.current = setTimeout(() => {
+        setActiveIfPathSignal((signal) => signal?.id === id ? null : signal)
+        ifPathSignalTimeoutRef.current = null
+      }, 420)
+    }
 
     const nextRuntimeCommand = () => {
       while (programStack.length > 0) {
@@ -659,14 +731,24 @@ export function useGameState(levelConfig, animSpeed = 50) {
           continue
         }
 
-        if (isIfBoxAheadCommand(command)) {
-          if (isBoxAhead(currentLuma, walls, grid, world) && (command.commands?.length ?? 0) > 0) {
+        if (isIfPathCommand(command)) {
+          const condition = command.condition ?? 'ahead'
+          const target = getIfPathTarget(currentLuma, condition)
+          const pathOpen = hasPath(currentLuma, walls, grid, condition, effectiveLevel.objects ?? [])
+
+          if (pathOpen && (command.commands?.length ?? 0) > 0) {
             programStack.push({
               commands: command.commands,
               index: 0,
               type: 'if',
             })
           }
+
+          if (shouldShowIfPathSignal) {
+            triggerIfPathSignal(command, pathOpen, target)
+            return { type: 'IF_PATH_SIGNAL' }
+          }
+
           continue
         }
 
@@ -688,9 +770,15 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
       const cmd = nextRuntimeCommand()
 
+      if (cmd?.type === 'IF_PATH_SIGNAL') {
+        setTimeout(() => executeStep(), 430)
+        return
+      }
+
       if (cmd === null) {
         setCollectedParts(new Set(localCollected))
         setIsRunning(false)
+        clearIfPathSignal()
 
         const allPartsCollected = shipPartObjects.every((_, i) => localCollected.has(i))
         const atGoal = goal && currentLuma.x === goal.x && currentLuma.y === goal.y
@@ -810,7 +898,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
   }, [
     isRunning, sequence, luma, levelConfig, effectiveLevel, isMirrored,
     firstFailTime, collectedParts, shipPartObjects,
-    predictionTile, missedFragmentsShown,
+    predictionTile, missedFragmentsShown, clearIfPathSignal,
   ])
 
   // ── DISMISS MISSED-FRAGMENTS HINT ─────────────────────────────────────────
@@ -850,7 +938,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     sequence, setSequence, isRunning, isMirrored,
     addCommand, removeLastCommand, clearSequence, runSequence,
     attemptCount, editCount,
-    collectedParts, collectionEffects,
+    collectedParts, collectionEffects, activeIfPathSignal,
     missedFragments, dismissMissedFragments,
     needsReset, resetLuma,
     predictionTile, setPrediction, predictionResult,

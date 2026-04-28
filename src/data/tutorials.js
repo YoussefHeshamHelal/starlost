@@ -10,8 +10,8 @@ function hasRepeatBlock(sequence = []) {
   return sequence.some(command => command && typeof command === 'object' && command.type === 'REPEAT')
 }
 
-function hasIfBoxAheadBlock(sequence = []) {
-  return sequence.some(command => command && typeof command === 'object' && command.type === 'IF_BOX_AHEAD')
+function hasIfPathBlock(sequence = []) {
+  return sequence.some(command => command && typeof command === 'object' && command.type === 'IF_PATH')
 }
 
 export const LEVEL_TUTORIALS = {
@@ -141,27 +141,19 @@ export const LEVEL_TUTORIALS = {
     }),
   ],
   15: [
-    levelStep('level-15-meet-if-box-ahead', {
-      targetId: 'command-if-box-ahead',
+    levelStep('level-15-meet-if-path', {
+      targetId: 'command-if-path',
       placement: 'top',
-      title: 'Meet IF BOX AHEAD',
-      body: 'IF BOX AHEAD checks the tile in front of LUMA. If there is a box there, LUMA does the command inside the IF block.',
+      title: 'Meet IF PATH',
+      body: 'IF PATH checks whether LUMA can move in a chosen direction. You can choose ahead, to the left, or to the right.',
       waitForTarget: true,
       nextLabel: 'Got it',
     }),
-    levelStep('level-15-use-if-to-turn', {
+    levelStep('level-15-if-repeat', {
       targetId: 'sequence-area',
       placement: 'left',
-      title: 'Use IF to turn',
-      body: 'In this level, put TURN LEFT inside IF BOX AHEAD. Then put MOVE FORWARD after the IF inside the Repeat block.',
-      waitForTarget: true,
-      nextLabel: 'Okay',
-    }),
-    levelStep('level-15-repeat-checking', {
-      targetId: 'command-repeat',
-      placement: 'top',
-      title: 'Let Repeat keep checking',
-      body: 'Repeat makes LUMA check again and again. Most times she moves forward. When a box is ahead, she turns left first.',
+      title: 'Use Repeat with IF PATH',
+      body: 'Put IF PATH inside Repeat so LUMA can check a direction again and again. The dropdown helps you choose which direction LUMA checks.',
       waitForTarget: true,
       nextLabel: 'Ready',
     }),
@@ -171,7 +163,7 @@ export const LEVEL_TUTORIALS = {
       targetId: 'sequence-area',
       placement: 'left',
       title: 'Same rule, two turns',
-      body: 'This path bends twice. You do not need two different plans. Repeat can keep checking IF BOX AHEAD.',
+      body: 'This path bends twice. Use Repeat with IF PATH to the right so LUMA turns when a side path opens.',
       waitForTarget: true,
       hideProgress: true,
       nextLabel: 'Got it',
@@ -326,32 +318,32 @@ export const FEATURE_TUTORIALS = {
       nextLabel: 'Okay',
     }),
   ],
-  'if-box-ahead': [
-    featureStep('if-box-ahead-intro', 'if-box-ahead', {
-      targetId: 'command-if-box-ahead',
+  'if-path': [
+    featureStep('if-path-intro', 'if-path', {
+      targetId: 'command-if-path',
       placement: 'top',
-      title: 'New command: IF BOX AHEAD',
-      body: 'IF BOX AHEAD checks the tile directly in front of LUMA for a box.',
+      title: 'New command: IF PATH',
+      body: 'IF PATH checks whether LUMA can move in one direction.',
       waitForTarget: true,
       nextLabel: 'What happens?',
     }),
-    featureStep('if-box-ahead-true-false', 'if-box-ahead', {
-      targetId: 'command-if-box-ahead',
+    featureStep('if-path-true-false', 'if-path', {
+      targetId: 'command-if-path',
       placement: 'top',
       title: 'Only runs when true',
-      body: 'If a box is there, LUMA runs the commands inside. If there is no box, she skips the inside commands.',
+      body: 'If that path is open, LUMA runs the commands inside. If that path is blocked, she skips the inside commands.',
       nextLabel: 'Add one',
     }),
-    featureStep('if-box-ahead-add', 'if-box-ahead', {
-      targetId: 'command-if-box-ahead',
+    featureStep('if-path-add', 'if-path', {
+      targetId: 'command-if-path',
       placement: 'top',
       title: 'Add an IF block',
-      body: 'Tap IF BOX AHEAD to add the conditional block to your program.',
+      body: 'Tap IF PATH to add the conditional block to your program.',
       requiresAction: true,
-      actionLabel: 'Add IF BOX AHEAD',
-      completeWhen: ({ sequence }) => hasIfBoxAheadBlock(sequence),
+      actionLabel: 'Add IF PATH',
+      completeWhen: ({ sequence }) => hasIfPathBlock(sequence),
     }),
-    featureStep('if-box-ahead-block', 'if-box-ahead', {
+    featureStep('if-path-block', 'if-path', {
       targetId: 'if-block',
       placement: 'left',
       title: 'Commands go inside',
@@ -359,7 +351,7 @@ export const FEATURE_TUTORIALS = {
       waitForTarget: true,
       nextLabel: 'I see',
     }),
-    featureStep('if-box-ahead-inside', 'if-box-ahead', {
+    featureStep('if-path-inside', 'if-path', {
       targetId: 'if-block-dropzone',
       placement: 'left',
       title: 'The inside can be a pattern',
@@ -367,7 +359,7 @@ export const FEATURE_TUTORIALS = {
       waitForTarget: true,
       nextLabel: 'Nice',
     }),
-    featureStep('if-box-ahead-nesting', 'if-box-ahead', {
+    featureStep('if-path-nesting', 'if-path', {
       targetId: 'command-repeat',
       placement: 'top',
       title: 'IF and REPEAT can nest',
@@ -449,7 +441,7 @@ export function getTutorialFeatureKeys(levelConfig, effectiveLevel) {
     if (featureKey === 'visor-flip-level-9') return levelConfig.id === 13 && !levelConfig.noVisorFlip
     if (featureKey === 'repeat-intro') return Boolean(levelConfig.allowRepeat)
     if (featureKey === 'repeat-builder') return Boolean(levelConfig.allowRepeat)
-    if (featureKey === 'if-box-ahead') return Boolean(levelConfig.allowIfBoxAhead)
+    if (featureKey === 'if-path') return Boolean(levelConfig.allowIfPath)
     if (featureKey === 'ship-fragments') {
       return (effectiveLevel?.objects ?? []).some(objectItem => objectItem.type === 'ship_part')
     }
