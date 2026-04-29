@@ -8,7 +8,11 @@ export function cloneNestedCommands(commands = []) {
     }
 
     if (isIfPathCommand(command)) {
-      return createIfPathCommand(command.condition, cloneNestedCommands(command.commands))
+      return createIfPathCommand(
+        command.condition,
+        cloneNestedCommands(command.commands),
+        cloneNestedCommands(command.elseCommands ?? [])
+      )
     }
 
     return command
@@ -27,11 +31,12 @@ export function createRepeatCommand(times = 2, commands = []) {
   }
 }
 
-export function createIfPathCommand(condition = 'ahead', commands = []) {
+export function createIfPathCommand(condition = 'ahead', commands = [], elseCommands = []) {
   return {
     type: 'IF_PATH',
     condition,
     commands: cloneNestedCommands(commands),
+    elseCommands: cloneNestedCommands(elseCommands),
   }
 }
 
@@ -50,11 +55,30 @@ export function isNestedBlockCommand(command) {
 export function countProgramBlocks(sequence = []) {
   return sequence.reduce((total, command) => {
     if (isNestedBlockCommand(command)) {
-      return total + 1 + countProgramBlocks(command.commands ?? [])
+      return total +
+        1 +
+        countProgramBlocks(command.commands ?? []) +
+        (isIfPathCommand(command) ? countProgramBlocks(command.elseCommands ?? []) : 0)
     }
 
     return typeof command === 'string' ? total + 1 : total
   }, 0)
+}
+
+export function hasEmptyRequiredElse(sequence = []) {
+  return sequence.some((command) => {
+    if (isRepeatCommand(command)) {
+      return hasEmptyRequiredElse(command.commands ?? [])
+    }
+
+    if (isIfPathCommand(command)) {
+      return (command.elseCommands?.length ?? 0) === 0 ||
+        hasEmptyRequiredElse(command.commands ?? []) ||
+        hasEmptyRequiredElse(command.elseCommands ?? [])
+    }
+
+    return false
+  })
 }
 
 export function expandSequence(sequence = []) {
@@ -98,6 +122,7 @@ export function formatSequenceCommand(command) {
 
   if (isIfPathCommand(command)) {
     const childCount = command.commands?.length ?? 0
+    const elseCount = command.elseCommands?.length ?? 0
     const conditionLabel = {
       ahead: 'AHEAD',
       left: 'TO THE LEFT',
@@ -106,8 +131,10 @@ export function formatSequenceCommand(command) {
 
     return {
       kind: 'if',
-      label: `IF PATH ${conditionLabel}`,
-      summary: `${childCount} BLOCK${childCount === 1 ? '' : 'S'} INSIDE`,
+      label: elseCount > 0 ? `IF/ELSE PATH ${conditionLabel}` : `IF PATH ${conditionLabel}`,
+      summary: elseCount > 0
+        ? `${childCount} IF / ${elseCount} ELSE`
+        : `${childCount} BLOCK${childCount === 1 ? '' : 'S'} INSIDE`,
       icon: 'if',
     }
   }

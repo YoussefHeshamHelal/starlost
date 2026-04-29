@@ -1835,7 +1835,7 @@ export default function GameGrid({
         )}
 
         <AnimatePresence>
-          {activeIfPathSignal && isRepairSite && activeLevel.id >= 15 && activeLevel.id <= 18 && (
+          {activeIfPathSignal && isRepairSite && (
             <IfPathSignal
               key={activeIfPathSignal.id}
               signal={activeIfPathSignal}

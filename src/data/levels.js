@@ -757,6 +757,69 @@ export function generateLevel16Layout() {
   }
 }
 
+export function generateLevel18Layout() {
+  return {
+    walls: [
+      { x: 0, y: 0 },
+      { x: 4, y: 0 },
+      { x: 1, y: 2 },
+      { x: 3, y: 2 },
+      { x: 1, y: 4 },
+      { x: 3, y: 4 },
+    ],
+    objects: [
+      { type: 'ship_part', x: 0, y: 1 },
+      { type: 'ship_part', x: 1, y: 1 },
+      { type: 'ship_part', x: 2, y: 1 },
+      { type: 'ship_part', x: 3, y: 1 },
+      { type: 'ship_part', x: 4, y: 1 },
+      { type: 'ship_part', x: 0, y: 2 },
+      { type: 'ship_part', x: 4, y: 2 },
+      { type: 'ship_part', x: 0, y: 3 },
+      { type: 'ship_part', x: 4, y: 3 },
+    ],
+    solution: [
+      createRepeatCommand(12, [
+        createIfPathCommand('ahead', ['F', 'C'], ['TR']),
+      ]),
+    ],
+    lumaStart: { x: 0, y: 4 },
+    goal: { x: 4, y: 4 },
+    lumaFacing: 'north',
+  }
+}
+
+export function generateLevel19Layout() {
+  return {
+    walls: [
+      { x: 1, y: 0 },
+      { x: 1, y: 1 },
+      { x: 3, y: 2 },
+      { x: 0, y: 4 },
+      { x: 3, y: 4 },
+      { x: 4, y: 0 },
+    ],
+    objects: [
+      { type: 'ship_part', x: 2, y: 1 },
+      { type: 'ship_part', x: 4, y: 3 },
+    ],
+    solution: [
+      createRepeatCommand(5, [
+        createIfPathCommand('left', ['TL', 'F'], ['F']),
+      ]),
+      'C',
+      createRepeatCommand(4, [
+        createIfPathCommand('right', ['TR', 'F'], ['F']),
+      ]),
+      'C',
+      'F',
+    ],
+    lumaStart: { x: 0, y: 0 },
+    goal: { x: 4, y: 4 },
+    lumaFacing: 'south',
+  }
+}
+
 export const LEVELS = [
   {
     id: 1,
@@ -1332,13 +1395,50 @@ export const LEVELS = [
   },
   {
     id: 18,
+    name: 'IF/ELSE Fragment Corridor',
+    world: 'repair-site',
+    tutorial: true,
+    grid: { cols: COLS, rows: ROWS },
+    lumaStart: { x: 0, y: 4 },
+    lumaFacing: 'north',
+    goal: { x: 4, y: 4 },
+    walls: [],
+    objects: [],
+    fog: false,
+    sptQuestion: {
+      prompt: 'Which direction is LUMA facing?',
+      options: ['↑ Up', '→ Right', '↓ Down', '← Left'],
+      correct: null,
+    },
+    solution: null,
+    decompositionPrompt: false,
+    predictionPrompt: false,
+    mirrorControls: false,
+    echoPosition: null,
+    strategyCardAfter: false,
+    noVisorFlip: false,
+    skipIdentify: false,
+    noRadio: false,
+    layoutGenerator: 'level18',
+    targetCommands: 5,
+    uncertainRadio: false,
+    allowRepeat: true,
+    allowIfPath: true,
+    allowCollect: true,
+    defaultIfPathCondition: 'ahead',
+    repeatDefaults: { times: 2 },
+    useIfElse: true,
+    requireElse: true,
+  },
+  {
+    id: 19,
     name: 'Decomposition Relay Prep',
     world: 'repair-site',
     tutorial: false,
     grid: { cols: COLS, rows: ROWS },
-    lumaStart: { ...L13_START },
-    lumaFacing: 'north',
-    goal: { ...L13_GOAL },
+    lumaStart: { x: 0, y: 0 },
+    lumaFacing: 'south',
+    goal: { x: 4, y: 4 },
     walls: [],
     objects: [],
     fog: false,
@@ -1356,11 +1456,15 @@ export const LEVELS = [
     noVisorFlip: false,
     skipIdentify: false,
     noRadio: false,
-    layoutGenerator: 'level13',
+    layoutGenerator: 'level19',
     targetCommands: 13,
     uncertainRadio: false,
     allowRepeat: true,
     allowIfPath: true,
+    allowCollect: true,
+    defaultIfPathCondition: 'left',
     repeatDefaults: { times: 2 },
+    useIfElse: true,
+    requireElse: true,
   },
 ]

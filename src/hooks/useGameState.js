@@ -14,8 +14,10 @@ import {
   generateLevel13Layout,
   generateLevel15Layout,
   generateLevel16Layout,
+  generateLevel18Layout,
+  generateLevel19Layout,
 } from '../data/levels'
-import { clampRepeatTimes, countProgramBlocks, isIfPathCommand, isRepeatCommand } from '../utils/commands'
+import { clampRepeatTimes, countProgramBlocks, hasEmptyRequiredElse, isIfPathCommand, isRepeatCommand } from '../utils/commands'
 
 const DIRECTIONS = ['north', 'east', 'south', 'west']
 
@@ -311,6 +313,8 @@ function generateLayout(generatorKey, facing) {
     case 'level13': return generateLevel13Layout(facing)
     case 'level15': return generateLevel15Layout(facing)
     case 'level16': return generateLevel16Layout(facing)
+    case 'level18': return generateLevel18Layout(facing)
+    case 'level19': return generateLevel19Layout(facing)
     default: return { walls: [], objects: [], solution: null }
   }
 }
@@ -418,6 +422,10 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
     if (levelConfig.id === 15) {
       return "Can you tell where I am? There is a box behind me and a box on my right."
+    }
+
+    if (levelConfig.id === 17) {
+      return "Can you see where I am? There is a box on my right and a box on my left."
     }
 
     if (levelConfig.id === 6) {
@@ -645,9 +653,11 @@ export function useGameState(levelConfig, animSpeed = 50) {
   }, [levelConfig.predictionPrompt, isRunning])
 
   // ── SEQUENCE RUNNER ──────────────────────────────────────────────────────
-  const runSequence = useCallback(() => {
-    if (isRunning || sequence.length === 0) return
+  const runSequence = useCallback(({ startIndex = 0, onIncomplete = null } = {}) => {
+    const commandsToRun = startIndex > 0 ? sequence.slice(startIndex) : sequence
+    if (isRunning || commandsToRun.length === 0) return
     if (levelConfig.predictionPrompt && !predictionTile) return
+    if (levelConfig.requireElse && hasEmptyRequiredElse(sequence)) return
     setIsRunning(true)
     setAttemptCount(c => c + 1)
     setNeedsReset(false)
@@ -665,10 +675,8 @@ export function useGameState(levelConfig, animSpeed = 50) {
     const world = effectiveLevel.world ?? levelConfig.world
     const shouldShowIfPathSignal =
       world === 'repair-site' &&
-      levelConfig.allowIfPath &&
-      levelConfig.id >= 15 &&
-      levelConfig.id <= 18
-    const programStack = [{ commands: sequence, index: 0, type: 'root' }]
+      levelConfig.allowIfPath
+    const programStack = [{ commands: commandsToRun, index: 0, type: 'root' }]
 
     let stoppedEarly = false
     let blockedType = null
@@ -736,11 +744,13 @@ export function useGameState(levelConfig, animSpeed = 50) {
           const target = getIfPathTarget(currentLuma, condition)
           const pathOpen = hasPath(currentLuma, walls, grid, condition, effectiveLevel.objects ?? [])
 
-          if (pathOpen && (command.commands?.length ?? 0) > 0) {
+          const branchCommands = pathOpen ? command.commands : command.elseCommands
+
+          if ((branchCommands?.length ?? 0) > 0) {
             programStack.push({
-              commands: command.commands,
+              commands: branchCommands,
               index: 0,
-              type: 'if',
+              type: pathOpen ? 'if' : 'else',
             })
           }
 
@@ -792,6 +802,12 @@ export function useGameState(levelConfig, animSpeed = 50) {
           setPhase('success')
           setNeedsReset(false)
           setReportOverride("I made it! The ship core is right here — we did it!")
+        } else if (onIncomplete?.({
+          luma: currentLuma,
+          collectedParts: localCollected,
+          sequenceLength: sequence.length,
+        })) {
+          setNeedsReset(false)
         } else if (atGoal && !allPartsCollected && shipPartObjects.length > 0) {
           if (!missedFragmentsShown) {
             setMissedFragments(true)

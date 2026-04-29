@@ -180,6 +180,33 @@ export const LEVEL_TUTORIALS = {
       nextLabel: 'Got it',
     }),
   ],
+  18: [
+    levelStep('level-18-if-else-command', {
+      targetId: 'command-if-else-path',
+      placement: 'top',
+      title: 'New command: IF/ELSE',
+      body: 'IF/ELSE helps LUMA choose between two actions. IF means "do this when the path is open." ELSE means "otherwise, do this instead."',
+      waitForTarget: true,
+      nextLabel: 'Got it',
+    }),
+    levelStep('level-18-two-places', {
+      targetId: 'command-if-else-path',
+      placement: 'left',
+      title: 'Two parts in one command',
+      body: 'This command has two spaces. Use the top part for what LUMA should do when the path is open. Use ELSE for what LUMA should do otherwise.',
+      waitForTarget: true,
+      nextLabel: 'I see',
+    }),
+    levelStep('level-18-else-needed', {
+      targetId: 'command-if-else-path',
+      placement: 'left',
+      title: 'ELSE needs a command',
+      body: 'ELSE cannot stay empty in this level. Add a command there so LUMA knows what to do when the path is blocked.',
+      waitForTarget: true,
+      hideProgress: true,
+      nextLabel: 'Ready',
+    }),
+  ],
 }
 
 export const FEATURE_TUTORIALS = {

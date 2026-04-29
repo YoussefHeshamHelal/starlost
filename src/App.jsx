@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LEVELS } from './data/levels'
+import { hasEmptyRequiredElse } from './utils/commands'
 import {
   getFeatureTutorialSteps,
   getLevelTutorialSteps,
@@ -20,7 +21,7 @@ const GRID_PX  = 520   // 5 tiles × 104 px
 const PANEL_W  = 620
 const GAP      = 24
 const EARLY_MAP_SCALE = 1.1
-const PLAYABLE_LEVELS = 18
+const PLAYABLE_LEVELS = 19
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
 
 // ── CSS keyframe animations ───────────────────────────────────────────────────
@@ -885,22 +886,71 @@ function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER
 const TUTORIAL_LEVELS_KEY = 'starlost:tutorial:levels'
 const TUTORIAL_FEATURES_KEY = 'starlost:tutorial:features'
 const LEVEL_1_RESET_TUTORIAL_KEY = 'level-1-reset'
-const LEVEL_18_EFFICIENT_FRAGMENT = { x: 1, y: 1 }
-const LEVEL_18_CHECKPOINT_TILES = [
-  LEVEL_18_EFFICIENT_FRAGMENT,
-  { x: 3, y: 3 },
+const LEVEL_19_EFFICIENT_FRAGMENT = { x: 2, y: 1 }
+const LEVEL_19_CHECKPOINT_TILES = [
+  LEVEL_19_EFFICIENT_FRAGMENT,
+  { x: 4, y: 3 },
 ]
-const LEVEL_18_CHECKPOINT_PROMPT = 'Choose which fragment LUMA should reach first to make the path most efficient.'
-const LEVEL_18_CHECKPOINT_SUCCESS = 'Great choice! That fragment makes the path shorter and easier to split into 2 routes.'
-const LEVEL_18_CHECKPOINT_RETRY = 'That could still work, but it would take more blocks. Try to find the fragment that makes the path more efficient.'
-const LEVEL_18_ROUTE_HINT_STEPS = [
+const LEVEL_19_CHECKPOINT_PROMPT = 'Choose which fragment LUMA should reach first to make the path most efficient.'
+const LEVEL_19_CHECKPOINT_SUCCESS = 'Great choice! That fragment makes the path shorter and easier to split into 2 routes.'
+const LEVEL_19_CHECKPOINT_RETRY = 'That could still work, but it would take more blocks. Try to find the fragment that makes the path more efficient.'
+const LEVEL_19_ROUTE_HINT_STEPS = [
   {
-    id: 'level-18-route-hint-map',
+    id: 'level-19-route-split-intro',
     targetId: 'grid-panel',
     placement: 'right',
-    title: 'Now think in 2 routes.',
-    body: 'Route 1 goes to the first fragment. Route 2 goes to the second fragment, then the ship core.',
-    hideProgress: true,
+    title: 'Split the path into two routes',
+    body: 'This path is too long to think about all at once. First, we will make a small program for Route 1 to reach the first fragment. After LUMA collects it, we will continue with Route 2 to reach the next fragment and the ship core.',
+    nextLabel: 'Route 1 first',
+  },
+  {
+    id: 'level-19-route-hint-map',
+    targetId: 'grid-panel',
+    placement: 'right',
+    title: 'First, make Route 1',
+    body: 'Start with only the first small program. Help LUMA reach the first fragment and collect it. Stop there for now — we will do the second route after LUMA gets this fragment.',
+    nextLabel: 'Start Route 1',
+  },
+  {
+    id: 'level-19-route-one-at-a-time',
+    targetId: 'sequence-area',
+    placement: 'left',
+    title: 'One route at a time',
+    body: 'This first program should end after COLLECT at the first fragment. Do not try to reach the ship core yet.',
+    nextLabel: 'Got it',
+  },
+  {
+    id: 'level-19-route-check-left',
+    targetId: 'command-if-else-path',
+    placement: 'left',
+    title: 'Check the left side',
+    body: 'In the previous levels, LUMA often checked the path ahead. This time, try making LUMA check the path on her left.',
+    nextLabel: 'One more hint',
+  },
+  {
+    id: 'level-19-route-do-two-commands',
+    targetId: 'sequence-area',
+    placement: 'left',
+    title: 'Use two commands inside DO',
+    body: 'The DO part inside IF can hold more than one command. For this first route, the best path is 6 blocks.',
+    nextLabel: 'Build Route 1',
+  },
+]
+const LEVEL_19_ROUTE_2_STEPS = [
+  {
+    id: 'level-19-route-2-continue',
+    targetId: 'sequence-area',
+    placement: 'left',
+    title: 'Great! Now continue the program',
+    body: 'LUMA collected the first fragment. Keep those blocks. Now add Route 2 under them so LUMA can reach the second fragment, collect it, and then go to the ship core.',
+    nextLabel: 'Build Route 2',
+  },
+  {
+    id: 'level-19-route-2-different',
+    targetId: 'command-if-else-path',
+    placement: 'left',
+    title: 'Route 2 is different',
+    body: 'The second route can use another Repeat with IF/ELSE. This time, LUMA may need to check the right side.',
     nextLabel: 'Ready',
   },
 ]
@@ -1053,9 +1103,11 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   const [checkpointChoiceComplete, setCheckpointChoiceComplete] = useState(false)
   const [checkpointChoiceFeedback, setCheckpointChoiceFeedback] = useState(null)
   const [checkpointChoiceSelection, setCheckpointChoiceSelection] = useState(null)
+  const [level19Route1Complete, setLevel19Route1Complete] = useState(false)
+  const [level19ContinueStartIndex, setLevel19ContinueStartIndex] = useState(0)
   const checkpointChoiceFinishTimerRef = useRef(null)
   const checkpointChoiceActive =
-    levelConfig.id === 18 &&
+    levelConfig.id === 19 &&
     phase === 'develop' &&
     !checkpointChoiceComplete
 
@@ -1147,8 +1199,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     if (!checkpointChoiceActive) return
 
     const isEfficientChoice =
-      col === LEVEL_18_EFFICIENT_FRAGMENT.x &&
-      row === LEVEL_18_EFFICIENT_FRAGMENT.y
+      col === LEVEL_19_EFFICIENT_FRAGMENT.x &&
+      row === LEVEL_19_EFFICIENT_FRAGMENT.y
 
     setCheckpointChoiceSelection({
       x: col,
@@ -1159,14 +1211,14 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     if (!isEfficientChoice) {
       setCheckpointChoiceFeedback({
         type: 'retry',
-        text: LEVEL_18_CHECKPOINT_RETRY,
+        text: LEVEL_19_CHECKPOINT_RETRY,
       })
       return
     }
 
     setCheckpointChoiceFeedback({
       type: 'success',
-      text: LEVEL_18_CHECKPOINT_SUCCESS,
+      text: LEVEL_19_CHECKPOINT_SUCCESS,
     })
 
     if (checkpointChoiceFinishTimerRef.current) {
@@ -1177,7 +1229,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
       setCheckpointChoiceComplete(true)
       setCheckpointChoiceFeedback(null)
       setCheckpointChoiceSelection(null)
-      startTutorial(LEVEL_18_ROUTE_HINT_STEPS)
+      startTutorial(LEVEL_19_ROUTE_HINT_STEPS)
     }, 900)
   }, [checkpointChoiceActive, startTutorial])
 
@@ -1186,6 +1238,33 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
       window.clearTimeout(checkpointChoiceFinishTimerRef.current)
     }
   }, [])
+
+  const resetLevel19RouteStage = useCallback(() => {
+    setLevel19Route1Complete(false)
+    setLevel19ContinueStartIndex(0)
+  }, [])
+
+  const handleLevel19Route1Incomplete = useCallback(({ luma: finalLuma, collectedParts: finalCollectedParts, sequenceLength }) => {
+    const firstFragmentCollected = finalCollectedParts.has(0)
+    const secondFragmentCollected = finalCollectedParts.has(1)
+    const route1Finished =
+      finalLuma.x === LEVEL_19_EFFICIENT_FRAGMENT.x &&
+      finalLuma.y === LEVEL_19_EFFICIENT_FRAGMENT.y &&
+      finalLuma.facing === 'north' &&
+      firstFragmentCollected &&
+      !secondFragmentCollected
+
+    if (!route1Finished) return false
+
+    setLevel19Route1Complete(true)
+    setLevel19ContinueStartIndex(sequenceLength)
+    startTutorial(LEVEL_19_ROUTE_2_STEPS)
+    return true
+  }, [startTutorial])
+
+  useEffect(() => {
+    if (levelConfig.id !== 19) resetLevel19RouteStage()
+  }, [levelConfig.id, resetLevel19RouteStage])
 
   useEffect(() => {
     if (tutorialSteps.length > 0) return undefined
@@ -1273,15 +1352,82 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   }, [closeTutorial, currentTutorialStep, tutorialContext, tutorialSteps.length])
 
   const handleReorder = useCallback((newSeq) => {
+    if (
+      levelConfig.id === 19 &&
+      level19Route1Complete &&
+      level19ContinueStartIndex > 0
+    ) {
+      const oldRoute1 = JSON.stringify(sequence.slice(0, level19ContinueStartIndex))
+      const nextRoute1 = JSON.stringify(newSeq.slice(0, level19ContinueStartIndex))
+      if (newSeq.length < level19ContinueStartIndex || oldRoute1 !== nextRoute1) {
+        resetLevel19RouteStage()
+      }
+    }
+
     if (setSequence) setSequence(newSeq)
-  }, [setSequence])
+  }, [
+    level19ContinueStartIndex,
+    level19Route1Complete,
+    levelConfig.id,
+    resetLevel19RouteStage,
+    sequence,
+    setSequence,
+  ])
 
   const handleVisorClose = useCallback(() => closeVisor(), [closeVisor])
   const handleAnswerSPT = useCallback((answer) => answerSPT(answer), [answerSPT])
   const handleFlipVisor = useCallback(() => flipVisor(), [flipVisor])
   const handleAddCommand = useCallback((cmd) => addCommand(cmd), [addCommand])
-  const handleRunSequence = useCallback(() => runSequence(), [runSequence])
-  const handleResetLuma = useCallback(() => resetLuma(), [resetLuma])
+  const handleRemoveLastCommand = useCallback(() => {
+    if (
+      levelConfig.id === 19 &&
+      level19Route1Complete &&
+      sequence.length - 1 < level19ContinueStartIndex
+    ) {
+      resetLevel19RouteStage()
+    }
+    removeLastCommand()
+  }, [
+    level19ContinueStartIndex,
+    level19Route1Complete,
+    levelConfig.id,
+    removeLastCommand,
+    resetLevel19RouteStage,
+    sequence.length,
+  ])
+  const handleClearSequence = useCallback(() => {
+    if (levelConfig.id === 19) resetLevel19RouteStage()
+    clearSequence()
+  }, [clearSequence, levelConfig.id, resetLevel19RouteStage])
+  const handleRunSequence = useCallback(() => {
+    if (levelConfig.id === 19) {
+      if (level19Route1Complete) {
+        if (sequence.length <= level19ContinueStartIndex) {
+          startTutorial(LEVEL_19_ROUTE_2_STEPS)
+          return
+        }
+        runSequence({ startIndex: level19ContinueStartIndex })
+        return
+      }
+
+      runSequence({ onIncomplete: handleLevel19Route1Incomplete })
+      return
+    }
+
+    runSequence()
+  }, [
+    handleLevel19Route1Incomplete,
+    level19ContinueStartIndex,
+    level19Route1Complete,
+    levelConfig.id,
+    runSequence,
+    sequence.length,
+    startTutorial,
+  ])
+  const handleResetLuma = useCallback(() => {
+    if (levelConfig.id === 19) resetLevel19RouteStage()
+    resetLuma()
+  }, [levelConfig.id, resetLevel19RouteStage, resetLuma])
   const canReplayTutorial =
     levelConfig.id !== 14 &&
     levelConfig.id !== 4 &&
@@ -1292,17 +1438,21 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     (levelConfig.id !== 15 || phase === 'develop') &&
     (levelConfig.id !== 16 || phase === 'develop') &&
     (levelConfig.id !== 17 || phase === 'develop') &&
-    (levelConfig.id !== 18 || phase === 'develop')
+    (levelConfig.id !== 18 || phase === 'develop') &&
+    (levelConfig.id !== 19 || phase === 'develop')
   const handleReplayTutorial = useCallback(() => {
     if (!canReplayTutorial) return
 
-    if (levelConfig.id === 18) {
-      launchTutorialWhenReady(LEVEL_18_ROUTE_HINT_STEPS, { persist: false })
+    if (levelConfig.id === 19) {
+      launchTutorialWhenReady(
+        level19Route1Complete ? LEVEL_19_ROUTE_2_STEPS : LEVEL_19_ROUTE_HINT_STEPS,
+        { persist: false }
+      )
       return
     }
 
     launchTutorialWhenReady(currentLevelTutorialPlan, { persist: false })
-  }, [canReplayTutorial, currentLevelTutorialPlan, launchTutorialWhenReady, levelConfig.id])
+  }, [canReplayTutorial, currentLevelTutorialPlan, launchTutorialWhenReady, level19Route1Complete, levelConfig.id])
 
   useEffect(() => {
     if (!onHeaderControls) return undefined
@@ -1340,7 +1490,14 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     setPrediction({ x: col, y: row })
   }, [predictionModeActive, setPrediction])
 
-  const runBlocked = levelConfig.predictionPrompt && predictionTile === null && predictionResult === null
+  const ifElseBlocked = Boolean(levelConfig.requireElse) && hasEmptyRequiredElse(sequence)
+  const runBlocked =
+    (levelConfig.predictionPrompt && predictionTile === null && predictionResult === null) ||
+    ifElseBlocked
+  const effectiveDefaultIfPathCondition =
+    levelConfig.id === 19
+      ? (level19Route1Complete ? 'right' : 'left')
+      : (levelConfig.defaultIfPathCondition ?? 'ahead')
 
   const panelW = PANEL_W
   const usesEarlyMapOnlyLayout = levelConfig.id === 1 || levelConfig.id === 2
@@ -1450,7 +1607,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
               predictionResult={predictionResult}
               onTileClick={handleTileClick}
               checkpointChoiceActive={checkpointChoiceActive}
-              checkpointChoiceTiles={LEVEL_18_CHECKPOINT_TILES}
+              checkpointChoiceTiles={LEVEL_19_CHECKPOINT_TILES}
               checkpointChoiceSelection={checkpointChoiceSelection}
               onCheckpointTileClick={handleCheckpointTileClick}
               collectionEffects={collectionEffects}
@@ -1595,7 +1752,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                             color: t.textPrimary,
                             fontWeight: 900,
                           }}>
-                            {LEVEL_18_CHECKPOINT_PROMPT}
+                            {LEVEL_19_CHECKPOINT_PROMPT}
                           </p>
                           {checkpointChoiceFeedback && (
                             <motion.p
@@ -1624,8 +1781,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                     isRunning={isRunning}
                     isMirrored={isMirrored}
                     onAdd={handleAddCommand}
-                    onRemove={removeLastCommand}
-                    onClear={clearSequence}
+                    onRemove={handleRemoveLastCommand}
+                    onClear={handleClearSequence}
                     onRun={handleRunSequence}
                     visorFlipCount={visorFlipCount}
                     onVisorFlip={handleFlipVisor}
@@ -1635,6 +1792,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                     onReset={handleResetLuma}
                     panelWidth={panelW}
                     runBlocked={runBlocked}
+                    ifElseBlocked={ifElseBlocked}
                     speed={animSpeed}
                     onSpeedChange={setAnimSpeed}
                     showVisorFlip={!levelConfig.noVisorFlip}
@@ -1643,7 +1801,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                     showRepeat={Boolean(levelConfig.allowRepeat)}
                     showCollect={levelConfig.allowCollect ?? levelConfig.id >= 5}
                     showIfPath={Boolean(levelConfig.allowIfPath)}
-                    defaultIfPathCondition={levelConfig.defaultIfPathCondition ?? 'ahead'}
+                    showIfElse={Boolean(levelConfig.useIfElse) || levelConfig.id >= 18}
+                    defaultIfPathCondition={effectiveDefaultIfPathCondition}
                   />
                 </div>
               </motion.div>

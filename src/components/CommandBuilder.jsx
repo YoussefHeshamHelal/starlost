@@ -1,4 +1,4 @@
-import { useCallback, useContext, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ThemeContext } from '../context/theme'
 import {
@@ -124,8 +124,8 @@ const IF_PATH_OPTIONS = [
   { value: 'right', label: 'to the right' },
 ]
 
-function createCommandFromCode(code, ifPathCondition = 'ahead') {
-  if (code === 'REPEAT') return createRepeatCommand()
+function createCommandFromCode(code, ifPathCondition = 'ahead', repeatTimes = 2) {
+  if (code === 'REPEAT') return createRepeatCommand(repeatTimes)
   if (code === 'IF_PATH') return createIfPathCommand(ifPathCondition)
   return code
 }
@@ -145,21 +145,51 @@ function getIfPathSelectStyle({ color, fontSize, letterSpacing = 1, theme }) {
   }
 }
 
+function getPathStepIndex(step) {
+  return typeof step === 'object' ? step.index : step
+}
+
+function getPathStepBranch(step) {
+  return typeof step === 'object' ? (step.branch ?? 'commands') : 'commands'
+}
+
+function withPathBranch(path, branch) {
+  if (path.length === 0) return path
+  const lastStep = path[path.length - 1]
+  return [
+    ...path.slice(0, -1),
+    {
+      index: getPathStepIndex(lastStep),
+      branch,
+    },
+  ]
+}
+
 function updateCommandsAtPath(sequence, path, updater) {
   if (path.length === 0) return updater(sequence)
-  const [index, ...rest] = path
+  const [step, ...rest] = path
+  const index = getPathStepIndex(step)
+  const branch = getPathStepBranch(step)
   return sequence.map((command, commandIndex) => {
     if (commandIndex !== index || !isNestedBlockCommand(command)) return command
-    return { ...command, commands: updateCommandsAtPath(command.commands ?? [], rest, updater) }
+    return {
+      ...command,
+      [branch]: updateCommandsAtPath(command[branch] ?? [], rest, updater),
+    }
   })
 }
 
 function updateBlockAtPath(sequence, path, updater) {
-  const [index, ...rest] = path
+  const [step, ...rest] = path
+  const index = getPathStepIndex(step)
+  const branch = getPathStepBranch(step)
   return sequence.map((command, commandIndex) => {
     if (commandIndex !== index || !isNestedBlockCommand(command)) return command
     if (rest.length === 0) return updater(command)
-    return { ...command, commands: updateBlockAtPath(command.commands ?? [], rest, updater) }
+    return {
+      ...command,
+      [branch]: updateBlockAtPath(command[branch] ?? [], rest, updater),
+    }
   })
 }
 
@@ -214,8 +244,12 @@ function getNestedDropInfoFromPoint(clientX, clientY) {
 }
 
 function adjustPathAfterTopLevelRemoval(path, removedIndex) {
-  if (path.length === 0 || removedIndex >= path[0]) return path
-  return [path[0] - 1, ...path.slice(1)]
+  if (path.length === 0 || removedIndex >= getPathStepIndex(path[0])) return path
+  const firstStep = path[0]
+  const adjustedFirstStep = typeof firstStep === 'object'
+    ? { ...firstStep, index: firstStep.index - 1 }
+    : firstStep - 1
+  return [adjustedFirstStep, ...path.slice(1)]
 }
 
 function getMeta(command, theme) {
@@ -232,7 +266,9 @@ function getMeta(command, theme) {
 function getRowEstimate(command) {
   if (!isNestedBlockCommand(command)) return CHIP_HEIGHT
   const childCount = command.commands?.length ?? 0
-  const nestedHeight = childCount === 0 ? 46 : childCount * (CHIP_HEIGHT + ITEM_GAP) + 14
+  const elseCount = isIfPathCommand(command) ? (command.elseCommands?.length ?? 0) : 0
+  const branchCount = childCount + elseCount
+  const nestedHeight = branchCount === 0 ? 46 : branchCount * (CHIP_HEIGHT + ITEM_GAP) + (elseCount > 0 ? 44 : 14)
   return 58 + nestedHeight
 }
 
@@ -283,72 +319,140 @@ function SpeedBar({ speed, onSpeedChange, theme }) {
   )
 }
 
-function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathCondition, onIfPathConditionChange }) {
-  const meta = getMeta(createCommandFromCode(code, ifPathCondition), theme)
+function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathCondition, onIfPathConditionChange, repeatTimes = 2, onRepeatTimesChange, showIfElse = false }) {
+  const meta = getMeta(createCommandFromCode(code, ifPathCondition, repeatTimes), theme)
   const isIfPath = code === 'IF_PATH'
+  const isRepeatPalette = code === 'REPEAT'
   const labelStyle = { fontSize: 10, letterSpacing: 0.8, fontWeight: 800, fontFamily: 'monospace', color: meta.color }
-  const selectStyle = getIfPathSelectStyle({ color: meta.color, fontSize: 10, letterSpacing: 0.8, theme })
+  const ifElsePreviewColor = meta.color
+  const ifElsePreviewBg = meta.bg
+  const ifElseSelectStyle = {
+    padding: '2px 6px',
+    background: theme === 'light' ? 'rgba(255,255,255,0.86)' : 'rgba(3,7,14,0.72)',
+    border: `1px solid ${ifElsePreviewColor}55`,
+    borderRadius: 6,
+    color: ifElsePreviewColor,
+    fontSize: 10,
+    fontFamily: 'monospace',
+    fontWeight: 800,
+    letterSpacing: 0.8,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+  }
+  const ifElseSocketStyle = {
+    flex: 1,
+    minWidth: 0,
+    height: 18,
+    background: theme === 'light' ? 'rgba(255,255,255,0.80)' : 'rgba(232,248,255,0.08)',
+    border: `1.5px solid ${ifElsePreviewColor}33`,
+    borderRadius: 6,
+    boxShadow: theme === 'light' ? 'inset 0 1px 2px rgba(70,142,204,0.08)' : 'inset 0 1px 2px rgba(0,0,0,0.22)',
+  }
   const stopSelectDrag = (event) => {
     event.preventDefault()
     event.stopPropagation()
   }
+  const addPaletteCommand = () => {
+    if (!disabled) onAdd(createCommandFromCode(code, ifPathCondition, repeatTimes))
+  }
+  const handlePaletteKeyDown = (event) => {
+    if (disabled || (event.key !== 'Enter' && event.key !== ' ')) return
+    event.preventDefault()
+    addPaletteCommand()
+  }
 
   return (
-    <motion.button
+    <motion.div
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled}
       whileTap={{ scale: 0.985 }}
-      onClick={() => !disabled && onAdd(createCommandFromCode(code, ifPathCondition))}
-      draggable
+      onClick={addPaletteCommand}
+      onKeyDown={handlePaletteKeyDown}
+      draggable={!disabled}
       onDragStart={(event) => {
+        if (disabled) {
+          event.preventDefault()
+          return
+        }
         event.dataTransfer.setData('cmd', code)
         if (isIfPath) event.dataTransfer.setData('ifPathCondition', ifPathCondition)
+        if (isRepeatPalette) event.dataTransfer.setData('repeatTimes', String(repeatTimes))
         event.dataTransfer.effectAllowed = 'copy'
       }}
-      disabled={disabled}
       data-tutorial-id={tutorialId}
-      style={{ width: '100%', padding: '10px 12px', background: meta.bg, border: `1.5px solid ${meta.color}`, borderRadius: 10, color: meta.color, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'monospace', opacity: disabled ? 0.35 : 1 }}
+      style={isIfPath
+        ? { width: '100%', padding: '8px 10px', background: ifElsePreviewBg, border: `1.5px solid ${ifElsePreviewColor}`, borderRadius: 10, color: ifElsePreviewColor, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 5, fontFamily: 'monospace', opacity: disabled ? 0.35 : 1, overflow: 'hidden' }
+        : { width: '100%', padding: '10px 12px', background: meta.bg, border: `1.5px solid ${meta.color}`, borderRadius: 10, color: meta.color, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'monospace', opacity: disabled ? 0.35 : 1 }}
     >
       {isIfPath ? (
         <>
-          <span style={labelStyle}>IF PATH</span>
-          <select
-            value={ifPathCondition}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <span style={{ color: ifElsePreviewColor, fontSize: 10, lineHeight: 1, fontWeight: 800, letterSpacing: 0.8, whiteSpace: 'nowrap' }}>IF PATH</span>
+            <select
+              value={ifPathCondition}
+              disabled={disabled}
+              onPointerDown={(event) => event.stopPropagation()}
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
+              onDragStart={stopSelectDrag}
+              onChange={(event) => {
+                event.stopPropagation()
+                onIfPathConditionChange(event.target.value)
+              }}
+              style={ifElseSelectStyle}
+            >
+              {IF_PATH_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+            <span style={{ width: 28, color: ifElsePreviewColor, fontSize: 10, lineHeight: 1, fontWeight: 800, letterSpacing: 0.8, textAlign: 'left' }}>DO</span>
+            <span aria-hidden="true" style={ifElseSocketStyle} />
+          </div>
+          {showIfElse && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+              <span style={{ width: 28, color: ifElsePreviewColor, fontSize: 10, lineHeight: 1, fontWeight: 800, letterSpacing: 0.8, textAlign: 'left' }}>ELSE</span>
+              <span aria-hidden="true" style={ifElseSocketStyle} />
+            </div>
+          )}
+        </>
+      ) : isRepeatPalette ? (
+        <>
+          <span style={labelStyle}>REPEAT</span>
+          <RepeatCounter
+            command={createRepeatCommand(repeatTimes)}
+            color={meta.color}
+            onChange={(next) => onRepeatTimesChange?.(next.times)}
+            depth={0}
+            compact
             disabled={disabled}
-            onPointerDown={(event) => event.stopPropagation()}
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={(event) => event.stopPropagation()}
-            onDragStart={stopSelectDrag}
-            onChange={(event) => {
-              event.stopPropagation()
-              onIfPathConditionChange(event.target.value)
-            }}
-            style={selectStyle}
-          >
-            {IF_PATH_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value} style={selectStyle}>{option.label}</option>
-            ))}
-          </select>
+            tutorialId={null}
+          />
         </>
       ) : (
         <span style={labelStyle}>{meta.buttonLabel}</span>
       )}
-    </motion.button>
+    </motion.div>
   )
 }
 
-function RepeatCounter({ command, color, onChange, depth = 0 }) {
+function RepeatCounter({ command, color, onChange, depth = 0, compact = false, disabled = false, tutorialId = 'repeat-block-counter' }) {
   const [inputValue, setInputValue] = useState(String(command.times))
   const layout = getDepthLayout(depth)
-  const buttonW = Math.max(15, 18 - Math.min(depth, 3))
-  const buttonH = Math.max(11, 13 - Math.min(depth, 2))
-  const buttonStyle = { width: buttonW, height: buttonH, borderRadius: 5, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.72)', color, cursor: 'pointer', padding: 0, fontWeight: 900, fontFamily: 'monospace', fontSize: Math.max(8, 10 - Math.min(depth, 2)), lineHeight: 1 }
+  const buttonSize = Math.max(16, compact ? 16 : 18 - Math.min(depth, 3))
+  const labelStyle = { fontSize: compact ? 10 : layout.labelSize, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800, color }
+  const buttonStyle = { width: buttonSize, height: buttonSize, borderRadius: 5, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.72)', color, cursor: disabled ? 'not-allowed' : 'pointer', padding: 0, fontWeight: 900, fontFamily: 'monospace', fontSize: Math.max(8, 10 - Math.min(depth, 2)), lineHeight: 1 }
 
   const updateTimes = (times) => {
+    if (disabled) return
     const nextTimes = clampRepeatTimes(times)
     setInputValue(String(nextTimes))
     onChange({ ...command, times: nextTimes })
   }
 
   const handleInputChange = (event) => {
+    if (disabled) return
     const rawValue = event.target.value.replace(/\D/g, '')
     if (rawValue === '') {
       setInputValue('')
@@ -360,14 +464,19 @@ function RepeatCounter({ command, color, onChange, depth = 0 }) {
     onChange({ ...command, times: nextTimes })
   }
 
+  const stopControlClick = (event) => {
+    event.stopPropagation()
+  }
+
   return (
-    <div data-tutorial-id="repeat-block-counter" onPointerDown={(event) => event.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: Math.max(3, 5 - Math.min(depth, 2)), padding: `${Math.max(2, 3 - Math.min(depth, 2))}px ${Math.max(4, 5 - Math.min(depth, 2))}px`, background: `${color}12`, border: `1px solid ${color}33`, borderRadius: 8, flexShrink: 0 }}>
-      <span style={{ fontSize: layout.controlFontSize, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800, color }}>REPEAT</span>
-      <input type="text" inputMode="numeric" value={inputValue} onChange={handleInputChange} onBlur={() => inputValue === '' && setInputValue(String(command.times))} style={{ width: Math.max(28, 34 - Math.min(depth, 3) * 2), padding: '2px 4px', borderRadius: 6, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.82)', color, fontFamily: 'monospace', fontSize: Math.max(9, 11 - Math.min(depth, 2)), fontWeight: 800, textAlign: 'center' }} />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <button type="button" style={buttonStyle} onClick={() => updateTimes(command.times + 1)}>+</button>
-        <button type="button" style={buttonStyle} onClick={() => updateTimes(command.times - 1)}>-</button>
+    <div data-tutorial-id={tutorialId} onPointerDown={(event) => event.stopPropagation()} onClick={stopControlClick} style={{ display: 'flex', alignItems: 'center', gap: compact ? 5 : Math.max(3, 5 - Math.min(depth, 2)), padding: 0, background: 'transparent', border: 'none', borderRadius: 0, flexShrink: 0 }}>
+      {!compact && <span style={labelStyle}>REPEAT</span>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '2px', border: `1px solid ${color}33`, borderRadius: 7, background: `${color}10` }}>
+        <button type="button" disabled={disabled} style={buttonStyle} onClick={() => updateTimes(command.times - 1)}>-</button>
+        <input type="text" inputMode="numeric" disabled={disabled} value={inputValue} onChange={handleInputChange} onBlur={() => inputValue === '' && setInputValue(String(command.times))} style={{ width: compact ? 24 : Math.max(28, 34 - Math.min(depth, 3) * 2), padding: '2px 4px', borderRadius: 6, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.82)', color, fontFamily: 'monospace', fontSize: compact ? 10 : Math.max(9, 11 - Math.min(depth, 2)), fontWeight: 800, textAlign: 'center' }} />
+        <button type="button" disabled={disabled} style={buttonStyle} onClick={() => updateTimes(command.times + 1)}>+</button>
       </div>
+      <span style={labelStyle}>TIMES</span>
     </div>
   )
 }
@@ -403,20 +512,26 @@ function CommandChip({ command, index, depth, path, theme, isRunning, onDelete }
   )
 }
 
-function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDelete, onUpdateBlock, onDropIntoBlock, onNestedPaletteHoverChange, activeNestedDropPath, children }) {
+function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDelete, onUpdateBlock, onDropIntoBlock, onNestedPaletteHoverChange, activeNestedDropPath, showIfElse = false, elseChildren, children }) {
   const meta = getMeta(command, theme)
-  const [isDragOver, setIsDragOver] = useState(false)
+  const [dragOverBranch, setDragOverBranch] = useState(null)
   const childCount = command.commands?.length ?? 0
+  const elseCount = command.elseCommands?.length ?? 0
   const pathKey = JSON.stringify(path)
-  const isDropActive = isDragOver || activeNestedDropPath?.pathKey === pathKey
-  const dropPath = JSON.stringify(path)
+  const elsePath = withPathBranch(path, 'elseCommands')
+  const elsePathKey = JSON.stringify(elsePath)
   const isRepeat = isRepeatCommand(command)
-  const subtitle = isRepeat ? 'LOOP BLOCK' : 'CONDITION BLOCK'
-  const blockTutorialId = isRepeat ? 'repeat-block' : 'if-block'
-  const dropTutorialId = isRepeat ? undefined : 'if-block-dropzone'
+  const isIfElse = !isRepeat && showIfElse
+  const blockTutorialId = isRepeat ? 'repeat-block' : isIfElse ? 'if-else-block' : 'if-block'
+  const dropTutorialId = isRepeat ? undefined : isIfElse ? 'if-else-true-dropzone' : 'if-block-dropzone'
   const layout = getDepthLayout(depth)
   const labelFontSize = layout.labelSize
   const labelStyle = { fontSize: labelFontSize, color: meta.color, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800 }
+  const branchLabelStyle = { width: 'fit-content', padding: `${Math.max(2, 3 - Math.min(depth, 2))}px ${Math.max(6, 8 - Math.min(depth, 2))}px`, background: `${meta.color}12`, border: `1px solid ${meta.color}33`, borderRadius: 7, color: meta.color, fontSize: Math.max(8, layout.controlFontSize - 2), fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800, flexShrink: 0, textAlign: 'center', boxSizing: 'border-box', transform: 'translateX(2px)' }
+  const branchGap = 0
+  const branchLabelColumnWidth = Math.max(44, 48 - Math.min(depth, 2) * 2)
+  const branchRowOffset = Math.max(0, layout.numberWidth + layout.rowGap + 6)
+  const branchDropMinHeight = layout.chipHeight + 4
   const selectStyle = getIfPathSelectStyle({ color: meta.color, fontSize: labelFontSize, theme })
   const stopControlDrag = (event) => {
     event.preventDefault()
@@ -426,17 +541,15 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
   return (
     <div
       data-tutorial-id={blockTutorialId}
-      style={{ position: 'relative', marginLeft: layout.indent, padding: layout.cardPadding, paddingRight: layout.deleteSize + layout.cardPadding + 6, background: meta.bg, border: `1.5px solid ${meta.color}66`, borderRadius: 10, boxSizing: 'border-box' }}
+      style={{ position: 'relative', marginLeft: layout.indent, padding: layout.cardPadding, paddingTop: isRepeat ? Math.max(6, layout.cardPadding - 4) : layout.cardPadding, paddingRight: layout.deleteSize + layout.cardPadding + 6, background: meta.bg, border: `1.5px solid ${meta.color}66`, borderRadius: 10, boxSizing: 'border-box' }}
     >
       <div style={{ display: 'flex', gap: layout.rowGap, alignItems: 'flex-start', minWidth: 0 }}>
-        <span style={{ fontSize: layout.numberSize, color: meta.color, fontFamily: 'monospace', width: layout.numberWidth, textAlign: 'right', fontWeight: 700, paddingTop: 5, flexShrink: 0 }}>{String(index + 1).padStart(2, '0')}</span>
+        <span style={{ fontSize: layout.numberSize, color: meta.color, fontFamily: 'monospace', width: layout.numberWidth, textAlign: 'right', fontWeight: 700, paddingTop: isRepeat ? 8 : 5, flexShrink: 0 }}>{String(index + 1).padStart(2, '0')}</span>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap', minWidth: 0, transform: isRepeat ? 'translateY(-5px)' : 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: layout.rowGap, minWidth: 0, flex: '1 1 110px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3 }}>
-                {isRepeat ? (
-                  <span style={{ fontSize: layout.labelSize, color: meta.color, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800, overflowWrap: 'anywhere' }}>{`REPEAT x${command.times}`}</span>
-                ) : (
+                {!isRepeat && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     <span style={labelStyle}>IF PATH</span>
                     <select
@@ -458,12 +571,6 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
                     </select>
                   </div>
                 )}
-                {!isRepeat && (
-                  <span onPointerDown={(event) => event.stopPropagation()} style={{ padding: `${Math.max(3, 5 - Math.min(depth, 2))}px ${Math.max(6, 8 - Math.min(depth, 2))}px`, background: `${meta.color}12`, border: `1px solid ${meta.color}33`, borderRadius: 8, color: meta.color, fontSize: layout.controlFontSize, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800, flexShrink: 0 }}>
-                    DO
-                  </span>
-                )}
-                <span style={{ fontSize: Math.max(6.5, 7 - Math.min(depth, 2) * 0.2), color: `${meta.color}cc`, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 700 }}>{subtitle} · {childCount} BLOCK{childCount === 1 ? '' : 'S'}</span>
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: Math.max(4, 6 - Math.min(depth, 2)), flex: '0 1 auto', minWidth: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -473,41 +580,88 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
             </div>
           </div>
 
-          <div
-            onDragOver={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              setIsDragOver(true)
-              onNestedPaletteHoverChange?.({ pathKey, insertAt: childCount })
-              event.dataTransfer.dropEffect = 'copy'
-            }}
-            onDragLeave={(event) => {
-              event.stopPropagation()
-              const rect = event.currentTarget.getBoundingClientRect()
-              if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
-                setIsDragOver(false)
-                onNestedPaletteHoverChange?.(null)
-              }
-            }}
-            onDrop={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              setIsDragOver(false)
-              onNestedPaletteHoverChange?.(null)
-              const raw = event.dataTransfer.getData('cmd')
-              if (!raw) return
-              onDropIntoBlock(path, raw, childCount, event.dataTransfer.getData('ifPathCondition') || 'ahead')
-            }}
-            data-tutorial-id={dropTutorialId}
-            data-nested-drop-path={dropPath}
-            style={{ minHeight: layout.dropMinHeight, padding: layout.dropPadding, borderRadius: 8, background: isDropActive ? (theme === 'light' ? 'rgba(216,247,255,0.96)' : 'rgba(45,212,191,0.07)') : (theme === 'light' ? 'rgba(255,255,255,0.68)' : 'rgba(3,7,14,0.72)'), border: `1.5px ${isDropActive ? `dashed ${meta.color}88` : `solid ${meta.color}33`}`, display: 'flex', flexDirection: 'column', gap: 4, boxSizing: 'border-box' }}
-          >
-            {childCount === 0 ? (
-              <div style={{ flex: 1, minHeight: 34, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <p style={{ color: `${meta.color}cc`, fontSize: layout.labelSize, fontFamily: 'monospace', letterSpacing: 0.8, margin: 0, fontWeight: 700, textAlign: 'center' }}>Drag commands here</p>
+          <div style={{ display: 'flex', alignItems: 'stretch', gap: branchGap, minWidth: 0, marginLeft: isRepeat ? -(layout.numberWidth + layout.rowGap) : -branchRowOffset, marginRight: -(layout.deleteSize + 4) }}>
+            {!isRepeat && (
+              <div style={{ width: branchLabelColumnWidth, display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', paddingTop: 1, flexShrink: 0 }}>
+                <span onPointerDown={(event) => event.stopPropagation()} style={branchLabelStyle}>DO</span>
               </div>
-            ) : children}
+            )}
+            <div
+              onDragOver={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                setDragOverBranch('commands')
+                onNestedPaletteHoverChange?.({ pathKey, path, insertAt: childCount })
+                event.dataTransfer.dropEffect = 'copy'
+              }}
+              onDragLeave={(event) => {
+                event.stopPropagation()
+                const rect = event.currentTarget.getBoundingClientRect()
+                if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
+                  setDragOverBranch(null)
+                  onNestedPaletteHoverChange?.(null)
+                }
+              }}
+              onDrop={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                setDragOverBranch(null)
+                onNestedPaletteHoverChange?.(null)
+                const raw = event.dataTransfer.getData('cmd')
+                if (!raw) return
+                onDropIntoBlock(path, raw, childCount, event.dataTransfer.getData('ifPathCondition') || 'ahead', event.dataTransfer.getData('repeatTimes') || 2)
+              }}
+              data-tutorial-id={dropTutorialId}
+              data-nested-drop-path={pathKey}
+              style={{ flex: 1, minWidth: 0, minHeight: branchDropMinHeight, padding: layout.dropPadding, borderRadius: 8, background: (dragOverBranch === 'commands' || activeNestedDropPath?.pathKey === pathKey) ? (theme === 'light' ? 'rgba(216,247,255,0.96)' : 'rgba(45,212,191,0.07)') : (theme === 'light' ? 'rgba(255,255,255,0.68)' : 'rgba(3,7,14,0.72)'), border: `1.5px ${(dragOverBranch === 'commands' || activeNestedDropPath?.pathKey === pathKey) ? `dashed ${meta.color}88` : `solid ${meta.color}33`}`, display: 'flex', flexDirection: 'column', gap: 4, boxSizing: 'border-box' }}
+            >
+              {childCount === 0 ? (
+                <div style={{ flex: 1, minHeight: 0 }} />
+              ) : children}
+            </div>
           </div>
+          {isIfElse && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'stretch', gap: branchGap, minWidth: 0, margin: `3px -${layout.deleteSize + 4}px 0 -${branchRowOffset}px` }}>
+                <div style={{ width: branchLabelColumnWidth, display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', paddingTop: 1, flexShrink: 0 }}>
+                  <span onPointerDown={(event) => event.stopPropagation()} style={{ ...branchLabelStyle, fontWeight: 900, letterSpacing: 1.1 }}>ELSE</span>
+                </div>
+                <div
+                  onDragOver={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    setDragOverBranch('elseCommands')
+                    onNestedPaletteHoverChange?.({ pathKey: elsePathKey, path: elsePath, insertAt: elseCount })
+                    event.dataTransfer.dropEffect = 'copy'
+                  }}
+                  onDragLeave={(event) => {
+                    event.stopPropagation()
+                    const rect = event.currentTarget.getBoundingClientRect()
+                    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
+                      setDragOverBranch(null)
+                      onNestedPaletteHoverChange?.(null)
+                    }
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    setDragOverBranch(null)
+                    onNestedPaletteHoverChange?.(null)
+                    const raw = event.dataTransfer.getData('cmd')
+                    if (!raw) return
+                    onDropIntoBlock(elsePath, raw, elseCount, event.dataTransfer.getData('ifPathCondition') || 'ahead', event.dataTransfer.getData('repeatTimes') || 2)
+                  }}
+                  data-tutorial-id="if-else-false-dropzone"
+                  data-nested-drop-path={elsePathKey}
+                  style={{ flex: 1, minWidth: 0, minHeight: branchDropMinHeight, padding: layout.dropPadding, borderRadius: 8, background: (dragOverBranch === 'elseCommands' || activeNestedDropPath?.pathKey === elsePathKey) ? (theme === 'light' ? 'rgba(225,248,255,0.98)' : 'rgba(125,211,252,0.08)') : (theme === 'light' ? 'rgba(255,255,255,0.58)' : 'rgba(3,7,14,0.62)'), border: `1.5px ${(dragOverBranch === 'elseCommands' || activeNestedDropPath?.pathKey === elsePathKey) ? `dashed ${meta.color}88` : `solid ${meta.color}2f`}`, display: 'flex', flexDirection: 'column', gap: 4, boxSizing: 'border-box' }}
+                >
+                  {elseCount === 0 ? (
+                    <div style={{ flex: 1, minHeight: 0 }} />
+                  ) : elseChildren}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
       <RowDelete color={meta.color} isRunning={isRunning} onDelete={() => onDelete(path)} theme={theme} depth={depth} positioned="corner" />
@@ -515,7 +669,7 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
   )
 }
 
-function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning, onReorderCommands, onDelete, onUpdateBlock, onDropIntoBlock, onNestedPaletteHoverChange, activeNestedDropPath }) {
+function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning, onReorderCommands, onDelete, onUpdateBlock, onDropIntoBlock, onNestedPaletteHoverChange, activeNestedDropPath, showIfElse = false }) {
   const [dragIndex, setDragIndex] = useState(null)
   const [ghostY, setGhostY] = useState(0)
   const [insertAt, setInsertAt] = useState(null)
@@ -571,9 +725,9 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
     const rect = stripRef.current.getBoundingClientRect()
     const nextInsertAt = computeInsert(event.clientY - rect.top)
     setPaletteInsertAt(nextInsertAt)
-    onNestedPaletteHoverChange?.({ pathKey, insertAt: nextInsertAt })
+    onNestedPaletteHoverChange?.({ pathKey, path: parentPath, insertAt: nextInsertAt })
     event.dataTransfer.dropEffect = 'copy'
-  }, [computeInsert, onNestedPaletteHoverChange, pathKey])
+  }, [computeInsert, onNestedPaletteHoverChange, parentPath, pathKey])
 
   const handleStripDragLeave = useCallback((event) => {
     event.stopPropagation()
@@ -591,7 +745,7 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
     const raw = event.dataTransfer.getData('cmd')
     if (raw && stripRef.current) {
       const rect = stripRef.current.getBoundingClientRect()
-      onDropIntoBlock(parentPath, raw, computeInsert(event.clientY - rect.top), event.dataTransfer.getData('ifPathCondition') || 'ahead')
+      onDropIntoBlock(parentPath, raw, computeInsert(event.clientY - rect.top), event.dataTransfer.getData('ifPathCondition') || 'ahead', event.dataTransfer.getData('repeatTimes') || 2)
     }
     setPaletteInsertAt(null)
     onNestedPaletteHoverChange?.(null)
@@ -696,6 +850,23 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
                 onDropIntoBlock={onDropIntoBlock}
                 onNestedPaletteHoverChange={onNestedPaletteHoverChange}
                 activeNestedDropPath={activeNestedDropPath}
+                showIfElse={showIfElse}
+                elseChildren={isIfPathCommand(command) && showIfElse ? (
+                  <DraggableNestedSequence
+                    sequence={command.elseCommands ?? []}
+                    parentPath={withPathBranch(path, 'elseCommands')}
+                    depth={depth + 1}
+                    theme={theme}
+                    isRunning={isRunning}
+                    onReorderCommands={onReorderCommands}
+                    onDelete={onDelete}
+                    onUpdateBlock={onUpdateBlock}
+                    onDropIntoBlock={onDropIntoBlock}
+                    onNestedPaletteHoverChange={onNestedPaletteHoverChange}
+                    activeNestedDropPath={activeNestedDropPath}
+                    showIfElse={showIfElse}
+                  />
+                ) : null}
               >
                 <DraggableNestedSequence
                   sequence={command.commands ?? []}
@@ -709,6 +880,7 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
                   onDropIntoBlock={onDropIntoBlock}
                   onNestedPaletteHoverChange={onNestedPaletteHoverChange}
                   activeNestedDropPath={activeNestedDropPath}
+                  showIfElse={showIfElse}
                 />
               </NestedBlockCard>
             ) : (
@@ -725,7 +897,7 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
   )
 }
 
-function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete, onUpdateBlock, onDropIntoBlock, theme, setDragOver }) {
+function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete, onUpdateBlock, onDropIntoBlock, theme, setDragOver, showIfElse = false }) {
   const [dragIndex, setDragIndex] = useState(null)
   const [ghostY, setGhostY] = useState(0)
   const [insertAt, setInsertAt] = useState(null)
@@ -845,7 +1017,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
     const cmd = event.dataTransfer.getData('cmd')
     if (cmd && stripRef.current) {
       const rect = stripRef.current.getBoundingClientRect()
-      onInsertAt(cmd, computeInsert(event.clientY - rect.top), event.dataTransfer.getData('ifPathCondition') || 'ahead')
+      onInsertAt(cmd, computeInsert(event.clientY - rect.top), event.dataTransfer.getData('ifPathCondition') || 'ahead', event.dataTransfer.getData('repeatTimes') || 2)
     }
     setPaletteInsertAt(null)
     setDragOver(false)
@@ -909,6 +1081,23 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
                 onDropIntoBlock={onDropIntoBlock}
                 onNestedPaletteHoverChange={handleNestedPaletteHoverChange}
                 activeNestedDropPath={activeNestedDropPath}
+                showIfElse={showIfElse}
+                elseChildren={isIfPathCommand(command) && showIfElse ? (
+                  <DraggableNestedSequence
+                    sequence={command.elseCommands ?? []}
+                    parentPath={withPathBranch([index], 'elseCommands')}
+                    depth={1}
+                    theme={theme}
+                    isRunning={isRunning}
+                    onReorderCommands={handleNestedReorder}
+                    onDelete={onDelete}
+                    onUpdateBlock={onUpdateBlock}
+                    onDropIntoBlock={onDropIntoBlock}
+                    onNestedPaletteHoverChange={handleNestedPaletteHoverChange}
+                    activeNestedDropPath={activeNestedDropPath}
+                    showIfElse={showIfElse}
+                  />
+                ) : null}
               >
                 <DraggableNestedSequence
                   sequence={command.commands ?? []}
@@ -922,6 +1111,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
                   onDropIntoBlock={onDropIntoBlock}
                   onNestedPaletteHoverChange={handleNestedPaletteHoverChange}
                   activeNestedDropPath={activeNestedDropPath}
+                  showIfElse={showIfElse}
                 />
               </NestedBlockCard>
             ) : (
@@ -961,12 +1151,19 @@ export default function CommandBuilder({
   showRepeat = false,
   showCollect = false,
   showIfPath = false,
+  showIfElse = false,
+  ifElseBlocked = false,
   defaultIfPathCondition = 'ahead',
 }) {
   const theme = useContext(ThemeContext)
   const t = THEMES[theme]
   const [dragOver, setDragOver] = useState(false)
   const [ifPathPaletteCondition, setIfPathPaletteCondition] = useState(defaultIfPathCondition)
+  const [repeatPaletteTimes, setRepeatPaletteTimes] = useState(2)
+
+  useEffect(() => {
+    setIfPathPaletteCondition(defaultIfPathCondition)
+  }, [defaultIfPathCondition])
 
   const totalBlocks = countProgramBlocks(sequence)
   const isDisabled = isRunning || sequence.length === 0 || needsReset || runBlocked
@@ -999,18 +1196,24 @@ export default function CommandBuilder({
   const handleUpdateBlock = useCallback((path, nextBlock) => {
     onReorder(updateBlockAtPath(sequence, path, (block) => {
       if (isRepeatCommand(block)) return createRepeatCommand(nextBlock.times, nextBlock.commands ?? [])
-      if (isIfPathCommand(block)) return createIfPathCommand(nextBlock.condition ?? block.condition ?? 'ahead', nextBlock.commands ?? block.commands ?? [])
+      if (isIfPathCommand(block)) {
+        return createIfPathCommand(
+          nextBlock.condition ?? block.condition ?? 'ahead',
+          nextBlock.commands ?? block.commands ?? [],
+          nextBlock.elseCommands ?? block.elseCommands ?? []
+        )
+      }
       return block
     }))
   }, [onReorder, sequence])
 
-  const handleDropIntoBlock = useCallback((path, raw, index = Number.MAX_SAFE_INTEGER, ifPathCondition = 'ahead') => {
-    const dropped = createCommandFromCode(raw, ifPathCondition)
+  const handleDropIntoBlock = useCallback((path, raw, index = Number.MAX_SAFE_INTEGER, ifPathCondition = 'ahead', repeatTimes = 2) => {
+    const dropped = createCommandFromCode(raw, ifPathCondition, repeatTimes)
     onReorder(insertCommandAtPath(sequence, path, index, dropped))
   }, [onReorder, sequence])
 
-  const handleInsertAt = useCallback((rawCommand, index, ifPathCondition = 'ahead') => {
-    const inserted = createCommandFromCode(rawCommand, ifPathCondition)
+  const handleInsertAt = useCallback((rawCommand, index, ifPathCondition = 'ahead', repeatTimes = 2) => {
+    const inserted = createCommandFromCode(rawCommand, ifPathCondition, repeatTimes)
     onReorder(insertCommandAtPath(sequence, [], index, inserted))
   }, [onReorder, sequence])
 
@@ -1039,7 +1242,6 @@ export default function CommandBuilder({
       <AnimatePresence>
         {isMirrored && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} style={{ overflow: 'hidden', padding: '6px 10px', background: t.mirrorBg, border: `1.5px solid ${t.mirrorBorder}`, borderRadius: 6, color: t.mirrorText, fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800 }}>WARNING: LEFT / RIGHT FLIPPED</motion.div>}
       </AnimatePresence>
-
       <div style={{ display: 'flex', gap: 14, alignItems: 'stretch', minHeight: 0, flex: 1 }}>
         <div style={subPanelStyle}>
           <div data-tutorial-id="command-palette" style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
@@ -1053,9 +1255,12 @@ export default function CommandBuilder({
                   disabled={isRunning}
                   onAdd={handleTopLevelAdd}
                   theme={theme}
-                  tutorialId={code === 'F' ? 'command-forward' : code === 'C' ? 'command-collect' : code === 'TR' || code === 'TL' ? 'command-turn' : code === 'IF_PATH' ? 'command-if-path' : 'command-repeat'}
+                  tutorialId={code === 'F' ? 'command-forward' : code === 'C' ? 'command-collect' : code === 'TR' || code === 'TL' ? 'command-turn' : code === 'IF_PATH' ? (showIfElse ? 'command-if-else-path' : 'command-if-path') : 'command-repeat'}
                   ifPathCondition={ifPathPaletteCondition}
                   onIfPathConditionChange={setIfPathPaletteCondition}
+                  repeatTimes={repeatPaletteTimes}
+                  onRepeatTimesChange={setRepeatPaletteTimes}
+                  showIfElse={showIfElse}
                 />
               ))}
             </div>
@@ -1093,14 +1298,18 @@ export default function CommandBuilder({
               setDragOver(false)
               const rawCommand = event.dataTransfer.getData('cmd')
               if (!rawCommand) return
-              onReorder(insertCommandAtPath(sequence, [], sequence.length, createCommandFromCode(rawCommand, event.dataTransfer.getData('ifPathCondition') || 'ahead')))
+              onReorder(insertCommandAtPath(sequence, [], sequence.length, createCommandFromCode(
+                rawCommand,
+                event.dataTransfer.getData('ifPathCondition') || 'ahead',
+                event.dataTransfer.getData('repeatTimes') || 2,
+              )))
             }}
             style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', background: dragOver ? (theme === 'light' ? 'linear-gradient(180deg, rgba(210,248,255,0.98), rgba(239,240,255,0.96))' : 'rgba(45,212,191,0.04)') : t.scrollBg, border: `1.5px ${dragOver ? `dashed ${theme === 'light' ? '#2fc9df88' : '#2dd4bf55'}` : `solid ${t.scrollBorder}`}`, borderRadius: 8, padding: 10, boxSizing: 'border-box' }}
           >
             {sequence.length === 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100%', gap: 6 }}>
                 <div style={{ fontSize: 18, opacity: theme === 'light' ? 0.28 : 0.18, color: theme === 'light' ? '#14b8d4' : '#5a8890' }}>↓</div>
-                <p style={{ color: t.emptyText, fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, margin: 0, userSelect: 'none', fontWeight: 700 }}>drag commands here</p>
+                <p style={{ color: t.emptyText, fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, margin: 0, userSelect: 'none', fontWeight: 700 }}>Drag commands here</p>
               </div>
             ) : (
               <DraggableProgram
@@ -1113,19 +1322,20 @@ export default function CommandBuilder({
                 onDropIntoBlock={handleDropIntoBlock}
                 theme={theme}
                 setDragOver={setDragOver}
+                showIfElse={showIfElse}
               />
             )}
           </div>
         </div>
       </div>
 
-      <AnimatePresence>
-        {needsReset && <motion.button key="reset-btn" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} whileTap={{ scale: 0.97 }} onClick={onReset} disabled={isRunning} data-tutorial-id="reset-button" style={{ width: '100%', padding: '11px 0', background: t.resetBg, border: '2px solid #fb7185', borderRadius: 8, color: theme === 'light' ? '#be123c' : '#fb7185', fontFamily: 'monospace', fontSize: 13, letterSpacing: 2, cursor: isRunning ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontWeight: 800 }}>↺ RESET LUMA</motion.button>}
-      </AnimatePresence>
+      {needsReset && <motion.button key="reset-btn" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.97 }} onClick={onReset} disabled={isRunning} data-tutorial-id="reset-button" style={{ width: '100%', padding: '11px 0', background: t.resetBg, border: '2px solid #fb7185', borderRadius: 8, color: theme === 'light' ? '#be123c' : '#fb7185', fontFamily: 'monospace', fontSize: 13, letterSpacing: 2, cursor: isRunning ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontWeight: 800 }}>↺ RESET LUMA</motion.button>}
 
-      <motion.button whileTap={{ scale: 0.97 }} onClick={onRun} disabled={isDisabled} data-tutorial-id="run-button" style={{ width: '100%', padding: '13px 0', background: isDisabled ? t.runBgDisabled : t.runBgActive, border: `2px solid ${isDisabled ? t.runBorderDisabled : t.runBorderActive}`, borderRadius: 8, color: isDisabled ? t.runColorDisabled : t.runColorActive, fontFamily: 'monospace', fontSize: 14, letterSpacing: 2, cursor: isDisabled ? 'not-allowed' : 'pointer', fontWeight: 800 }}>
-        {isRunning ? 'RUNNING' : runBlocked ? 'SET PREDICTION FIRST' : 'EXECUTE PROGRAM'}
-      </motion.button>
+      {!needsReset && (
+        <motion.button whileTap={{ scale: 0.97 }} onClick={onRun} disabled={isDisabled} data-tutorial-id="run-button" style={{ width: '100%', padding: '13px 0', background: isDisabled ? t.runBgDisabled : t.runBgActive, border: `2px solid ${isDisabled ? t.runBorderDisabled : t.runBorderActive}`, borderRadius: 8, color: isDisabled ? t.runColorDisabled : t.runColorActive, fontFamily: 'monospace', fontSize: 14, letterSpacing: 2, cursor: isDisabled ? 'not-allowed' : 'pointer', fontWeight: 800 }}>
+          {isRunning ? 'RUNNING' : ifElseBlocked ? 'ADD ELSE COMMAND' : runBlocked ? 'SET PREDICTION FIRST' : 'EXECUTE PROGRAM'}
+        </motion.button>
+      )}
     </div>
   )
 }
