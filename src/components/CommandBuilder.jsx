@@ -15,6 +15,19 @@ const THUMB_R = 8
 const CHIP_HEIGHT = 34
 const ITEM_GAP = 4
 
+function getDropPreviewHeight(depth = 0) {
+  return Math.max(26, getDepthLayout(depth).chipHeight)
+}
+
+function isSameDropPath(activeDropPath, pathKey) {
+  return activeDropPath?.pathKey === pathKey
+}
+
+function isDescendantDropPath(activeDropPath, path = []) {
+  if (!activeDropPath?.path || activeDropPath.path.length <= path.length) return false
+  return path.every((step, index) => JSON.stringify(step) === JSON.stringify(activeDropPath.path[index]))
+}
+
 function getDepthLayout(depth) {
   const level = Math.min(depth, 3)
   return {
@@ -165,6 +178,66 @@ function withPathBranch(path, branch) {
   ]
 }
 
+function areSamePathStep(a, b) {
+  return getPathStepIndex(a) === getPathStepIndex(b) && getPathStepBranch(a) === getPathStepBranch(b)
+}
+
+function areSameListPaths(a = [], b = []) {
+  return a.length === b.length && a.every((step, index) => areSamePathStep(step, b[index]))
+}
+
+function isTargetInsideCommand(targetPath = [], commandPath = []) {
+  if (targetPath.length < commandPath.length) return false
+  return commandPath.every((step, index) => getPathStepIndex(step) === getPathStepIndex(targetPath[index]))
+}
+
+function getCommandsAtPath(sequence, path) {
+  if (path.length === 0) return sequence
+  const [step, ...rest] = path
+  const command = sequence[getPathStepIndex(step)]
+  if (!isNestedBlockCommand(command)) return []
+  return getCommandsAtPath(command[getPathStepBranch(step)] ?? [], rest)
+}
+
+function adjustListPathAfterRemoval(targetPath, sourceParentPath, sourceIndex) {
+  if (targetPath.length <= sourceParentPath.length) return targetPath
+  const sharesSourceList = sourceParentPath.every((step, index) => areSamePathStep(step, targetPath[index]))
+  if (!sharesSourceList) return targetPath
+
+  const affectedStep = targetPath[sourceParentPath.length]
+  if (getPathStepIndex(affectedStep) <= sourceIndex) return targetPath
+
+  const adjustedStep = typeof affectedStep === 'object'
+    ? { ...affectedStep, index: affectedStep.index - 1 }
+    : affectedStep - 1
+  return [
+    ...targetPath.slice(0, sourceParentPath.length),
+    adjustedStep,
+    ...targetPath.slice(sourceParentPath.length + 1),
+  ]
+}
+
+function canMoveCommandToPath(command, sourceCommandPath, targetPath) {
+  if (!isNestedBlockCommand(command)) return true
+  return !isTargetInsideCommand(targetPath, sourceCommandPath)
+}
+
+function moveCommandBetweenPaths(sequence, sourceParentPath, sourceIndex, targetPath, targetIndex) {
+  const sourceCommands = getCommandsAtPath(sequence, sourceParentPath)
+  const moved = sourceCommands[sourceIndex]
+  if (moved === undefined) return sequence
+
+  if (!canMoveCommandToPath(moved, [...sourceParentPath, sourceIndex], targetPath)) return sequence
+
+  if (areSameListPaths(sourceParentPath, targetPath)) {
+    return updateCommandsAtPath(sequence, sourceParentPath, (commands) => reorderCommands(commands, sourceIndex, targetIndex))
+  }
+
+  const withoutMoved = removeCommandAtPath(sequence, [...sourceParentPath, sourceIndex])
+  const adjustedTargetPath = adjustListPathAfterRemoval(targetPath, sourceParentPath, sourceIndex)
+  return insertCommandAtPath(withoutMoved, adjustedTargetPath, targetIndex, moved)
+}
+
 function updateCommandsAtPath(sequence, path, updater) {
   if (path.length === 0) return updater(sequence)
   const [step, ...rest] = path
@@ -241,15 +314,6 @@ function getNestedDropInfoFromPoint(clientX, clientY) {
     path: JSON.parse(pathKey ?? '[]'),
     insertAt: getDropInsertIndex(dropTarget, clientY),
   }
-}
-
-function adjustPathAfterTopLevelRemoval(path, removedIndex) {
-  if (path.length === 0 || removedIndex >= getPathStepIndex(path[0])) return path
-  const firstStep = path[0]
-  const adjustedFirstStep = typeof firstStep === 'object'
-    ? { ...firstStep, index: firstStep.index - 1 }
-    : firstStep - 1
-  return [adjustedFirstStep, ...path.slice(1)]
 }
 
 function getMeta(command, theme) {
@@ -419,13 +483,14 @@ function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathConditi
         </>
       ) : isRepeatPalette ? (
         <>
-          <span style={labelStyle}>REPEAT</span>
+          <span style={labelStyle}>{meta.buttonLabel}</span>
           <RepeatCounter
             command={createRepeatCommand(repeatTimes)}
             color={meta.color}
             onChange={(next) => onRepeatTimesChange?.(next.times)}
             depth={0}
             compact
+            showLabel={false}
             disabled={disabled}
             tutorialId={null}
           />
@@ -437,12 +502,12 @@ function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathConditi
   )
 }
 
-function RepeatCounter({ command, color, onChange, depth = 0, compact = false, disabled = false, tutorialId = 'repeat-block-counter' }) {
+function RepeatCounter({ command, color, onChange, depth = 0, compact = false, showLabel = !compact, disabled = false, tutorialId = 'repeat-block-counter' }) {
   const [inputValue, setInputValue] = useState(String(command.times))
   const layout = getDepthLayout(depth)
-  const buttonSize = Math.max(16, compact ? 16 : 18 - Math.min(depth, 3))
-  const labelStyle = { fontSize: compact ? 10 : layout.labelSize, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800, color }
-  const buttonStyle = { width: buttonSize, height: buttonSize, borderRadius: 5, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.72)', color, cursor: disabled ? 'not-allowed' : 'pointer', padding: 0, fontWeight: 900, fontFamily: 'monospace', fontSize: Math.max(8, 10 - Math.min(depth, 2)), lineHeight: 1 }
+  const buttonSize = compact ? Math.max(14, 16 - Math.min(depth, 3)) : Math.max(16, 18 - Math.min(depth, 3))
+  const labelStyle = { fontSize: compact ? Math.max(8, layout.labelSize - 1) : layout.labelSize, fontFamily: 'monospace', letterSpacing: compact ? 0.7 : 1, fontWeight: 800, color, whiteSpace: 'nowrap' }
+  const buttonStyle = { width: buttonSize, height: buttonSize, borderRadius: 5, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.72)', color, cursor: disabled ? 'not-allowed' : 'pointer', padding: 0, fontWeight: 900, fontFamily: 'monospace', fontSize: compact ? Math.max(7, 9 - Math.min(depth, 2)) : Math.max(8, 10 - Math.min(depth, 2)), lineHeight: 1, flexShrink: 0 }
 
   const updateTimes = (times) => {
     if (disabled) return
@@ -469,11 +534,11 @@ function RepeatCounter({ command, color, onChange, depth = 0, compact = false, d
   }
 
   return (
-    <div data-tutorial-id={tutorialId} onPointerDown={(event) => event.stopPropagation()} onClick={stopControlClick} style={{ display: 'flex', alignItems: 'center', gap: compact ? 5 : Math.max(3, 5 - Math.min(depth, 2)), padding: 0, background: 'transparent', border: 'none', borderRadius: 0, flexShrink: 0 }}>
-      {!compact && <span style={labelStyle}>REPEAT</span>}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '2px', border: `1px solid ${color}33`, borderRadius: 7, background: `${color}10` }}>
+    <div data-tutorial-id={tutorialId} onPointerDown={(event) => event.stopPropagation()} onClick={stopControlClick} style={{ display: 'flex', alignItems: 'center', gap: compact ? 3 : Math.max(3, 5 - Math.min(depth, 2)), padding: 0, background: 'transparent', border: 'none', borderRadius: 0, flex: compact ? '1 1 auto' : '0 0 auto', minWidth: 0, maxWidth: '100%' }}>
+      {showLabel && <span style={labelStyle}>REPEAT</span>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: compact ? 1 : 2, padding: compact ? '1px' : '2px', border: `1px solid ${color}33`, borderRadius: 7, background: `${color}10`, flexShrink: 0 }}>
         <button type="button" disabled={disabled} style={buttonStyle} onClick={() => updateTimes(command.times - 1)}>-</button>
-        <input type="text" inputMode="numeric" disabled={disabled} value={inputValue} onChange={handleInputChange} onBlur={() => inputValue === '' && setInputValue(String(command.times))} style={{ width: compact ? 24 : Math.max(28, 34 - Math.min(depth, 3) * 2), padding: '2px 4px', borderRadius: 6, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.82)', color, fontFamily: 'monospace', fontSize: compact ? 10 : Math.max(9, 11 - Math.min(depth, 2)), fontWeight: 800, textAlign: 'center' }} />
+        <input type="text" inputMode="numeric" disabled={disabled} value={inputValue} onChange={handleInputChange} onBlur={() => inputValue === '' && setInputValue(String(command.times))} style={{ width: compact ? Math.max(20, 24 - Math.min(depth, 3) * 2) : Math.max(28, 34 - Math.min(depth, 3) * 2), padding: compact ? '1px 3px' : '2px 4px', borderRadius: 6, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.82)', color, fontFamily: 'monospace', fontSize: compact ? Math.max(8, 10 - Math.min(depth, 2)) : Math.max(9, 11 - Math.min(depth, 2)), fontWeight: 800, textAlign: 'center', boxSizing: 'border-box' }} />
         <button type="button" disabled={disabled} style={buttonStyle} onClick={() => updateTimes(command.times + 1)}>+</button>
       </div>
       <span style={labelStyle}>TIMES</span>
@@ -514,7 +579,6 @@ function CommandChip({ command, index, depth, path, theme, isRunning, onDelete }
 
 function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDelete, onUpdateBlock, onDropIntoBlock, onNestedPaletteHoverChange, activeNestedDropPath, showIfElse = false, elseChildren, children }) {
   const meta = getMeta(command, theme)
-  const [dragOverBranch, setDragOverBranch] = useState(null)
   const childCount = command.commands?.length ?? 0
   const elseCount = command.elseCommands?.length ?? 0
   const pathKey = JSON.stringify(path)
@@ -522,6 +586,7 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
   const elsePathKey = JSON.stringify(elsePath)
   const isRepeat = isRepeatCommand(command)
   const isIfElse = !isRepeat && showIfElse
+  const isNestedRepeat = isRepeat && depth > 0
   const blockTutorialId = isRepeat ? 'repeat-block' : isIfElse ? 'if-else-block' : 'if-block'
   const dropTutorialId = isRepeat ? undefined : isIfElse ? 'if-else-true-dropzone' : 'if-block-dropzone'
   const layout = getDepthLayout(depth)
@@ -531,8 +596,37 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
   const branchGap = 0
   const branchLabelColumnWidth = Math.max(44, 48 - Math.min(depth, 2) * 2)
   const branchRowOffset = Math.max(0, layout.numberWidth + layout.rowGap + 6)
-  const branchDropMinHeight = layout.chipHeight + 4
+  const branchPreviewHeight = getDropPreviewHeight(depth + 1)
+  const branchDropMinHeight = branchPreviewHeight + 2
+  const commandsIsActive = isSameDropPath(activeNestedDropPath, pathKey)
+  const elseIsActive = isSameDropPath(activeNestedDropPath, elsePathKey)
+  const hasActiveDescendant = isDescendantDropPath(activeNestedDropPath, path)
+  const branchBaseBackground = theme === 'light' ? 'rgba(255,255,255,0.68)' : 'rgba(3,7,14,0.72)'
+  const branchElseBackground = theme === 'light' ? 'rgba(255,255,255,0.58)' : 'rgba(3,7,14,0.62)'
+  const activeBranchBackground = theme === 'light' ? 'rgba(216,247,255,0.96)' : 'rgba(45,212,191,0.07)'
+  const activeElseBackground = theme === 'light' ? 'rgba(225,248,255,0.98)' : 'rgba(125,211,252,0.08)'
+  const branchDropStyle = (active, baseBackground, activeBackground) => ({
+    flex: 1,
+    minWidth: 0,
+    minHeight: active ? branchDropMinHeight + 2 : branchDropMinHeight,
+    padding: active ? layout.dropPadding + 1 : layout.dropPadding,
+    borderRadius: 8,
+    background: active ? activeBackground : baseBackground,
+    border: `1.5px ${active ? `dashed ${meta.color}88` : `solid ${meta.color}33`}`,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    boxSizing: 'border-box',
+    overflow: 'hidden',
+    transition: 'min-height 0.12s ease, padding 0.12s ease, border-color 0.12s ease, background 0.12s ease',
+  })
   const selectStyle = getIfPathSelectStyle({ color: meta.color, fontSize: labelFontSize, theme })
+  const cardPadding = isNestedRepeat ? Math.max(4, layout.cardPadding - 2) : layout.cardPadding
+  const cardRightPadding = isNestedRepeat ? layout.deleteSize + cardPadding + 4 : layout.deleteSize + layout.cardPadding + 6
+  const branchMarginLeft = isRepeat
+    ? (isNestedRepeat ? 0 : -(layout.numberWidth + layout.rowGap))
+    : -branchRowOffset
+  const branchMarginRight = isNestedRepeat ? -(layout.deleteSize + 2) : -(layout.deleteSize + 4)
   const stopControlDrag = (event) => {
     event.preventDefault()
     event.stopPropagation()
@@ -541,13 +635,13 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
   return (
     <div
       data-tutorial-id={blockTutorialId}
-      style={{ position: 'relative', marginLeft: layout.indent, padding: layout.cardPadding, paddingTop: isRepeat ? Math.max(6, layout.cardPadding - 4) : layout.cardPadding, paddingRight: layout.deleteSize + layout.cardPadding + 6, background: meta.bg, border: `1.5px solid ${meta.color}66`, borderRadius: 10, boxSizing: 'border-box' }}
+      style={{ position: 'relative', width: '100%', minWidth: 0, marginLeft: layout.indent, padding: cardPadding, paddingTop: isRepeat ? Math.max(5, cardPadding - 2) : cardPadding, paddingRight: cardRightPadding, background: meta.bg, border: `1.5px solid ${hasActiveDescendant ? `${meta.color}88` : `${meta.color}66`}`, borderRadius: 10, boxSizing: 'border-box', overflow: 'hidden', transition: 'border-color 0.12s ease, background 0.12s ease' }}
     >
-      <div style={{ display: 'flex', gap: layout.rowGap, alignItems: 'flex-start', minWidth: 0 }}>
-        <span style={{ fontSize: layout.numberSize, color: meta.color, fontFamily: 'monospace', width: layout.numberWidth, textAlign: 'right', fontWeight: 700, paddingTop: isRepeat ? 8 : 5, flexShrink: 0 }}>{String(index + 1).padStart(2, '0')}</span>
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap', minWidth: 0, transform: isRepeat ? 'translateY(-5px)' : 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: layout.rowGap, minWidth: 0, flex: '1 1 110px' }}>
+      <div style={{ display: 'flex', gap: isNestedRepeat ? 3 : layout.rowGap, alignItems: 'flex-start', minWidth: 0 }}>
+        <span style={{ fontSize: isNestedRepeat ? Math.max(7, layout.numberSize - 1) : layout.numberSize, color: meta.color, fontFamily: 'monospace', width: isNestedRepeat ? Math.max(9, layout.numberWidth - 3) : layout.numberWidth, textAlign: 'right', fontWeight: 700, paddingTop: isRepeat ? (isNestedRepeat ? 4 : 5) : 5, flexShrink: 0 }}>{String(index + 1).padStart(2, '0')}</span>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: isNestedRepeat ? 3 : 4 }}>
+          <div style={{ display: 'flex', alignItems: isRepeat ? 'center' : 'flex-start', justifyContent: isRepeat ? 'flex-start' : 'space-between', gap: isNestedRepeat ? 3 : 6, flexWrap: isNestedRepeat ? 'nowrap' : 'wrap', minWidth: 0, transform: 'none' }}>
+            <div style={{ display: isRepeat ? 'none' : 'flex', alignItems: 'center', gap: layout.rowGap, minWidth: 0, flex: '1 1 110px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3 }}>
                 {!isRepeat && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -573,14 +667,14 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
                 )}
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: Math.max(4, 6 - Math.min(depth, 2)), flex: '0 1 auto', minWidth: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: isNestedRepeat ? 3 : Math.max(4, 6 - Math.min(depth, 2)), flex: isNestedRepeat ? '1 1 auto' : '0 1 auto', minWidth: 0, maxWidth: '100%', flexWrap: isNestedRepeat ? 'nowrap' : 'wrap', justifyContent: isNestedRepeat ? 'flex-start' : 'flex-end' }}>
               {isRepeat ? (
-                <RepeatCounter command={command} color={meta.color} onChange={(next) => onUpdateBlock(path, next)} depth={depth} />
+                <RepeatCounter command={command} color={meta.color} onChange={(next) => onUpdateBlock(path, next)} depth={depth} compact={isNestedRepeat} showLabel />
               ) : null}
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'stretch', gap: branchGap, minWidth: 0, marginLeft: isRepeat ? -(layout.numberWidth + layout.rowGap) : -branchRowOffset, marginRight: -(layout.deleteSize + 4) }}>
+          <div style={{ display: 'flex', alignItems: 'stretch', gap: branchGap, minWidth: 0, marginLeft: branchMarginLeft, marginRight: branchMarginRight }}>
             {!isRepeat && (
               <div style={{ width: branchLabelColumnWidth, display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', paddingTop: 1, flexShrink: 0 }}>
                 <span onPointerDown={(event) => event.stopPropagation()} style={branchLabelStyle}>DO</span>
@@ -590,7 +684,6 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
               onDragOver={(event) => {
                 event.preventDefault()
                 event.stopPropagation()
-                setDragOverBranch('commands')
                 onNestedPaletteHoverChange?.({ pathKey, path, insertAt: childCount })
                 event.dataTransfer.dropEffect = 'copy'
               }}
@@ -598,14 +691,12 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
                 event.stopPropagation()
                 const rect = event.currentTarget.getBoundingClientRect()
                 if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
-                  setDragOverBranch(null)
                   onNestedPaletteHoverChange?.(null)
                 }
               }}
               onDrop={(event) => {
                 event.preventDefault()
                 event.stopPropagation()
-                setDragOverBranch(null)
                 onNestedPaletteHoverChange?.(null)
                 const raw = event.dataTransfer.getData('cmd')
                 if (!raw) return
@@ -613,10 +704,10 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
               }}
               data-tutorial-id={dropTutorialId}
               data-nested-drop-path={pathKey}
-              style={{ flex: 1, minWidth: 0, minHeight: branchDropMinHeight, padding: layout.dropPadding, borderRadius: 8, background: (dragOverBranch === 'commands' || activeNestedDropPath?.pathKey === pathKey) ? (theme === 'light' ? 'rgba(216,247,255,0.96)' : 'rgba(45,212,191,0.07)') : (theme === 'light' ? 'rgba(255,255,255,0.68)' : 'rgba(3,7,14,0.72)'), border: `1.5px ${(dragOverBranch === 'commands' || activeNestedDropPath?.pathKey === pathKey) ? `dashed ${meta.color}88` : `solid ${meta.color}33`}`, display: 'flex', flexDirection: 'column', gap: 4, boxSizing: 'border-box' }}
+              style={branchDropStyle(commandsIsActive, branchBaseBackground, activeBranchBackground)}
             >
               {childCount === 0 ? (
-                <div style={{ flex: 1, minHeight: 0 }} />
+                <div style={{ minHeight: commandsIsActive ? branchPreviewHeight - 6 : Math.max(16, branchPreviewHeight - 12), transition: 'min-height 0.12s ease' }} />
               ) : children}
             </div>
           </div>
@@ -630,7 +721,6 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
                   onDragOver={(event) => {
                     event.preventDefault()
                     event.stopPropagation()
-                    setDragOverBranch('elseCommands')
                     onNestedPaletteHoverChange?.({ pathKey: elsePathKey, path: elsePath, insertAt: elseCount })
                     event.dataTransfer.dropEffect = 'copy'
                   }}
@@ -638,14 +728,12 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
                     event.stopPropagation()
                     const rect = event.currentTarget.getBoundingClientRect()
                     if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
-                      setDragOverBranch(null)
                       onNestedPaletteHoverChange?.(null)
                     }
                   }}
                   onDrop={(event) => {
                     event.preventDefault()
                     event.stopPropagation()
-                    setDragOverBranch(null)
                     onNestedPaletteHoverChange?.(null)
                     const raw = event.dataTransfer.getData('cmd')
                     if (!raw) return
@@ -653,10 +741,10 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
                   }}
                   data-tutorial-id="if-else-false-dropzone"
                   data-nested-drop-path={elsePathKey}
-                  style={{ flex: 1, minWidth: 0, minHeight: branchDropMinHeight, padding: layout.dropPadding, borderRadius: 8, background: (dragOverBranch === 'elseCommands' || activeNestedDropPath?.pathKey === elsePathKey) ? (theme === 'light' ? 'rgba(225,248,255,0.98)' : 'rgba(125,211,252,0.08)') : (theme === 'light' ? 'rgba(255,255,255,0.58)' : 'rgba(3,7,14,0.62)'), border: `1.5px ${(dragOverBranch === 'elseCommands' || activeNestedDropPath?.pathKey === elsePathKey) ? `dashed ${meta.color}88` : `solid ${meta.color}2f`}`, display: 'flex', flexDirection: 'column', gap: 4, boxSizing: 'border-box' }}
+                  style={branchDropStyle(elseIsActive, branchElseBackground, activeElseBackground)}
                 >
                   {elseCount === 0 ? (
-                    <div style={{ flex: 1, minHeight: 0 }} />
+                    <div style={{ minHeight: elseIsActive ? branchPreviewHeight - 6 : Math.max(16, branchPreviewHeight - 12), transition: 'min-height 0.12s ease' }} />
                   ) : elseChildren}
                 </div>
               </div>
@@ -669,11 +757,10 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
   )
 }
 
-function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning, onReorderCommands, onDelete, onUpdateBlock, onDropIntoBlock, onNestedPaletteHoverChange, activeNestedDropPath, showIfElse = false }) {
+function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning, onReorderCommands, onMoveCommand, onDelete, onUpdateBlock, onDropIntoBlock, onNestedPaletteHoverChange, activeNestedDropPath, showIfElse = false }) {
   const [dragIndex, setDragIndex] = useState(null)
   const [ghostY, setGhostY] = useState(0)
   const [insertAt, setInsertAt] = useState(null)
-  const [paletteInsertAt, setPaletteInsertAt] = useState(null)
   const [layout, setLayout] = useState({ heights: [], tops: [], totalHeight: CHIP_HEIGHT })
   const stripRef = useRef(null)
   const itemRefs = useRef([])
@@ -681,6 +768,8 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
   const startYRef = useRef(0)
   const startTopRef = useRef(0)
   const pathKey = JSON.stringify(parentPath)
+  const previewHeight = getDropPreviewHeight(depth)
+  const previewGap = Math.min(ITEM_GAP, 2)
 
   const measureHeights = useCallback(() => {
     heightsRef.current = sequence.map((command, index) => itemRefs.current[index]?.offsetHeight ?? getRowEstimate(command))
@@ -691,10 +780,10 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
       return top
     })
     const totalHeight = sequence.length === 0
-      ? CHIP_HEIGHT
+      ? previewHeight
       : heightsRef.current.reduce((sum, value) => sum + (value ?? CHIP_HEIGHT), 0) + ITEM_GAP * Math.max(0, sequence.length - 1)
     setLayout({ heights: [...heightsRef.current], tops, totalHeight })
-  }, [sequence])
+  }, [previewHeight, sequence])
 
   useLayoutEffect(() => {
     measureHeights()
@@ -724,7 +813,6 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
     if (!stripRef.current) return
     const rect = stripRef.current.getBoundingClientRect()
     const nextInsertAt = computeInsert(event.clientY - rect.top)
-    setPaletteInsertAt(nextInsertAt)
     onNestedPaletteHoverChange?.({ pathKey, path: parentPath, insertAt: nextInsertAt })
     event.dataTransfer.dropEffect = 'copy'
   }, [computeInsert, onNestedPaletteHoverChange, parentPath, pathKey])
@@ -734,7 +822,6 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
     if (!stripRef.current) return
     const rect = stripRef.current.getBoundingClientRect()
     if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
-      setPaletteInsertAt(null)
       onNestedPaletteHoverChange?.(null)
     }
   }, [onNestedPaletteHoverChange])
@@ -747,7 +834,6 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
       const rect = stripRef.current.getBoundingClientRect()
       onDropIntoBlock(parentPath, raw, computeInsert(event.clientY - rect.top), event.dataTransfer.getData('ifPathCondition') || 'ahead', event.dataTransfer.getData('repeatTimes') || 2)
     }
-    setPaletteInsertAt(null)
     onNestedPaletteHoverChange?.(null)
   }, [computeInsert, onDropIntoBlock, onNestedPaletteHoverChange, parentPath])
 
@@ -775,29 +861,69 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
     const maxTop = Math.max(0, layout.totalHeight - draggedHeight)
     const delta = event.clientY - startYRef.current
     setGhostY(Math.max(0, Math.min(maxTop, startTopRef.current + delta)))
+    const dropInfo = getNestedDropInfoFromPoint(event.clientX, event.clientY)
+    const moved = sequence[index]
+    const canMoveToNestedTarget = dropInfo &&
+      !areSameListPaths(dropInfo.path, parentPath) &&
+      canMoveCommandToPath(moved, [...parentPath, index], dropInfo.path)
+
+    if (canMoveToNestedTarget) {
+      setInsertAt(null)
+      onNestedPaletteHoverChange?.(dropInfo)
+      return
+    }
+
+    if (dropInfo && !areSameListPaths(dropInfo.path, parentPath)) {
+      onNestedPaletteHoverChange?.(null)
+    }
     setInsertAt(computeInsert(pointerYInStrip))
-  }, [computeInsert, dragIndex, layout.totalHeight])
+  }, [computeInsert, dragIndex, layout.totalHeight, onNestedPaletteHoverChange, parentPath, sequence])
 
   const handlePointerUp = useCallback((event, index) => {
     if (dragIndex !== index) return
     event.preventDefault()
     event.stopPropagation()
+    const dropInfo = getNestedDropInfoFromPoint(event.clientX, event.clientY) ?? activeNestedDropPath
+    const moved = sequence[dragIndex]
+
+    if (dropInfo &&
+      !areSameListPaths(dropInfo.path, parentPath) &&
+      canMoveCommandToPath(moved, [...parentPath, dragIndex], dropInfo.path)
+    ) {
+      onMoveCommand(parentPath, dragIndex, dropInfo.path, dropInfo.insertAt)
+      onNestedPaletteHoverChange?.(null)
+      endDrag()
+      return
+    }
+
     if (insertAt !== null) {
       const next = reorderCommands(sequence, dragIndex, insertAt)
       if (next !== sequence) onReorderCommands(parentPath, next)
     }
+    onNestedPaletteHoverChange?.(null)
     endDrag()
-  }, [dragIndex, endDrag, insertAt, onReorderCommands, parentPath, sequence])
+  }, [activeNestedDropPath, dragIndex, endDrag, insertAt, onMoveCommand, onNestedPaletteHoverChange, onReorderCommands, parentPath, sequence])
 
   const tops = layout.tops
   const totalHeight = layout.totalHeight
-  const externalInsertAt = activeNestedDropPath?.pathKey === pathKey ? activeNestedDropPath.insertAt : paletteInsertAt
+  const externalInsertAt = activeNestedDropPath?.pathKey === pathKey ? activeNestedDropPath.insertAt : null
   const externalPreviewAt = dragIndex === null ? externalInsertAt : null
-  const displayHeight = externalPreviewAt === null ? totalHeight : totalHeight + CHIP_HEIGHT + ITEM_GAP
+  const hasExternalPreview = externalPreviewAt !== null && externalPreviewAt !== undefined
+  const previewSlotTop = (() => {
+    if (!hasExternalPreview) return null
+    if (sequence.length === 0) return 0
+    if (externalPreviewAt >= sequence.length) return totalHeight + previewGap
+    return Math.max(0, tops[externalPreviewAt] ?? 0)
+  })()
+  const displayHeight = hasExternalPreview
+    ? (sequence.length === 0 ? previewHeight : totalHeight + previewHeight + previewGap)
+    : totalHeight
   const insertLineTop = (() => {
+    if (hasExternalPreview) return null
     const slotIndex = dragIndex === null ? externalInsertAt : insertAt
     if (slotIndex === null || slotIndex === undefined) return null
-    if (slotIndex >= sequence.length) return (externalPreviewAt === null ? totalHeight : displayHeight) - 2
+    if (sequence.length === 0) return 2
+    if (slotIndex >= sequence.length) return totalHeight + 1
     return Math.max(0, (tops[slotIndex] ?? 0) - 2)
   })()
 
@@ -808,8 +934,26 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
       onDragOver={handleStripDragOver}
       onDragLeave={handleStripDragLeave}
       onDrop={handleStripDrop}
-      style={{ position: 'relative', height: Math.max(displayHeight, CHIP_HEIGHT), minHeight: CHIP_HEIGHT }}
+      style={{ position: 'relative', height: Math.max(displayHeight, CHIP_HEIGHT), minHeight: CHIP_HEIGHT, transition: 'height 0.12s ease' }}
     >
+      {previewSlotTop !== null && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: previewSlotTop,
+            height: previewHeight,
+            borderRadius: 8,
+            background: theme === 'light' ? 'rgba(20,184,212,0.08)' : 'rgba(45,212,191,0.07)',
+            border: `1.5px dashed ${theme === 'light' ? '#14b8d466' : '#2dd4bf66'}`,
+            boxSizing: 'border-box',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        />
+      )}
       {sequence.map((command, index) => {
         const path = [...parentPath, index]
         const isDragging = dragIndex === index
@@ -822,8 +966,8 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
           } else if (dragIndex > insertAt) {
             if (index >= insertAt && index < dragIndex) slotTop += draggedHeight + ITEM_GAP
           }
-        } else if (externalPreviewAt !== null && index >= externalPreviewAt) {
-          slotTop += CHIP_HEIGHT + ITEM_GAP
+        } else if (hasExternalPreview && index >= externalPreviewAt) {
+          slotTop += previewHeight + previewGap
         }
 
         return (
@@ -859,6 +1003,7 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
                     theme={theme}
                     isRunning={isRunning}
                     onReorderCommands={onReorderCommands}
+                    onMoveCommand={onMoveCommand}
                     onDelete={onDelete}
                     onUpdateBlock={onUpdateBlock}
                     onDropIntoBlock={onDropIntoBlock}
@@ -875,6 +1020,7 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
                   theme={theme}
                   isRunning={isRunning}
                   onReorderCommands={onReorderCommands}
+                  onMoveCommand={onMoveCommand}
                   onDelete={onDelete}
                   onUpdateBlock={onUpdateBlock}
                   onDropIntoBlock={onDropIntoBlock}
@@ -962,20 +1108,25 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
     const maxTop = Math.max(0, layout.totalHeight - draggedHeight)
     const delta = event.clientY - startYRef.current
     setGhostY(Math.max(0, Math.min(maxTop, startTopRef.current + delta)))
-    setInsertAt(computeInsert(pointerYInStrip))
     const dropInfo = getNestedDropInfoFromPoint(event.clientX, event.clientY)
-    setActiveNestedDropPath(dropInfo)
-  }, [computeInsert, dragIndex, layout.totalHeight])
+    const moved = sequence[index]
+    if (dropInfo && canMoveCommandToPath(moved, [index], dropInfo.path)) {
+      setInsertAt(null)
+      setActiveNestedDropPath(dropInfo)
+      return
+    }
+    if (dropInfo) {
+      setActiveNestedDropPath(null)
+    }
+    setInsertAt(computeInsert(pointerYInStrip))
+  }, [computeInsert, dragIndex, layout.totalHeight, sequence])
 
   const handlePointerUp = useCallback((event, index) => {
     if (dragIndex !== index) return
     const dropInfo = getNestedDropInfoFromPoint(event.clientX, event.clientY) ?? activeNestedDropPath
 
-    if (dropInfo) {
-      const moved = sequence[dragIndex]
-      const withoutMoved = sequence.filter((_, commandIndex) => commandIndex !== dragIndex)
-      const adjustedTargetPath = adjustPathAfterTopLevelRemoval(dropInfo.path, dragIndex)
-      onReorder(insertCommandAtPath(withoutMoved, adjustedTargetPath, dropInfo.insertAt, moved))
+    if (dropInfo && canMoveCommandToPath(sequence[dragIndex], [dragIndex], dropInfo.path)) {
+      onReorder(moveCommandBetweenPaths(sequence, [], dragIndex, dropInfo.path, dropInfo.insertAt))
       setDragIndex(null)
       setInsertAt(null)
       setActiveNestedDropPath(null)
@@ -997,8 +1148,15 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
     event.preventDefault()
     event.dataTransfer.dropEffect = 'copy'
     setDragOver(true)
+    const nestedDropInfo = getNestedDropInfoFromPoint(event.clientX, event.clientY)
+    if (nestedDropInfo) {
+      setActiveNestedDropPath(nestedDropInfo)
+      setPaletteInsertAt(null)
+      return
+    }
     if (!stripRef.current) return
     const rect = stripRef.current.getBoundingClientRect()
+    setActiveNestedDropPath(null)
     setPaletteInsertAt(computeInsert(event.clientY - rect.top))
   }, [computeInsert, setDragOver])
 
@@ -1007,6 +1165,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
     const rect = stripRef.current.getBoundingClientRect()
     if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
       setPaletteInsertAt(null)
+      setActiveNestedDropPath(null)
       setDragOver(false)
     }
   }, [setDragOver])
@@ -1020,6 +1179,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
       onInsertAt(cmd, computeInsert(event.clientY - rect.top), event.dataTransfer.getData('ifPathCondition') || 'ahead', event.dataTransfer.getData('repeatTimes') || 2)
     }
     setPaletteInsertAt(null)
+    setActiveNestedDropPath(null)
     setDragOver(false)
   }, [computeInsert, onInsertAt, setDragOver])
 
@@ -1035,9 +1195,14 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
     onReorder(updateCommandsAtPath(sequence, parentPath, () => nextCommands))
   }, [onReorder, sequence])
 
+  const handleNestedMove = useCallback((sourceParentPath, sourceIndex, targetPath, targetIndex) => {
+    onReorder(moveCommandBetweenPaths(sequence, sourceParentPath, sourceIndex, targetPath, targetIndex))
+  }, [onReorder, sequence])
+
   const tops = layout.tops
   const totalHeight = layout.totalHeight
   const insertLineTop = (() => {
+    if (activeNestedDropPath) return null
     const slotIndex = dragIndex === null ? paletteInsertAt : insertAt
     if (slotIndex === null) return null
     if (slotIndex >= sequence.length) return totalHeight - 2
@@ -1090,6 +1255,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
                     theme={theme}
                     isRunning={isRunning}
                     onReorderCommands={handleNestedReorder}
+                    onMoveCommand={handleNestedMove}
                     onDelete={onDelete}
                     onUpdateBlock={onUpdateBlock}
                     onDropIntoBlock={onDropIntoBlock}
@@ -1106,6 +1272,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
                   theme={theme}
                   isRunning={isRunning}
                   onReorderCommands={handleNestedReorder}
+                  onMoveCommand={handleNestedMove}
                   onDelete={onDelete}
                   onUpdateBlock={onUpdateBlock}
                   onDropIntoBlock={onDropIntoBlock}
