@@ -21,7 +21,7 @@ const GRID_PX  = 520   // 5 tiles × 104 px
 const PANEL_W  = 620
 const GAP      = 24
 const EARLY_MAP_SCALE = 1.1
-const PLAYABLE_LEVELS = 19
+const PLAYABLE_LEVELS = 20
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
 
 // ── CSS keyframe animations ───────────────────────────────────────────────────
@@ -109,70 +109,87 @@ function ThemeToggle({ theme, onToggle }) {
 }
 
 // ── Helmet Radio ──────────────────────────────────────────────────────────────
-const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain }) {
+const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain, radioMode = 'luma' }) {
   const theme = useTheme()
   const t = THEMES[theme]
+  const isEchoRadio = radioMode === 'echo'
+  const panelBg = isEchoRadio
+    ? (theme === 'light'
+      ? 'linear-gradient(135deg, rgba(229,252,255,0.98), rgba(238,232,255,0.96) 58%, rgba(255,255,255,0.94))'
+      : 'linear-gradient(135deg, rgba(6,21,34,0.98), rgba(24,18,55,0.96) 64%, rgba(7,13,26,0.96))')
+    : radioIsUncertain ? t.radioUncBg : t.radioBg
+  const panelBorder = isEchoRadio ? '#a78bfa' : radioIsUncertain ? t.radioUncBorder : t.radioBorder
+  const titleColor = isEchoRadio ? (theme === 'light' ? '#6d28d9' : '#c4b5fd') : radioIsUncertain ? '#f59e0b' : (theme === 'light' ? '#1579ac' : '#2dd4bf')
+  const textColor = isEchoRadio ? (theme === 'light' ? '#124d74' : '#e0faff') : radioIsUncertain ? t.radioUncText : t.radioText
+  const signalColor = isEchoRadio ? '#a78bfa' : '#f59e0b'
   return (
     <div data-tutorial-id="radio-panel" style={{
-      background: radioIsUncertain ? t.radioUncBg : t.radioBg,
-      border: `1.5px solid ${radioIsUncertain ? t.radioUncBorder : t.radioBorder}`,
+      background: panelBg,
+      border: `1.5px solid ${panelBorder}`,
       borderRadius: 10,
-      padding: '10px 20px',
+      padding: isEchoRadio ? '7px 18px' : '10px 20px',
       width: '100%',
       flexShrink: 0,
       boxSizing: 'border-box',
       position: 'relative',
-      transition: 'border-color 0.4s, background 0.4s',
+      transition: 'border-color 0.4s, background 0.4s, box-shadow 0.4s',
       boxShadow: theme === 'light'
-        ? '0 14px 28px rgba(55,117,182,0.10), 0 6px 18px rgba(69,214,226,0.14)'
-        : '0 2px 16px rgba(0,0,0,0.4)',
+        ? isEchoRadio
+          ? '0 16px 32px rgba(124,58,237,0.16), 0 8px 22px rgba(45,212,191,0.18)'
+          : '0 14px 28px rgba(55,117,182,0.10), 0 6px 18px rgba(69,214,226,0.14)'
+        : isEchoRadio
+          ? '0 4px 24px rgba(0,0,0,0.46), 0 0 24px rgba(167,139,250,0.22)'
+          : '0 2px 16px rgba(0,0,0,0.4)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
         <p style={{
           fontSize: 9,
-          color: radioIsUncertain ? '#f59e0b' : (theme === 'light' ? '#1579ac' : '#2dd4bf'),
+          color: titleColor,
           fontFamily: 'monospace', letterSpacing: 3, margin: 0,
           fontWeight: 800,
         }}>
+          {isEchoRadio ? 'ECHO RADIO' : 'LUMA HELMET RADIO'}
+          <span aria-hidden="true" style={{ display: 'none' }}>
           📡  LUMA HELMET RADIO
+          </span>
         </p>
 
-        {radioIsUncertain && (
+        {(radioIsUncertain || isEchoRadio) && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
               {[0, 1, 2].map(i => (
                 <div key={i} style={{
-                  width: 4, height: 4, borderRadius: '50%', background: '#f59e0b',
+                  width: 4, height: 4, borderRadius: '50%', background: signalColor,
                   animation: `pulse-dot 1.2s ${i * 0.25}s ease-in-out infinite`,
                 }} />
               ))}
             </div>
             <div style={{
               width: 20, height: 20, borderRadius: '50%',
-              background: 'rgba(245,158,11,0.15)',
-              border: '1.5px solid #f59e0b',
+              background: `${signalColor}26`,
+              border: `1.5px solid ${signalColor}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, color: '#f59e0b', fontWeight: 900, fontFamily: 'monospace',
+              fontSize: 11, color: signalColor, fontWeight: 900, fontFamily: 'monospace',
               animation: 'pulse-shadow 2s ease-in-out infinite',
-            }}>?</div>
+            }}>{isEchoRadio ? 'E' : '?'}</div>
           </div>
         )}
       </div>
 
       <p style={{
         fontSize: 13,
-        color: radioIsUncertain ? t.radioUncText : t.radioText,
-        fontFamily: 'monospace', lineHeight: 1.55, fontStyle: 'italic', margin: 0,
+        color: textColor,
+        fontFamily: 'monospace', lineHeight: isEchoRadio ? 1.35 : 1.55, fontStyle: 'italic', margin: 0,
         fontWeight: 600,
       }}>
         "{report}"
       </p>
 
-      {radioIsUncertain && (
+      {(radioIsUncertain || isEchoRadio) && (
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0, height: 2,
           borderRadius: '0 0 10px 10px',
-          background: 'linear-gradient(to right, transparent, #f59e0b55, transparent)',
+          background: `linear-gradient(to right, transparent, ${signalColor}88, transparent)`,
           animation: 'pulse-bar 3s linear infinite',
         }} />
       )}
@@ -392,6 +409,78 @@ const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, s
 })
 
 // ── Prediction Prompt ─────────────────────────────────────────────────────────
+const EchoQuestion = memo(function EchoQuestion({ echoProbe, echoFeedback }) {
+  const theme = useTheme()
+  const t = THEMES[theme]
+
+  if (!echoProbe) return null
+
+  return (
+    <motion.div
+      key="echo-question"
+      initial={{ opacity: 0, y: -10, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -8, scale: 0.97 }}
+      data-tutorial-id="echo-question"
+      style={{
+        flexShrink: 0,
+        padding: '10px 14px',
+        borderRadius: 14,
+        border: `2px solid ${echoFeedback?.type === 'success' ? '#22c55e' : echoFeedback?.type === 'retry' ? '#fb7185' : '#67e8f9'}`,
+        background: theme === 'light'
+          ? 'linear-gradient(135deg, rgba(255,255,255,0.98), rgba(218,251,255,0.96) 48%, rgba(235,229,255,0.94))'
+          : 'linear-gradient(135deg, rgba(8,18,34,0.98), rgba(11,37,52,0.96) 52%, rgba(39,30,72,0.95))',
+        boxShadow: theme === 'light'
+          ? '0 12px 24px rgba(56,189,248,0.18), 0 0 0 4px rgba(103,232,249,0.10), inset 0 1px 0 rgba(255,255,255,0.78)'
+          : '0 10px 24px rgba(0,0,0,0.38), 0 0 24px rgba(103,232,249,0.18), inset 0 1px 0 rgba(255,255,255,0.08)',
+        overflow: 'hidden',
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: echoFeedback?.type === 'success' ? '#22c55e' : echoFeedback?.type === 'retry' ? '#fb7185' : '#67e8f9',
+            boxShadow: `0 0 12px ${echoFeedback?.type === 'success' ? '#22c55e' : echoFeedback?.type === 'retry' ? '#fb7185' : '#67e8f9'}`,
+            flexShrink: 0,
+          }} />
+          <p style={{
+            margin: 0,
+            fontSize: 11,
+            letterSpacing: 2.4,
+            fontFamily: 'monospace',
+            color: theme === 'light' ? '#0e7490' : '#67e8f9',
+            fontWeight: 900,
+            textShadow: theme === 'light' ? '0 1px 0 rgba(255,255,255,0.8)' : '0 0 10px rgba(103,232,249,0.36)',
+          }}>
+            ECHO RELAY
+          </p>
+        </div>
+        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.3, color: t.textPrimary, fontWeight: 900 }}>
+          Tap the cloud where you think the hidden fragment is.
+        </p>
+        {echoFeedback && (
+          <motion.p
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              margin: 0,
+              fontSize: 11,
+              lineHeight: 1.3,
+              color: echoFeedback.type === 'success' ? '#16a34a' : '#e11d48',
+              fontWeight: 800,
+            }}
+          >
+            {echoFeedback.text}
+          </motion.p>
+        )}
+      </div>
+    </motion.div>
+  )
+})
+
 const PredictionBanner = memo(function PredictionBanner({ predictionTile, predictionResult }) {
   const theme = useTheme()
   const t = THEMES[theme]
@@ -1095,6 +1184,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     sequence, setSequence, isRunning, isMirrored,
     addCommand, removeLastCommand, clearSequence, runSequence,
     collectedParts, collectionEffects, activeIfPathSignal,
+    echoActivated, echoCloudsRevealed, echoAnswer, echoFeedback, answerEchoQuestion,
     missedFragments, dismissMissedFragments,
     needsReset, resetLuma,
     predictionTile, setPrediction, predictionResult,
@@ -1110,6 +1200,11 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     levelConfig.id === 19 &&
     phase === 'develop' &&
     !checkpointChoiceComplete
+  const echoQuestionActive =
+    Boolean(effectiveLevel.echoProbe) &&
+    echoActivated &&
+    !echoCloudsRevealed &&
+    phase === 'develop'
 
   const tutorialContext = useMemo(() => ({
     phase,
@@ -1263,7 +1358,9 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   }, [startTutorial])
 
   useEffect(() => {
-    if (levelConfig.id !== 19) resetLevel19RouteStage()
+    if (levelConfig.id === 19) return undefined
+    const timer = window.setTimeout(resetLevel19RouteStage, 0)
+    return () => window.clearTimeout(timer)
   }, [levelConfig.id, resetLevel19RouteStage])
 
   useEffect(() => {
@@ -1585,7 +1682,11 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
         }}>
           {!levelConfig.noRadio && (
             <div style={{ width: GRID_PX, flexShrink: 0 }}>
-              <HelmetRadio report={helmetReport} radioIsUncertain={radioIsUncertain} />
+              <HelmetRadio
+                report={helmetReport}
+                radioIsUncertain={radioIsUncertain}
+                radioMode={echoActivated ? 'echo' : 'luma'}
+              />
             </div>
           )}
 
@@ -1612,6 +1713,11 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
               onCheckpointTileClick={handleCheckpointTileClick}
               collectionEffects={collectionEffects}
               activeIfPathSignal={activeIfPathSignal}
+              echoActivated={echoActivated}
+              echoCloudsRevealed={echoCloudsRevealed}
+              echoSelectionActive={echoQuestionActive}
+              echoSelectedCloud={echoAnswer}
+              onEchoCloudTileClick={answerEchoQuestion}
             />
           </div>
         </div>
@@ -1663,6 +1769,14 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                     />
                   </div>
                 )}
+                <AnimatePresence>
+                  {echoQuestionActive && (
+                    <EchoQuestion
+                      echoProbe={effectiveLevel.echoProbe}
+                      echoFeedback={echoFeedback}
+                    />
+                  )}
+                </AnimatePresence>
                 <AnimatePresence>
                   {checkpointChoiceActive && (
                     <motion.div
@@ -1774,7 +1888,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                     </motion.div>
                   )}
                 </AnimatePresence>
-                <div style={{ minHeight: 0, height: '100%', pointerEvents: checkpointChoiceActive ? 'none' : 'auto', opacity: checkpointChoiceActive ? 0.56 : 1 }}>
+                <div style={{ minHeight: 0, height: '100%', pointerEvents: checkpointChoiceActive || echoQuestionActive ? 'none' : 'auto', opacity: checkpointChoiceActive || echoQuestionActive ? 0.56 : 1 }}>
                   <CommandBuilder
                     key={`command-builder-${levelConfig.id}`}
                     sequence={sequence}

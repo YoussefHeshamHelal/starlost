@@ -16,6 +16,7 @@ import {
   generateLevel16Layout,
   generateLevel18Layout,
   generateLevel19Layout,
+  generateLevel20Layout,
 } from '../data/levels'
 import { clampRepeatTimes, countProgramBlocks, hasEmptyRequiredElse, isIfPathCommand, isRepeatCommand } from '../utils/commands'
 
@@ -315,6 +316,7 @@ function generateLayout(generatorKey, facing) {
     case 'level16': return generateLevel16Layout(facing)
     case 'level18': return generateLevel18Layout(facing)
     case 'level19': return generateLevel19Layout(facing)
+    case 'level20': return generateLevel20Layout(facing)
     default: return { walls: [], objects: [], solution: null }
   }
 }
@@ -353,6 +355,8 @@ export function useGameState(levelConfig, animSpeed = 50) {
     walls:    layout.walls,
     objects:  layout.objects,
     solution: layout.solution,
+    echoProbe: layout.echoProbe ?? levelConfig.echoProbe,
+    echoClouds: layout.echoClouds ?? levelConfig.echoClouds,
     // Apply start/goal/facing overrides if the generator provided them (Level 1)
     ...(layout.lumaStart  != null && { lumaStart:   layout.lumaStart  }),
     ...(layout.goal       != null && { goal:         layout.goal       }),
@@ -381,6 +385,13 @@ export function useGameState(levelConfig, animSpeed = 50) {
   const [collectedParts, setCollectedParts] = useState(() => new Set())
   const [collectionEffects, setCollectionEffects] = useState([])
   const [activeIfPathSignal, setActiveIfPathSignal] = useState(null)
+  const [echoActivated, setEchoActivated] = useState(false)
+  const [echoCloudsRevealed, setEchoCloudsRevealed] = useState(false)
+  const [echoAnswer, setEchoAnswer] = useState(null)
+  const [echoFeedback, setEchoFeedback] = useState(null)
+  const echoResumeRef = useRef(null)
+  const echoResolvedRef = useRef(false)
+  const echoContinueStartIndexRef = useRef(null)
 
   const [phase, setPhase] = useState(() => levelConfig.skipIdentify ? 'develop' : 'identify')
   const [sptAnswer, setSptAnswer]         = useState(null)
@@ -512,7 +523,9 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
   const helmetReport = levelConfig.noRadio
     ? reportOverride ?? liveReport
-    : sptCorrect
+    : effectiveLevel.echoProbe && (echoActivated || reportOverride)
+      ? reportOverride ?? effectiveLevel.echoProbe.activatedMessage
+      : sptCorrect
       ? successRadioMessage
       : liveReport
 
@@ -611,22 +624,36 @@ export function useGameState(levelConfig, animSpeed = 50) {
   }, [visorActive, openVisor, closeVisor])
 
   // ── COMMAND BUILDER ──────────────────────────────────────────────────────
+  const markSequenceEditedAfterEcho = useCallback(() => {
+    if (!echoResolvedRef.current) return
+    echoResumeRef.current = null
+    setNeedsReset(false)
+  }, [])
+
+  const updateSequence = useCallback((nextSequence) => {
+    markSequenceEditedAfterEcho()
+    setSequence(nextSequence)
+  }, [markSequenceEditedAfterEcho])
+
   const addCommand = useCallback((cmd) => {
     if (isRunning) return
+    markSequenceEditedAfterEcho()
     setSequence(s => [...s, cmd])
-  }, [isRunning])
+  }, [isRunning, markSequenceEditedAfterEcho])
 
   const removeLastCommand = useCallback(() => {
     if (isRunning) return
+    markSequenceEditedAfterEcho()
     setSequence(s => s.slice(0, -1))
     setEditCount(c => c + 1)
-  }, [isRunning])
+  }, [isRunning, markSequenceEditedAfterEcho])
 
   const clearSequence = useCallback(() => {
     if (isRunning) return
+    markSequenceEditedAfterEcho()
     setSequence([])
     setEditCount(c => c + 1)
-  }, [isRunning])
+  }, [isRunning, markSequenceEditedAfterEcho])
 
   // ── RESET LUMA ───────────────────────────────────────────────────────────
   const resetLuma = useCallback(() => {
@@ -641,9 +668,81 @@ export function useGameState(levelConfig, animSpeed = 50) {
     setCollectionEffects([])
     setNeedsReset(false)
     setReportOverride(null)
+    setEchoActivated(echoResolvedRef.current)
+    if (!echoResolvedRef.current) {
+      setEchoCloudsRevealed(false)
+      setEchoAnswer(null)
+      setEchoFeedback(null)
+    }
+    echoResumeRef.current = null
+    echoContinueStartIndexRef.current = null
     setPredictionResult(null)
     clearIfPathSignal()
   }, [isRunning, resolvedStart, clearIfPathSignal])
+
+  const activateEchoIfNeeded = useCallback((currentLuma, resume, continueStartIndex = 0) => {
+    const echoProbe = effectiveLevel.echoProbe
+    if (
+      !echoProbe ||
+      echoResolvedRef.current ||
+      echoCloudsRevealed ||
+      echoResumeRef.current ||
+      currentLuma.x !== echoProbe.x ||
+      currentLuma.y !== echoProbe.y
+    ) {
+      return false
+    }
+
+    setEchoActivated(true)
+    setEchoFeedback(null)
+    setEchoAnswer(null)
+    setReportOverride(echoProbe.activatedMessage)
+    echoResumeRef.current = resume
+    echoContinueStartIndexRef.current = continueStartIndex
+    setIsRunning(false)
+    return true
+  }, [effectiveLevel.echoProbe, echoCloudsRevealed])
+
+  const answerEchoQuestion = useCallback((tile) => {
+    const echoProbe = effectiveLevel.echoProbe
+    if (!echoProbe || !echoActivated || echoCloudsRevealed) return false
+
+    const correctCloud = echoProbe.correctCloud ?? { x: 3, y: 2 }
+    const correct = tile?.x === correctCloud.x && tile?.y === correctCloud.y
+    setEchoAnswer({
+      x: tile?.x,
+      y: tile?.y,
+      result: correct ? 'success' : 'retry',
+    })
+
+    if (!correct) {
+      setEchoFeedback({
+        type: 'retry',
+        text: "Not quite. Look at which way ECHO is facing, then find what is in front of ECHO.",
+      })
+      return false
+    }
+
+    setEchoFeedback({
+      type: 'success',
+      text: 'Yes! You found the hidden ship fragment.',
+    })
+    setReportOverride('Yes! You found the hidden ship fragment.')
+    setNeedsReset(false)
+    echoResolvedRef.current = true
+
+    setTimeout(() => {
+      setEchoCloudsRevealed(true)
+    }, 1500)
+
+    setTimeout(() => {
+      setEchoFeedback(null)
+      setIsRunning(false)
+      setNeedsReset(false)
+    }, 1600)
+
+    return true
+  }, [effectiveLevel.echoProbe, echoActivated, echoCloudsRevealed])
 
   // ── PREDICTION PROMPT ────────────────────────────────────────────────────
   const setPrediction = useCallback((tile) => {
@@ -655,12 +754,23 @@ export function useGameState(levelConfig, animSpeed = 50) {
   // ── SEQUENCE RUNNER ──────────────────────────────────────────────────────
   const runSequence = useCallback(({ startIndex = 0, onIncomplete = null } = {}) => {
     const commandsToRun = startIndex > 0 ? sequence.slice(startIndex) : sequence
-    if (isRunning || commandsToRun.length === 0) return
+    if (isRunning) return
+    if (echoResolvedRef.current && echoResumeRef.current) {
+      const resume = echoResumeRef.current
+      echoResumeRef.current = null
+      setIsRunning(true)
+      setNeedsReset(false)
+      setReportOverride(null)
+      resume()
+      return
+    }
+    if (commandsToRun.length === 0) return
     if (levelConfig.predictionPrompt && !predictionTile) return
     if (levelConfig.requireElse && hasEmptyRequiredElse(sequence)) return
     setIsRunning(true)
     setAttemptCount(c => c + 1)
     setNeedsReset(false)
+    echoResolvedRef.current = false
     setReportOverride(null)
     setCollectionEffects([])
     clearIfPathSignal()
@@ -883,6 +993,13 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
       setLuma({ ...currentLuma })
 
+      if (activateEchoIfNeeded(currentLuma, () => {
+        setIsRunning(true)
+        executeStep()
+      })) {
+        return
+      }
+
       if (collectEffect) {
         setCollectionEffects((effects) => [...effects, collectEffect])
         setTimeout(() => {
@@ -915,6 +1032,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     isRunning, sequence, luma, levelConfig, effectiveLevel, isMirrored,
     firstFailTime, collectedParts, shipPartObjects,
     predictionTile, missedFragmentsShown, clearIfPathSignal,
+    activateEchoIfNeeded,
   ])
 
   // ── DISMISS MISSED-FRAGMENTS HINT ─────────────────────────────────────────
@@ -955,6 +1073,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     addCommand, removeLastCommand, clearSequence, runSequence,
     attemptCount, editCount,
     collectedParts, collectionEffects, activeIfPathSignal,
+    echoActivated, echoCloudsRevealed, echoAnswer, echoFeedback, answerEchoQuestion,
     missedFragments, dismissMissedFragments,
     needsReset, resetLuma,
     predictionTile, setPrediction, predictionResult,

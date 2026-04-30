@@ -820,6 +820,49 @@ export function generateLevel19Layout() {
   }
 }
 
+export function generateLevel20Layout() {
+  return {
+    walls: [
+      { x: 1, y: 4 },
+      { x: 1, y: 3 },
+      { x: 1, y: 1 },
+      { x: 2, y: 1 },
+      { x: 3, y: 1 },
+      { x: 3, y: 2 },
+      { x: 3, y: 3 },
+    ],
+    objects: [
+      { type: 'ship_part', x: 2, y: 4 },
+    ],
+    solution: [
+      createRepeatCommand(5, [
+        createIfPathCommand('right', ['TR', 'F'], ['F']),
+      ]),
+      'F',
+      'C',
+      createRepeatCommand(10, [
+        createIfPathCommand('left', ['TL', 'F'], ['F']),
+      ]),
+    ],
+    lumaStart: { x: 0, y: 4 },
+    goal: { x: 0, y: 0 },
+    lumaFacing: 'north',
+    echoProbe: {
+      x: 2,
+      y: 3,
+      facing: 'south',
+      showFacingArrow: true,
+      activatedMessage: "ECHO online! There is a ship fragment in front of me and a box on my left.",
+      correctCloud: { x: 2, y: 4 },
+    },
+    echoClouds: [
+      { x: 2, y: 2 },
+      { x: 3, y: 3 },
+      { x: 2, y: 4 },
+    ],
+  }
+}
+
 export const LEVELS = [
   {
     id: 1,
@@ -1464,6 +1507,43 @@ export const LEVELS = [
     allowCollect: true,
     defaultIfPathCondition: 'left',
     repeatDefaults: { times: 2 },
+    useIfElse: true,
+    requireElse: true,
+  },
+  {
+    id: 20,
+    name: 'Echo Relay',
+    world: 'repair-site',
+    tutorial: false,
+    grid: { cols: COLS, rows: ROWS },
+    lumaStart: { x: 0, y: 4 },
+    lumaFacing: 'north',
+    goal: { x: 0, y: 0 },
+    walls: [],
+    objects: [],
+    fog: false,
+    sptQuestion: {
+      prompt: 'Which direction is LUMA facing?',
+      options: ['â†‘ Up', 'â†’ Right', 'â†“ Down', 'â† Left'],
+      correct: null,
+    },
+    solution: null,
+    decompositionPrompt: false,
+    predictionPrompt: false,
+    mirrorControls: false,
+    echoPosition: null,
+    strategyCardAfter: false,
+    noVisorFlip: false,
+    skipIdentify: false,
+    noRadio: false,
+    layoutGenerator: 'level20',
+    targetCommands: 12,
+    uncertainRadio: false,
+    allowRepeat: true,
+    allowIfPath: true,
+    allowCollect: true,
+    defaultIfPathCondition: 'right',
+    repeatDefaults: { times: 5 },
     useIfElse: true,
     requireElse: true,
   },

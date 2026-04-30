@@ -207,6 +207,48 @@ export const LEVEL_TUTORIALS = {
       nextLabel: 'Ready',
     }),
   ],
+  20: [
+    levelStep('level-20-hidden-fragment', {
+      targetId: 'grid-panel',
+      placement: 'right',
+      title: 'A hidden fragment',
+      body: 'There is a missing ship fragment in the path, but LUMA cannot find it on her own.',
+      waitForTarget: true,
+      nextLabel: 'Got it',
+    }),
+    levelStep('level-20-meet-echo', {
+      targetId: 'echo-probe',
+      placement: 'left',
+      title: 'Meet ECHO',
+      body: 'ECHO is a helper drone. ECHO can help find the hidden ship fragment by giving a clue. Guide LUMA to ECHO to activate ECHO.',
+      waitForTarget: true,
+      nextLabel: 'Okay',
+    }),
+    levelStep('level-20-use-arrow', {
+      targetId: 'echo-probe',
+      placement: 'left',
+      title: 'Use ECHO\'s arrow',
+      body: 'Look at ECHO\'s arrow to know which way ECHO is facing.',
+      waitForTarget: true,
+      nextLabel: 'I see',
+    }),
+    levelStep('level-20-echo-view', {
+      targetId: 'echo-probe',
+      placement: 'left',
+      title: 'ECHO has a point of view',
+      body: 'ECHO sees the map from where he is facing. Get into ECHO\'s point of view to find the hidden ship fragment.',
+      waitForTarget: true,
+      nextLabel: 'Okay',
+    }),
+    levelStep('level-20-choose-cloud', {
+      targetId: 'grid-panel',
+      placement: 'right',
+      title: 'Choose the right cloud',
+      body: 'After ECHO gives a clue, tap the cloud where you think the hidden ship fragment is.',
+      waitForTarget: true,
+      nextLabel: 'Ready',
+    }),
+  ],
 }
 
 export const FEATURE_TUTORIALS = {
