@@ -18,6 +18,7 @@ import {
   generateLevel19Layout,
   generateLevel20Layout,
   generateLevel21Layout,
+  generateLevel22Layout,
 } from '../data/levels'
 import { clampRepeatTimes, countProgramBlocks, hasEmptyRequiredElse, isIfPathCommand, isRepeatCommand } from '../utils/commands'
 
@@ -83,13 +84,13 @@ function getRandomFrom(arr) {
 
 function getObstacleNoun(world) {
   if (world === 'forest-trail') return 'tree'
-  if (world === 'repair-site') return 'box'
+  if (world === 'repair-site' || world === 'launch-site') return 'box'
   return 'rock'
 }
 
 function getObstacleArticle(world) {
   if (world === 'forest-trail') return 'a tree'
-  if (world === 'repair-site') return 'a box'
+  if (world === 'repair-site' || world === 'launch-site') return 'a box'
   return 'a rock'
 }
 
@@ -332,6 +333,7 @@ function generateLayout(generatorKey, facing) {
     case 'level19': return generateLevel19Layout(facing)
     case 'level20': return generateLevel20Layout(facing)
     case 'level21': return generateLevel21Layout(facing)
+    case 'level22': return generateLevel22Layout(facing)
     default: return { walls: [], objects: [], solution: null }
   }
 }
@@ -462,6 +464,10 @@ export function useGameState(levelConfig, animSpeed = 50) {
       return "Can you see where I am? There’s open path in front of me and on my left, but there’s no path behind me or to my right."
     }
 
+    if (levelConfig.id === 22) {
+      return "Can you see where I am? The path is blocked behind me."
+    }
+
     if (levelConfig.id === 6) {
       return withOpener("There is a tree to my right and a ship fragment in front of me.")
     }
@@ -548,6 +554,8 @@ export function useGameState(levelConfig, animSpeed = 50) {
     ? reportOverride ?? liveReport
     : effectiveLevel.echoProbe && (echoActivated || reportOverride)
       ? reportOverride ?? effectiveLevel.echoProbe.activatedMessage
+      : levelConfig.id === 22 && reportOverride
+      ? reportOverride
       : sptCorrect
       ? successRadioMessage
       : liveReport
@@ -556,7 +564,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
   const [predictionResult, setPredictionResult] = useState(null)
 
   // ── CT tracking ───────────────────────────────────────────────────────────
-  const [sequence, setSequence]           = useState([])
+  const [sequence, setSequence]           = useState(() => levelConfig.givenProgram ?? [])
   const [isRunning, setIsRunning]         = useState(false)
   const [attemptCount, setAttemptCount]   = useState(0)
   const [editCount, setEditCount]         = useState(0)
@@ -572,6 +580,9 @@ export function useGameState(levelConfig, animSpeed = 50) {
   const [hadErrorBefore, setHadErrorBefore]   = useState(false)
   const [startTime]       = useState(() => Date.now())
   const [firstFailTime, setFirstFailTime] = useState(null)
+  const [traceSelection, setTraceSelection] = useState(null)
+  const [traceGoalRevealed, setTraceGoalRevealed] = useState(() => !levelConfig.hideGoalUntilTraceCorrect)
+  const traceRunStartedRef = useRef(false)
 
   const isMirrored = levelConfig.mirrorControls && luma.facing === 'south'
 
@@ -609,6 +620,9 @@ export function useGameState(levelConfig, animSpeed = 50) {
           resolvedFacing,
           effectiveLevel.walls,
         ))
+      }
+      if (levelConfig.id === 22) {
+        setReportOverride("Yes! Now I know which way I'm facing. Let's trace the launch code.")
       }
       setPhase('develop')
     }
@@ -672,11 +686,12 @@ export function useGameState(levelConfig, animSpeed = 50) {
   }, [isRunning, markSequenceEditedAfterEcho])
 
   const clearSequence = useCallback(() => {
+    if (levelConfig.givenProgram) return
     if (isRunning) return
     markSequenceEditedAfterEcho()
     setSequence([])
     setEditCount(c => c + 1)
-  }, [isRunning, markSequenceEditedAfterEcho])
+  }, [isRunning, levelConfig.givenProgram, markSequenceEditedAfterEcho])
 
   // ── RESET LUMA ───────────────────────────────────────────────────────────
   const resetLuma = useCallback(() => {
@@ -853,7 +868,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     const grid = { cols: gridCols, rows: gridRows }
     const world = effectiveLevel.world ?? levelConfig.world
     const shouldShowIfPathSignal =
-      world === 'repair-site' &&
+      (world === 'repair-site' || world === 'launch-site') &&
       levelConfig.allowIfPath
     const programStack = [{
       commands: commandsToRun,
@@ -986,7 +1001,9 @@ export function useGameState(levelConfig, animSpeed = 50) {
           setPhase('success')
           setNeedsReset(false)
           if (!echoFinalRadioLockedRef.current) {
-            setReportOverride("I made it! The ship core is right here — we did it!")
+            setReportOverride(levelConfig.id === 22
+              ? "Launch pad reached! LUMA is ready to fly home."
+              : "I made it! The ship core is right here — we did it!")
           }
         } else if (onIncomplete?.({
           luma: currentLuma,
@@ -1121,6 +1138,39 @@ export function useGameState(levelConfig, animSpeed = 50) {
   ])
 
   // ── DISMISS MISSED-FRAGMENTS HINT ─────────────────────────────────────────
+  const answerTraceCell = useCallback((tile) => {
+    if (!levelConfig.traceMode || phase !== 'develop' || isRunning || traceRunStartedRef.current) return false
+    if ((effectiveLevel.walls ?? []).some(wall => wall.x === tile?.x && wall.y === tile?.y)) return false
+
+    const correctCell = levelConfig.tracingCorrectCell
+    const correct = Boolean(correctCell && tile?.x === correctCell.x && tile?.y === correctCell.y)
+
+    setTraceSelection({
+      x: tile?.x,
+      y: tile?.y,
+      result: correct ? 'success' : 'retry',
+      id: `trace-${Date.now()}-${tile?.x}-${tile?.y}`,
+    })
+
+    if (!correct) {
+      setHadErrorBefore(true)
+      if (!firstFailTime) setFirstFailTime(Date.now())
+      setSelfCorrected(true)
+      setReportOverride("Not quite. Trace the code again and try another ending tile.")
+      return false
+    }
+
+    traceRunStartedRef.current = true
+    setTraceGoalRevealed(true)
+    setReportOverride("Correct! The launch pad is appearing. Watch LUMA run the launch code!")
+
+    window.setTimeout(() => {
+      runSequence()
+    }, 1050)
+
+    return true
+  }, [effectiveLevel.walls, firstFailTime, isRunning, levelConfig.traceMode, levelConfig.tracingCorrectCell, phase, runSequence])
+
   const dismissMissedFragments = useCallback(() => {
     setMissedFragments(false)
   }, [])
@@ -1163,6 +1213,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     missedFragments, dismissMissedFragments,
     needsReset, resetLuma,
     predictionTile, setPrediction, predictionResult,
+    traceSelection, traceGoalRevealed, answerTraceCell,
     getGBISnapshot,
     // Expose effective layout for GameGrid
     effectiveLevel,

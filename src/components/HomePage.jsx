@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion'
 import { useTheme, THEMES } from '../context/theme'
 
-const PLAYABLE_LEVELS = 21
+const PLAYABLE_LEVELS = 22
 const HOME_MAPS = [
   { id: 'crash-site', title: 'Crash Site', levels: [1, 2, 3, 4, 5], accent: 'teal' },
   { id: 'forest-trail', title: 'Forest Trail', levels: [6, 7, 8, 9, 10, 11, 12, 13, 14], accent: 'amber' },
   { id: 'repair-site', title: 'Repair Site', levels: [15, 16, 17, 18, 19, 20, 21], accent: 'violet' },
+  { id: 'launch-site', title: 'Launch Site', levels: [22], accent: 'cyan' },
 ]
 
 export default function HomePage({ headerHeight, onSelectLevel }) {
@@ -145,7 +146,7 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                 color: t.textSecondary,
                 maxWidth: 620,
               }}>
-                Crash Site, Forest Trail, and seven Repair Site missions are live now.
+                Crash Site, Forest Trail, Repair Site, and the final Launch Site mission are live now.
               </p>
             </div>
 
@@ -172,14 +173,14 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                 LIVE NOW
               </p>
               <p style={{ margin: 0, fontSize: 13, color: t.textSecondary, fontWeight: 700 }}>
-                Levels 1-21 ready to play
+                Levels 1-22 ready to play
               </p>
             </div>
           </motion.div>
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
             gap: 18,
             flex: 1,
             minHeight: 0,
@@ -190,7 +191,9 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                 ? (theme === 'light' ? '#5fd7eb' : '#2dd4bf')
                 : mapConfig.accent === 'amber'
                   ? (theme === 'light' ? '#f5b24d' : '#f59e0b')
-                  : (theme === 'light' ? '#b78cff' : '#8b5cf6')
+                  : mapConfig.accent === 'violet'
+                    ? (theme === 'light' ? '#b78cff' : '#8b5cf6')
+                    : (theme === 'light' ? '#22d3ee' : '#67e8f9')
 
               return (
                 <motion.div
@@ -233,9 +236,13 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                           ? (theme === 'light'
                             ? 'radial-gradient(circle at 85% 15%, rgba(251,191,36,0.18), rgba(251,191,36,0))'
                             : 'radial-gradient(circle at 85% 15%, rgba(245,158,11,0.10), rgba(245,158,11,0))')
-                          : (theme === 'light'
-                            ? 'radial-gradient(circle at 85% 15%, rgba(139,92,246,0.16), rgba(139,92,246,0))'
-                            : 'radial-gradient(circle at 85% 15%, rgba(139,92,246,0.10), rgba(139,92,246,0))'))
+                          : mapConfig.accent === 'violet'
+                            ? (theme === 'light'
+                              ? 'radial-gradient(circle at 85% 15%, rgba(139,92,246,0.16), rgba(139,92,246,0))'
+                              : 'radial-gradient(circle at 85% 15%, rgba(139,92,246,0.10), rgba(139,92,246,0))')
+                            : (theme === 'light'
+                              ? 'radial-gradient(circle at 85% 15%, rgba(34,211,238,0.18), rgba(34,211,238,0))'
+                              : 'radial-gradient(circle at 85% 15%, rgba(103,232,249,0.12), rgba(103,232,249,0))'))
                       : 'none',
                     pointerEvents: 'none',
                   }}/>
@@ -270,7 +277,9 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                           ? 'Explore the crash site and learn how to guide LUMA.'
                           : mapConfig.id === 'forest-trail'
                             ? 'Follow the glowing forest trail and start using repeat, visor help, and fragment routes.'
-                            : 'Reach the repair bay, learn IF PATH, and collect every fragment.'
+                            : mapConfig.id === 'repair-site'
+                              ? 'Reach the repair bay, learn IF PATH, and collect every fragment.'
+                              : 'Trace the final launch code and help LUMA lift off for home.'
                         : 'New worlds are still powering up for future rescue missions.'}
                     </p>
                   </div>

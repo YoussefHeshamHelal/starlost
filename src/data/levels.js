@@ -928,6 +928,35 @@ export function generateLevel21Layout() {
   }
 }
 
+export function generateLevel22Layout() {
+  return {
+    walls: [
+      { x: 3, y: 0 },
+      { x: 4, y: 0 },
+      { x: 2, y: 1 },
+      { x: 2, y: 2 },
+    ],
+    objects: [],
+    solution: [
+      createRepeatCommand(16, [
+        createIfPathCommand('right', [
+          'TR',
+          'F',
+        ], [
+          createIfPathCommand('ahead', [
+            'F',
+          ], [
+            'TL',
+          ]),
+        ]),
+      ]),
+    ],
+    lumaStart: { x: 2, y: 4 },
+    goal: { x: 1, y: 0 },
+    lumaFacing: 'north',
+  }
+}
+
 export const LEVELS = [
   {
     id: 1,
@@ -1648,5 +1677,58 @@ export const LEVELS = [
     repeatDefaults: { times: 2 },
     useIfElse: true,
     requireElse: true,
+  },
+  {
+    id: 22,
+    name: 'Launch Code Trace',
+    world: 'launch-site',
+    tutorial: true,
+    grid: { cols: COLS, rows: ROWS },
+    lumaStart: { x: 2, y: 4 },
+    lumaFacing: 'north',
+    goal: { x: 1, y: 0 },
+    walls: [],
+    objects: [],
+    fog: false,
+    sptQuestion: {
+      prompt: 'Which direction is LUMA facing?',
+      options: ['↑ Up', '→ Right', '↓ Down', '← Left'],
+      correct: null,
+    },
+    solution: null,
+    givenProgram: [
+      createRepeatCommand(16, [
+        createIfPathCommand('right', [
+          'TR',
+          'F',
+        ], [
+          createIfPathCommand('ahead', [
+            'F',
+          ], [
+            'TL',
+          ]),
+        ]),
+      ]),
+    ],
+    decompositionPrompt: false,
+    predictionPrompt: false,
+    mirrorControls: false,
+    echoPosition: null,
+    strategyCardAfter: false,
+    noVisorFlip: false,
+    skipIdentify: false,
+    noRadio: false,
+    layoutGenerator: 'level22',
+    targetCommands: 7,
+    uncertainRadio: false,
+    allowRepeat: true,
+    allowIfPath: true,
+    allowCollect: false,
+    defaultIfPathCondition: 'right',
+    useIfElse: true,
+    requireElse: true,
+    traceMode: true,
+    hideGoalUntilTraceCorrect: true,
+    tracingCorrectCell: { x: 1, y: 0 },
   },
 ]

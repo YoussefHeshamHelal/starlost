@@ -1494,6 +1494,82 @@ function ShowCodeModal({ code, theme, onClose }) {
   )
 }
 
+function LockedProgramList({ sequence, theme, depth = 0 }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: Math.max(6, 10 - depth * 2) }}>
+      {sequence.map((command, index) => {
+        const meta = getMeta(command, theme)
+        const isRepeat = isRepeatCommand(command)
+        const isIf = isIfPathCommand(command)
+        const conditionLabel = {
+          ahead: 'PATH ahead',
+          left: 'PATH to the left',
+          right: 'PATH to the right',
+        }[command.condition ?? 'ahead'] ?? 'PATH ahead'
+
+        if (isRepeat || isIf) {
+          return (
+            <div
+              key={`${command.type}-${index}-${depth}`}
+              style={{
+                border: `1.5px solid ${meta.color}77`,
+                borderLeft: `4px solid ${meta.color}`,
+                borderRadius: 10,
+                background: meta.bg,
+                padding: 10,
+                boxShadow: `inset 0 1px 0 rgba(255,255,255,${theme === 'light' ? 0.62 : 0.06})`,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ color: meta.color, fontSize: 10, fontFamily: 'monospace', fontWeight: 900, width: 18, textAlign: 'right' }}>{String(index + 1).padStart(2, '0')}</span>
+                <span style={{ color: meta.color, fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 900 }}>
+                  {isRepeat ? `REPEAT (${command.times}) TIMES` : `IF ${conditionLabel}`}
+                </span>
+              </div>
+              {isIf ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 14 }}>
+                  <div>
+                    <p style={{ margin: '0 0 5px 0', color: meta.color, fontSize: 10, fontFamily: 'monospace', fontWeight: 900 }}>do:</p>
+                    <LockedProgramList sequence={command.commands ?? []} theme={theme} depth={depth + 1} />
+                  </div>
+                  <div>
+                    <p style={{ margin: '0 0 5px 0', color: meta.color, fontSize: 10, fontFamily: 'monospace', fontWeight: 900 }}>else:</p>
+                    <LockedProgramList sequence={command.elseCommands ?? []} theme={theme} depth={depth + 1} />
+                  </div>
+                </div>
+              ) : (
+                <div style={{ paddingLeft: 14 }}>
+                  <LockedProgramList sequence={command.commands ?? []} theme={theme} depth={depth + 1} />
+                </div>
+              )}
+            </div>
+          )
+        }
+
+        return (
+          <div
+            key={`${command}-${index}-${depth}`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              minHeight: 32,
+              borderRadius: 8,
+              borderLeft: `3px solid ${meta.color}`,
+              background: meta.bg,
+              padding: '6px 10px',
+              boxSizing: 'border-box',
+            }}
+          >
+            <span style={{ color: meta.color, fontSize: 10, fontFamily: 'monospace', fontWeight: 900, width: 18, textAlign: 'right' }}>{String(index + 1).padStart(2, '0')}</span>
+            <span style={{ color: meta.color, fontSize: 11, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 900 }}>{meta.rowLabel}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function CommandBuilder({
   sequence,
   isRunning,
@@ -1519,6 +1595,7 @@ export default function CommandBuilder({
   showIfElse = false,
   ifElseBlocked = false,
   defaultIfPathCondition = 'ahead',
+  lockedProgram = false,
 }) {
   const theme = useContext(ThemeContext)
   const t = THEMES[theme]
@@ -1618,6 +1695,64 @@ export default function CommandBuilder({
   })
 
   if (phase !== 'develop') return null
+
+  if (lockedProgram) {
+    return (
+      <div data-tutorial-id="command-builder" style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', height: '100%', flex: 1, minHeight: 0, background: wrapperBg, padding: 0, boxSizing: 'border-box' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: showVisorFlip ? 'minmax(0, 1fr) 170px' : '1fr', gap: 12, alignItems: 'stretch', flexShrink: 0 }}>
+          <div style={{ ...subPanelStyle, padding: '12px 14px', flex: '0 0 auto' }}>
+            <SpeedBar speed={speed} onSpeedChange={onSpeedChange} theme={theme} />
+          </div>
+          {showVisorFlip && (
+            <motion.button whileTap={{ scale: 0.96 }} onClick={onVisorFlip} disabled={visorFlipCount >= 3} data-tutorial-id="visor-flip-button" style={{ width: '100%', minHeight: 62, padding: '9px 12px', background: visorFlipCount >= 3 ? t.visorExhBg : t.visorBg, border: `1.5px solid ${visorFlipCount >= 3 ? t.visorExhBd : t.visorBorder}`, borderRadius: 8, color: visorFlipCount >= 3 ? t.visorExhTx : t.visorText, cursor: visorFlipCount >= 3 ? 'not-allowed' : 'pointer', fontFamily: 'monospace', fontSize: 11, letterSpacing: 1.2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, fontWeight: 800 }}>
+              <span>{'\u{1F441}'} VISOR FLIP</span>
+              <span style={{ fontSize: 10 }}>{3 - visorFlipCount} left</span>
+            </motion.button>
+          )}
+        </div>
+
+        <div data-tutorial-id="trace-program-box" style={{ ...subPanelStyle, flex: '1 1 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, flexShrink: 0 }}>
+            <div>
+              <p style={{ fontSize: 12, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 1.2, margin: 0, fontWeight: 900 }}>LAUNCH PROGRAM</p>
+              <p style={{ fontSize: 10, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.8, margin: '4px 0 0 0' }}>Read it, trace it, then choose LUMA's ending tile.</p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end', flexShrink: 0 }}>
+              {targetCommands !== null && <span style={{ color: t.targetCmdColor, fontSize: 10.5, fontFamily: 'monospace', fontWeight: 900, whiteSpace: 'nowrap' }}>Shortest Path: {targetCommands} Blocks</span>}
+              <button type="button" onClick={() => setShowCodeModal(true)} style={showCodeBtn}>{'</>'} Show Code</button>
+            </div>
+          </div>
+          <div
+            data-tutorial-id="sequence-area"
+            style={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: 'auto',
+              overflowX: 'hidden',
+              borderRadius: 10,
+              border: `1.5px solid ${t.scrollBorder}`,
+              background: theme === 'light'
+                ? 'linear-gradient(180deg, rgba(231,250,255,0.96), rgba(241,245,255,0.94))'
+                : 'linear-gradient(180deg, rgba(2,8,18,0.97), rgba(7,13,26,0.95))',
+              padding: 12,
+              boxSizing: 'border-box',
+            }}
+          >
+            <LockedProgramList sequence={sequence} theme={theme} />
+          </div>
+        </div>
+        <AnimatePresence>
+          {showCodeModal && (
+            <ShowCodeModal
+              code={programCode}
+              theme={theme}
+              onClose={() => setShowCodeModal(false)}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+    )
+  }
 
   return (
     <div data-tutorial-id="command-builder" style={{ display: 'flex', gap: 16, width: '100%', height: '100%', flex: 1, minHeight: 0, background: wrapperBg, padding: 0, boxSizing: 'border-box' }}>

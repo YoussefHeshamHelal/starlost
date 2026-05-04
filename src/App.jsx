@@ -21,7 +21,7 @@ const GRID_PX  = 520   // 5 tiles × 104 px
 const PANEL_W  = 810
 const GAP      = 24
 const EARLY_MAP_SCALE = 1.1
-const PLAYABLE_LEVELS = 21
+const PLAYABLE_LEVELS = 22
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
 const SPEED_STORAGE_KEY = 'starlost:anim-speed'
 
@@ -1320,6 +1320,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     missedFragments, dismissMissedFragments,
     needsReset, resetLuma,
     predictionTile, setPrediction, predictionResult,
+    traceSelection, traceGoalRevealed, answerTraceCell,
     effectiveLevel, getGBISnapshot,
   } = useGameState(levelConfig, animSpeed)
   const [checkpointChoiceComplete, setCheckpointChoiceComplete] = useState(false)
@@ -1356,6 +1357,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     echoIdentifyActive,
     echoIdentifyCorrect,
     echoCloudsRevealed,
+    traceSelection,
+    traceGoalRevealed,
     levelConfig,
     effectiveLevel,
   }), [
@@ -1371,6 +1374,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     echoIdentifyActive,
     echoIdentifyCorrect,
     echoCloudsRevealed,
+    traceSelection,
+    traceGoalRevealed,
     sequence,
     sptAnswer,
     sptCorrect,
@@ -1681,7 +1686,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     (levelConfig.id !== 17 || phase === 'develop') &&
     (levelConfig.id !== 18 || phase === 'develop') &&
     (levelConfig.id !== 19 || phase === 'develop') &&
-    (levelConfig.id !== 21 || phase === 'develop')
+    (levelConfig.id !== 21 || phase === 'develop') &&
+    (levelConfig.id !== 22 || phase === 'develop')
   const handleReplayTutorial = useCallback(() => {
     if (!canReplayTutorial) return
 
@@ -1726,6 +1732,11 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     phase === 'develop' &&
     !isRunning &&
     predictionResult === null
+  const traceModeActive =
+    Boolean(levelConfig.traceMode) &&
+    phase === 'develop' &&
+    !isRunning &&
+    !traceGoalRevealed
 
   const handleTileClick = useCallback((col, row) => {
     if (!predictionModeActive) return
@@ -1756,6 +1767,12 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     }
     onComplete()
   }
+  const phaseBadgeText =
+    phase === 'identify'
+      ? 'PHASE 1 - IDENTIFY'
+      : phase === 'develop'
+        ? (levelConfig.traceMode ? 'PHASE 2 - TRACE' : 'PHASE 2 - DEVELOP')
+        : 'COMPLETE'
 
   return (
     <div style={{
@@ -1806,9 +1823,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
             color: phase === 'identify' ? t.identBadgeTx : t.devBadgeTx,
             fontWeight: 800,
           }}>
-            {phase === 'identify' ? 'PHASE 1 — IDENTIFY'
-             : phase === 'develop' ? 'PHASE 2 — DEVELOP'
-             : 'COMPLETE'}
+            {phaseBadgeText}
           </div>
         )}
       </div>
@@ -1867,6 +1882,10 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
               echoSelectionActive={echoQuestionActive}
               echoSelectedCloud={echoAnswer}
               onEchoCloudTileClick={answerEchoQuestion}
+              traceModeActive={traceModeActive}
+              traceSelection={traceSelection}
+              traceGoalRevealed={traceGoalRevealed}
+              onTraceCellClick={answerTraceCell}
             />
           </div>
         </div>
@@ -2087,6 +2106,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                     showIfPath={Boolean(levelConfig.allowIfPath)}
                     showIfElse={Boolean(levelConfig.useIfElse) || levelConfig.id >= 18}
                     defaultIfPathCondition={effectiveDefaultIfPathCondition}
+                    lockedProgram={Boolean(levelConfig.traceMode)}
                   />
                 </div>
               </motion.div>

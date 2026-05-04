@@ -5,6 +5,7 @@ import LumaSprite from './LumaSprite'
 import CrashSiteBackground from './CrashSiteBackground'
 import ForestTrailBackground from './ForestTrailBackground'
 import RepairSiteBackground from './RepairSiteBackground'
+import LaunchSiteBackground from './LaunchSiteBackground'
 import { ThemeContext } from '../context/theme'
 
 const DEFAULT_TILE_SIZE = 104
@@ -18,7 +19,7 @@ function getTileInDirection(luma, relDir, level) {
   const forestObstacle = level.world === 'forest-trail'
     ? { type: 'forest_tree', label: 'FOREST TREE!', emoji: '\u{1F332}', color: '#65a30d' }
     : { type: 'rock', label: 'BIG ROCK!', emoji: '🪨', color: '#c0845a' }
-  const worldObstacle = level.world === 'repair-site'
+  const worldObstacle = level.world === 'repair-site' || level.world === 'launch-site'
     ? { type: 'repair_box', label: 'REPAIR BOX!', emoji: '\u{1F4E6}', color: '#38bdf8' }
     : forestObstacle
   const facingIdx = DIRECTIONS.indexOf(luma.facing)
@@ -34,8 +35,12 @@ function getTileInDirection(luma, relDir, level) {
     return { type: 'boundary', label: 'WALL!', emoji: '🚧', color: '#64748b' }
   if (walls.some(w => w.x === ax && w.y === ay))
     return worldObstacle
-  if (goal && goal.x === ax && goal.y === ay)
+  if (goal && goal.x === ax && goal.y === ay) {
+    if (level.world === 'launch-site') {
+      return { type: 'launch_pad', label: 'LAUNCH PAD', emoji: '\u2726', color: '#22d3ee' }
+    }
     return { type: 'goal', label: 'SHIP CORE!', emoji: '⭐', color: '#f59e0b' }
+  }
   const obj = objects.find(o => o.x === ax && o.y === ay)
   if (obj?.type === 'ship_part')
     return { type: 'ship_part', label: 'SHIP PIECE!', emoji: '🛸', color: '#38bdf8' }
@@ -326,6 +331,46 @@ function CargoCrateObstacle() {
           <animate attributeName="opacity" values="0.3;0.7;0.3" dur="1.8s" repeatCount="indefinite" />
         </circle>
         <circle cx="47" cy="31" r="2.2" fill="#e0faff" />
+      </g>
+    </svg>
+  )
+}
+
+function LaunchBarrierObstacle() {
+  return (
+    <svg width={68} height={58} viewBox="0 0 68 58" fill="none">
+      <defs>
+        <linearGradient id="launch_barrier_top" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#e2e8f0" />
+          <stop offset="44%" stopColor="#7890a8" />
+          <stop offset="100%" stopColor="#1f2937" />
+        </linearGradient>
+        <linearGradient id="launch_barrier_body" x1="0" y1="0" x2="0.85" y2="1">
+          <stop offset="0%" stopColor="#94a3b8" />
+          <stop offset="52%" stopColor="#42566d" />
+          <stop offset="100%" stopColor="#0f172a" />
+        </linearGradient>
+        <radialGradient id="launch_barrier_light" cx="50%" cy="50%" r="60%">
+          <stop offset="0%" stopColor="#ecfeff" stopOpacity="1" />
+          <stop offset="42%" stopColor="#22d3ee" stopOpacity="0.72" />
+          <stop offset="100%" stopColor="#0891b2" stopOpacity="0" />
+        </radialGradient>
+        <filter id="launch_barrier_shadow" x="-25%" y="-25%" width="150%" height="160%">
+          <feDropShadow dx="2" dy="5" stdDeviation="3" floodColor="#020617" floodOpacity="0.64" />
+        </filter>
+      </defs>
+      <ellipse cx="35" cy="53" rx="26" ry="5" fill="#020617" opacity="0.5" />
+      <g filter="url(#launch_barrier_shadow)">
+        <path d="M11 18 L28 8 L57 15 L40 26 Z" fill="url(#launch_barrier_top)" stroke="#e2e8f0" strokeWidth="1.2" />
+        <path d="M11 18 L40 26 L40 47 L11 38 Z" fill="url(#launch_barrier_body)" stroke="#cbd5e1" strokeWidth="1.2" />
+        <path d="M40 26 L57 15 L57 37 L40 47 Z" fill="#223247" stroke="#8fb6cc" strokeWidth="1.2" />
+        <path d="M15 27 L34 33 M18 20 L47 27 M24 22 L24 41 M33 25 L33 44" stroke="#f8fafc" strokeOpacity="0.22" strokeWidth="1.2" />
+        <path d="M17 34 L35 39" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" opacity="0.82" />
+        <path d="M20 24 L38 29" stroke="#f59e0b" strokeWidth="2.4" strokeLinecap="round" opacity="0.72" />
+        <circle cx="48" cy="31" r="8" fill="url(#launch_barrier_light)" opacity="0.72">
+          <animate attributeName="opacity" values="0.35;0.82;0.35" dur="1.3s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="48" cy="31" r="2.4" fill="#ecfeff" />
       </g>
     </svg>
   )
@@ -705,6 +750,67 @@ function VisorRepairBox({ zone, W, H }) {
   )
 }
 
+function LaunchPadGoal() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.35, rotate: -16 }}
+      animate={{ opacity: 1, scale: [0.82, 1.08, 1], rotate: [0, 2, 0] }}
+      transition={{ duration: 0.72, ease: [0.16, 1, 0.3, 1] }}
+      style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', filter: 'drop-shadow(0 0 18px rgba(34,211,238,0.9))' }}
+    >
+      {[0, 1, 2].map((index) => (
+        <motion.div
+          key={index}
+          animate={{ scale: [0.65, 1.8], opacity: [0.8, 0] }}
+          transition={{ duration: 1.45, delay: index * 0.28, repeat: Infinity, ease: 'easeOut' }}
+          style={{ position: 'absolute', width: 46, height: 46, borderRadius: '50%', border: '2px solid #67e8f9' }}
+        />
+      ))}
+      <svg width={62} height={62} viewBox="0 0 62 62" fill="none">
+        <defs>
+          <radialGradient id="launchPadCore" cx="50%" cy="42%" r="58%">
+            <stop offset="0%" stopColor="#ecfeff" />
+            <stop offset="42%" stopColor="#22d3ee" />
+            <stop offset="100%" stopColor="#075985" />
+          </radialGradient>
+          <linearGradient id="launchPadMetal" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#cbd5e1" />
+            <stop offset="44%" stopColor="#64748b" />
+            <stop offset="100%" stopColor="#172033" />
+          </linearGradient>
+          <filter id="launchPadGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="2.4" result="b" />
+            <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+        </defs>
+        <ellipse cx="31" cy="53" rx="24" ry="5" fill="#020617" opacity="0.46" />
+        <circle cx="31" cy="31" r="25" fill="#0f172a" stroke="#94a3b8" strokeWidth="2" />
+        <circle cx="31" cy="31" r="18" fill="url(#launchPadMetal)" stroke="#e2e8f0" strokeOpacity="0.64" strokeWidth="1.4" />
+        <circle cx="31" cy="31" r="10" fill="url(#launchPadCore)" filter="url(#launchPadGlow)">
+          <animate attributeName="opacity" values="0.72;1;0.76" dur="1.1s" repeatCount="indefinite" />
+        </circle>
+        {[0, 60, 120, 180, 240, 300].map((angle) => {
+          const rad = (angle * Math.PI) / 180
+          return (
+            <rect
+              key={angle}
+              x={31 + 20 * Math.cos(rad) - 2}
+              y={31 + 20 * Math.sin(rad) - 2}
+              width="4"
+              height="4"
+              rx="1"
+              fill="#67e8f9"
+              opacity="0.86"
+            />
+          )
+        })}
+        <path d="M31 8 L35 20 L31 17 L27 20 Z" fill="#f8fafc" opacity="0.86" />
+        <path d="M18 43 L44 43 M16 38 L46 38" stroke="#67e8f9" strokeOpacity="0.72" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    </motion.div>
+  )
+}
+
 function ZoneContent({ tile, zone, W, H }) {
   // zone: 'front' | 'left' | 'right'
   // Each zone renders its terrain from LUMA's POV perspective
@@ -873,6 +979,29 @@ function ZoneContent({ tile, zone, W, H }) {
 
   if (tile.type === 'repair_box') {
     return <VisorRepairBox zone={zone} W={W} H={H} />
+  }
+
+  if (tile.type === 'launch_pad') {
+    const cx = isFront ? W * 0.5 : isLeft ? W * 0.1 : W * 0.9
+    const cy = isFront ? H * 0.58 : H * 0.62
+    const sx = isFront ? 1.22 : 0.82
+    const sy = isFront ? 0.9 : 0.74
+    const mirror = !isFront && !isLeft
+
+    return (
+      <g transform={`${mirror ? `translate(${2 * cx} 0) scale(-1 1) ` : ''}translate(${cx - 31 * sx} ${cy - 31 * sy}) scale(${sx} ${sy})`}>
+        <ellipse cx="31" cy="53" rx="24" ry="5" fill="#020617" opacity="0.5" />
+        <circle cx="31" cy="31" r="25" fill="#0f172a" stroke="#94a3b8" strokeWidth="2" />
+        <circle cx="31" cy="31" r="18" fill="url(#launch_pad_visor_metal)" stroke="#e2e8f0" strokeOpacity="0.64" strokeWidth="1.4" />
+        <circle cx="31" cy="31" r="10" fill="url(#launch_pad_visor_core)" filter="url(#launch_pad_visor_glow)" />
+        {[0, 60, 120, 180, 240, 300].map((angle) => {
+          const rad = (angle * Math.PI) / 180
+          return <rect key={angle} x={31 + 20 * Math.cos(rad) - 2} y={31 + 20 * Math.sin(rad) - 2} width="4" height="4" rx="1" fill="#67e8f9" opacity="0.86" />
+        })}
+        <path d="M31 8 L35 20 L31 17 L27 20 Z" fill="#f8fafc" opacity="0.86" />
+        <path d="M18 43 L44 43 M16 38 L46 38" stroke="#67e8f9" strokeOpacity="0.72" strokeWidth="1.5" strokeLinecap="round" />
+      </g>
+    )
   }
 
   if (tile.type === 'rock' || tile.type === 'boundary') {
@@ -1119,11 +1248,13 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
     ahead.type === 'repair_box' ? '#38bdf8' :
     ahead.type === 'boundary'  ? '#64748b' :
     ahead.type === 'ship_part' ? '#38bdf8' :
+    ahead.type === 'launch_pad' ? '#22d3ee' :
     ahead.type === 'goal'      ? '#f59e0b' :
     '#2dd4bf'
   const visorLabel = tile => {
     if (tile.type === 'boundary') return 'BOUNDARY'
     if (tile.type === 'repair_box') return 'REPAIR BOX'
+    if (tile.type === 'launch_pad') return 'LAUNCH PAD'
     return tile.label
   }
 
@@ -1233,6 +1364,16 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
             <stop offset="60%" stopColor="#f59e0b"/>
             <stop offset="100%" stopColor="#92400e"/>
           </radialGradient>
+          <linearGradient id="launch_pad_visor_metal" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#cbd5e1"/>
+            <stop offset="44%" stopColor="#64748b"/>
+            <stop offset="100%" stopColor="#172033"/>
+          </linearGradient>
+          <radialGradient id="launch_pad_visor_core" cx="50%" cy="42%" r="58%">
+            <stop offset="0%" stopColor="#ecfeff"/>
+            <stop offset="42%" stopColor="#22d3ee"/>
+            <stop offset="100%" stopColor="#075985"/>
+          </radialGradient>
           {/* Left/right edge vignette */}
           <linearGradient id="vignette_left" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%"   stopColor="#000508" stopOpacity="0.22"/>
@@ -1267,6 +1408,10 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
           </filter>
           <filter id="visor_box_shadow" x="-20%" y="-20%" width="140%" height="150%">
             <feDropShadow dx="2" dy="5" stdDeviation="3" floodColor="#020617" floodOpacity="0.58" />
+          </filter>
+          <filter id="launch_pad_visor_glow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="2.4" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
         </defs>
 
@@ -2015,6 +2160,10 @@ export default function GameGrid({
   echoSelectionActive = false,
   echoSelectedCloud = null,
   onEchoCloudTileClick,
+  traceModeActive = false,
+  traceSelection = null,
+  traceGoalRevealed = true,
+  onTraceCellClick,
   onTileClick,
   // effectiveLevel: merged level with generated walls/objects (from useGameState)
   effectiveLevel,
@@ -2061,13 +2210,17 @@ export default function GameGrid({
     !echoCloudsRevealed && echoClouds.some(cloud => cloud.x === col && cloud.y === row)
   const isForestTrail = activeLevel.world === 'forest-trail'
   const isRepairSite = activeLevel.world === 'repair-site'
-  const ObstacleVisual = isRepairSite ? CargoCrateObstacle : isForestTrail ? ForestTreeObstacle : RockObstacle
-  const BackgroundComponent = isRepairSite ? RepairSiteBackground : isForestTrail ? ForestTrailBackground : CrashSiteBackground
-  const scanLabel = isRepairSite
+  const isLaunchSite = activeLevel.world === 'launch-site'
+  const ObstacleVisual = isLaunchSite ? LaunchBarrierObstacle : isRepairSite ? CargoCrateObstacle : isForestTrail ? ForestTreeObstacle : RockObstacle
+  const BackgroundComponent = isLaunchSite ? LaunchSiteBackground : isRepairSite ? RepairSiteBackground : isForestTrail ? ForestTrailBackground : CrashSiteBackground
+  const scanLabel = isLaunchSite
+    ? 'ORBITAL SCAN - LAUNCH SITE W4'
+    : isRepairSite
     ? 'ORBITAL SCAN - REPAIR SITE W3'
     : isForestTrail
       ? 'ORBITAL SCAN - FOREST TRAIL W2'
       : 'ORBITAL SCAN - CRASH SITE W1'
+  const goalVisible = !activeLevel.hideGoalUntilTraceCorrect || traceGoalRevealed
 
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
@@ -2097,14 +2250,14 @@ export default function GameGrid({
         position:'relative', width: gridWidth, height: gridHeight,
         borderRadius: 12, overflow: 'hidden',
         boxShadow: gridBoxShadow,
-        cursor: predictionModeActive ? 'crosshair' : checkpointChoiceActive || echoSelectionActive ? 'pointer' : 'default',
+        cursor: traceModeActive ? 'crosshair' : predictionModeActive ? 'crosshair' : checkpointChoiceActive || echoSelectionActive ? 'pointer' : 'default',
       }}>
         <BackgroundComponent width={gridWidth} height={gridHeight} cols={cols} rows={rows} />
 
         {Array.from({ length: rows }, (_, row) =>
           Array.from({ length: cols }, (_, col) => {
             const isWall  = walls.some(w => w.x === col && w.y === row)
-            const isGoal  = goal && goal.x === col && goal.y === row
+            const isGoal  = goalVisible && goal && goal.x === col && goal.y === row
             const obj     = objects.find(o => o.x === col && o.y === row)
             const isEchoProbe = echoProbe && echoProbe.x === col && echoProbe.y === row
             const echoOverlapsLuma = isEchoProbe && luma.x === col && luma.y === row
@@ -2120,6 +2273,10 @@ export default function GameGrid({
               checkpointChoiceSelection &&
               checkpointChoiceSelection.x === col &&
               checkpointChoiceSelection.y === row
+            const isTraceSelected =
+              traceSelection &&
+              traceSelection.x === col &&
+              traceSelection.y === row
             const checkpointSelectedColor = checkpointChoiceSelection?.result === 'success'
               ? '#22c55e'
               : '#ef4444'
@@ -2137,12 +2294,17 @@ export default function GameGrid({
                     return
                   }
 
+                  if (traceModeActive && !isWall && onTraceCellClick) {
+                    onTraceCellClick({ x: col, y: row })
+                    return
+                  }
+
                   if (predictionModeActive && onTileClick) onTileClick(col, row)
                 }}
                 data-tutorial-id={
                   isEchoProbe ? 'echo-marker'
                   : luma.x === col && luma.y === row ? 'luma-marker'
-                  : isGoal ? 'goal-marker'
+                  : isGoal ? (isLaunchSite ? 'launch-pad-goal' : 'goal-marker')
                   : firstObstacle && firstObstacle.x === col && firstObstacle.y === row ? (isRepairSite ? 'box-tile' : 'rock-tile')
                   : firstShipFragment && firstShipFragment.x === col && firstShipFragment.y === row ? 'ship-fragment-tile'
                   : undefined
@@ -2151,9 +2313,92 @@ export default function GameGrid({
                   position:'absolute', left: col * TILE_SIZE, top: row * TILE_SIZE,
                   width: TILE_SIZE, height: TILE_SIZE, zIndex: echoOverlapsLuma ? 10 : 2,
                   display:'flex', alignItems:'center', justifyContent:'center',
-                  cursor: isEchoSelectableCloud ? 'pointer' : undefined,
+                  cursor: (traceModeActive && !isWall) || isEchoSelectableCloud ? 'pointer' : undefined,
                 }}
               >
+                {traceModeActive && !isWall && !isTraceSelected && (
+                  <motion.div
+                    whileHover={{ scale: 1.03, opacity: 0.95 }}
+                    style={{
+                      position: 'absolute',
+                      inset: 4,
+                      borderRadius: 8,
+                      border: '1.5px solid rgba(103,232,249,0.22)',
+                      background: 'rgba(14,165,233,0.04)',
+                      zIndex: 4,
+                      pointerEvents: 'none',
+                      boxShadow: 'inset 0 0 14px rgba(103,232,249,0.08)',
+                    }}
+                  />
+                )}
+                <AnimatePresence>
+                  {isTraceSelected && (
+                    <motion.div
+                      key={traceSelection.id}
+                      initial={{ opacity: 0, scale: 0.72, rotate: 0 }}
+                      animate={traceSelection.result === 'success'
+                        ? { opacity: [0, 1, 1], scale: [0.72, 1.16, 1], rotate: [0, -3, 3, 0] }
+                        : { opacity: [0, 1, 1, 0], scale: [0.88, 1.04, 0.98, 0.96], x: [0, -5, 5, -3, 3, 0] }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={traceSelection.result === 'success'
+                        ? { duration: 0.72, ease: [0.16, 1, 0.3, 1] }
+                        : { duration: 0.86, ease: 'easeOut' }}
+                      style={{
+                        position: 'absolute',
+                        inset: 2,
+                        borderRadius: 10,
+                        border: `4px solid ${traceSelection.result === 'success' ? '#22d3ee' : '#fb7185'}`,
+                        background: traceSelection.result === 'success'
+                          ? 'radial-gradient(circle, rgba(236,254,255,0.34), rgba(34,211,238,0.13) 50%, rgba(16,185,129,0.08))'
+                          : 'rgba(254,226,226,0.22)',
+                        zIndex: 8,
+                        pointerEvents: 'none',
+                        boxSizing: 'border-box',
+                        boxShadow: traceSelection.result === 'success'
+                          ? '0 0 34px rgba(34,211,238,0.9), inset 0 0 24px rgba(236,254,255,0.5)'
+                          : '0 0 22px rgba(248,113,113,0.72), inset 0 0 16px rgba(255,255,255,0.22)',
+                      }}
+                    >
+                      {traceSelection.result === 'success' && [0, 1, 2].map((ring) => (
+                        <motion.span
+                          key={ring}
+                          initial={{ scale: 0.28, opacity: 0.9 }}
+                          animate={{ scale: 1.9, opacity: 0 }}
+                          transition={{ duration: 0.7, delay: ring * 0.1, ease: 'easeOut' }}
+                          style={{
+                            position: 'absolute',
+                            inset: 12,
+                            borderRadius: '50%',
+                            border: '2px solid #ecfeff',
+                          }}
+                        />
+                      ))}
+                      {traceSelection.result === 'success' && [0, 1, 2, 3, 4, 5].map((spark) => (
+                        <motion.span
+                          key={spark}
+                          initial={{ x: 0, y: 0, scale: 0.7, opacity: 1 }}
+                          animate={{
+                            x: [0, Math.cos((spark / 6) * Math.PI * 2) * TILE_SIZE * 0.34],
+                            y: [0, Math.sin((spark / 6) * Math.PI * 2) * TILE_SIZE * 0.34],
+                            scale: [0.7, 0],
+                            opacity: [1, 0],
+                          }}
+                          transition={{ duration: 0.62, delay: 0.1 + spark * 0.03, ease: 'easeOut' }}
+                          style={{
+                            position: 'absolute',
+                            left: '50%',
+                            top: '50%',
+                            width: 7,
+                            height: 7,
+                            borderRadius: '50%',
+                            background: spark % 2 === 0 ? '#ecfeff' : '#67e8f9',
+                            boxShadow: '0 0 12px #67e8f9',
+                          }}
+                        />
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 {isPredicted && (
                   <motion.div
                     initial={{ opacity:0, scale:0.7 }}
@@ -2253,7 +2498,7 @@ export default function GameGrid({
                 )}
 
                 {isWall && !cloudedByEcho && <div style={{ filter:'drop-shadow(0 4px 8px rgba(0,0,0,0.8))' }}><ObstacleVisual /></div>}
-                {isGoal && !isWall && !cloudedByEcho && <GoalBeacon />}
+                {isGoal && !isWall && !cloudedByEcho && (isLaunchSite ? <LaunchPadGoal /> : <GoalBeacon />)}
                 {isEchoProbe && (
                   <div data-tutorial-id="echo-probe" style={{ zIndex: echoOverlapsLuma ? 11 : 4 }}>
                     {echoProbe.startsConfused ? (
@@ -2311,7 +2556,7 @@ export default function GameGrid({
         )}
 
         <AnimatePresence>
-          {activeIfPathSignal && isRepairSite && (
+          {activeIfPathSignal && (isRepairSite || isLaunchSite) && (
             <IfPathSignal
               key={activeIfPathSignal.id}
               signal={activeIfPathSignal}

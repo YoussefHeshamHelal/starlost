@@ -278,6 +278,44 @@ export const LEVEL_TUTORIALS = {
       nextLabel: 'Got it',
     }),
   ],
+  22: [
+    levelStep('level-22-trace-code', {
+      targetId: 'trace-program-box',
+      placement: 'left',
+      title: 'Trace the code',
+      body: 'This time, the program is already written for LUMA.',
+      waitForTarget: true,
+      showWhen: ({ phase }) => phase === 'develop',
+      nextLabel: 'Okay',
+    }),
+    levelStep('level-22-read-carefully', {
+      targetId: 'trace-program-box',
+      placement: 'left',
+      title: 'Read carefully',
+      body: 'Look at the commands and trace where LUMA will go.',
+      waitForTarget: true,
+      showWhen: ({ phase }) => phase === 'develop',
+      nextLabel: 'I see',
+    }),
+    levelStep('level-22-choose-ending', {
+      targetId: 'grid-panel',
+      placement: 'right',
+      title: 'Choose the ending tile',
+      body: 'Tap the tile where you think LUMA will finish.',
+      waitForTarget: true,
+      showWhen: ({ phase }) => phase === 'develop',
+      nextLabel: 'Ready',
+    }),
+    levelStep('level-22-launch-pad', {
+      targetId: 'grid-panel',
+      placement: 'right',
+      title: 'Find the correct tile',
+      body: 'If you choose the right tile, the launch pad will appear and LUMA will run the program.',
+      waitForTarget: true,
+      showWhen: ({ phase }) => phase === 'develop',
+      nextLabel: 'Launch time',
+    }),
+  ],
 }
 
 export const FEATURE_TUTORIALS = {
