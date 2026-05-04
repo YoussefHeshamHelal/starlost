@@ -9,6 +9,7 @@ import {
   isIfPathCommand,
   isNestedBlockCommand,
   isRepeatCommand,
+  programToJavaScript,
 } from '../utils/commands'
 
 const THUMB_R = 8
@@ -28,10 +29,14 @@ function isDescendantDropPath(activeDropPath, path = []) {
   return path.every((step, index) => JSON.stringify(step) === JSON.stringify(activeDropPath.path[index]))
 }
 
+function areNumberListsEqual(a = [], b = []) {
+  return a.length === b.length && a.every((value, index) => value === b[index])
+}
+
 function getDepthLayout(depth) {
   const level = Math.min(depth, 3)
   return {
-    indent: depth === 0 ? 0 : 4,
+    indent: depth === 0 ? 0 : 2,
     chipHeight: CHIP_HEIGHT - level * 2,
     chipPaddingY: Math.max(3, 5 - level),
     chipPaddingX: Math.max(6, 8 - level),
@@ -40,7 +45,7 @@ function getDepthLayout(depth) {
     numberWidth: Math.max(11, 14 - level),
     rowGap: Math.max(5, 8 - level),
     cardPadding: Math.max(5, 8 - level),
-    dropPadding: Math.max(5, 6 - level),
+    dropPadding: Math.max(6, 8 - level),
     dropMinHeight: Math.max(42, 54 - level * 4),
     deleteSize: Math.max(15, 18 - level),
     controlFontSize: Math.max(7, 8 - level * 0.25),
@@ -549,7 +554,7 @@ function RepeatCounter({ command, color, onChange, depth = 0, compact = false, s
 function RowDelete({ color, isRunning, onDelete, theme, depth = 0, positioned = true }) {
   const layout = getDepthLayout(depth)
   const positionStyle = positioned === 'corner'
-    ? { position: 'absolute', top: 6, right: 6 }
+    ? { position: 'absolute', top: 7, right: 7 }
     : positioned
       ? { position: 'absolute', top: '50%', right: 6, transform: 'translateY(-50%)' }
       : { position: 'relative', flexShrink: 0 }
@@ -568,8 +573,9 @@ function RowDelete({ color, isRunning, onDelete, theme, depth = 0, positioned = 
 function CommandChip({ command, index, depth, path, theme, isRunning, onDelete }) {
   const meta = getMeta(command, theme)
   const layout = getDepthLayout(depth)
+  const rowWidth = layout.indent ? `calc(100% - ${layout.indent}px)` : '100%'
   return (
-    <div style={{ position: 'relative', minHeight: layout.chipHeight, marginLeft: layout.indent, display: 'flex', alignItems: 'center', gap: layout.rowGap, padding: `${layout.chipPaddingY}px ${layout.deleteSize + 12}px ${layout.chipPaddingY}px ${layout.chipPaddingX}px`, background: meta.bg, borderLeft: `3px solid ${meta.color}`, borderBottom: `1px solid ${meta.color}22`, borderRadius: 8 }}>
+    <div style={{ position: 'relative', width: rowWidth, minHeight: layout.chipHeight, marginLeft: layout.indent, display: 'flex', alignItems: 'center', gap: layout.rowGap, padding: `${layout.chipPaddingY}px ${layout.deleteSize + 14}px ${layout.chipPaddingY}px ${layout.chipPaddingX}px`, background: meta.bg, borderLeft: `3px solid ${meta.color}`, borderBottom: `1px solid ${meta.color}22`, borderRadius: 8, boxSizing: 'border-box' }}>
       <span style={{ fontSize: layout.numberSize, color: meta.color, fontFamily: 'monospace', width: layout.numberWidth, textAlign: 'right', fontWeight: 700, flexShrink: 0 }}>{String(index + 1).padStart(2, '0')}</span>
       <span style={{ fontSize: layout.labelSize, color: meta.color, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 700, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{meta.rowLabel}</span>
       <RowDelete color={meta.color} isRunning={isRunning} onDelete={() => onDelete(path)} theme={theme} depth={depth} />
@@ -587,15 +593,15 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
   const isRepeat = isRepeatCommand(command)
   const isIfElse = !isRepeat && showIfElse
   const isNestedRepeat = isRepeat && depth > 0
+  const isTightConditional = !isRepeat && depth >= 2
   const blockTutorialId = isRepeat ? 'repeat-block' : isIfElse ? 'if-else-block' : 'if-block'
   const dropTutorialId = isRepeat ? undefined : isIfElse ? 'if-else-true-dropzone' : 'if-block-dropzone'
   const layout = getDepthLayout(depth)
   const labelFontSize = layout.labelSize
   const labelStyle = { fontSize: labelFontSize, color: meta.color, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800 }
-  const branchLabelStyle = { width: 'fit-content', padding: `${Math.max(2, 3 - Math.min(depth, 2))}px ${Math.max(6, 8 - Math.min(depth, 2))}px`, background: `${meta.color}12`, border: `1px solid ${meta.color}33`, borderRadius: 7, color: meta.color, fontSize: Math.max(8, layout.controlFontSize - 2), fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800, flexShrink: 0, textAlign: 'center', boxSizing: 'border-box', transform: 'translateX(2px)' }
-  const branchGap = 0
-  const branchLabelColumnWidth = Math.max(44, 48 - Math.min(depth, 2) * 2)
-  const branchRowOffset = Math.max(0, layout.numberWidth + layout.rowGap + 6)
+  const branchLabelStyle = { width: 'fit-content', padding: `${Math.max(2, 3 - Math.min(depth, 2))}px ${Math.max(6, 8 - Math.min(depth, 2))}px`, background: `${meta.color}12`, border: `1px solid ${meta.color}33`, borderRadius: 7, color: meta.color, fontSize: Math.max(8, layout.controlFontSize - 2), fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800, flexShrink: 0, textAlign: 'center', boxSizing: 'border-box' }
+  const branchGap = 5
+  const branchLabelColumnWidth = isTightConditional ? 'auto' : Math.max(38, 44 - Math.min(depth, 2) * 3)
   const branchPreviewHeight = getDropPreviewHeight(depth + 1)
   const branchDropMinHeight = branchPreviewHeight + 2
   const commandsIsActive = isSameDropPath(activeNestedDropPath, pathKey)
@@ -617,16 +623,15 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
     flexDirection: 'column',
     gap: 4,
     boxSizing: 'border-box',
-    overflow: 'hidden',
+    overflow: 'visible',
     transition: 'min-height 0.12s ease, padding 0.12s ease, border-color 0.12s ease, background 0.12s ease',
   })
   const selectStyle = getIfPathSelectStyle({ color: meta.color, fontSize: labelFontSize, theme })
   const cardPadding = isNestedRepeat ? Math.max(4, layout.cardPadding - 2) : layout.cardPadding
-  const cardRightPadding = isNestedRepeat ? layout.deleteSize + cardPadding + 4 : layout.deleteSize + layout.cardPadding + 6
-  const branchMarginLeft = isRepeat
-    ? (isNestedRepeat ? 0 : -(layout.numberWidth + layout.rowGap))
-    : -branchRowOffset
-  const branchMarginRight = isNestedRepeat ? -(layout.deleteSize + 2) : -(layout.deleteSize + 4)
+  const cardRightPadding = layout.deleteSize + cardPadding + 12
+  const branchMarginLeft = 0
+  const branchMarginRight = 0
+  const cardWidth = layout.indent ? `calc(100% - ${layout.indent}px)` : '100%'
   const stopControlDrag = (event) => {
     event.preventDefault()
     event.stopPropagation()
@@ -635,16 +640,16 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
   return (
     <div
       data-tutorial-id={blockTutorialId}
-      style={{ position: 'relative', width: '100%', minWidth: 0, marginLeft: layout.indent, padding: cardPadding, paddingTop: isRepeat ? Math.max(5, cardPadding - 2) : cardPadding, paddingRight: cardRightPadding, background: meta.bg, border: `1.5px solid ${hasActiveDescendant ? `${meta.color}88` : `${meta.color}66`}`, borderRadius: 10, boxSizing: 'border-box', overflow: 'hidden', transition: 'border-color 0.12s ease, background 0.12s ease' }}
+      style={{ position: 'relative', width: cardWidth, minWidth: 0, marginLeft: layout.indent, padding: cardPadding, paddingTop: isRepeat ? Math.max(6, cardPadding) : cardPadding, paddingRight: cardRightPadding, background: meta.bg, border: `1.5px solid ${hasActiveDescendant ? `${meta.color}88` : `${meta.color}66`}`, borderRadius: 10, boxSizing: 'border-box', overflow: 'visible', transition: 'border-color 0.12s ease, background 0.12s ease' }}
     >
       <div style={{ display: 'flex', gap: isNestedRepeat ? 3 : layout.rowGap, alignItems: 'flex-start', minWidth: 0 }}>
         <span style={{ fontSize: isNestedRepeat ? Math.max(7, layout.numberSize - 1) : layout.numberSize, color: meta.color, fontFamily: 'monospace', width: isNestedRepeat ? Math.max(9, layout.numberWidth - 3) : layout.numberWidth, textAlign: 'right', fontWeight: 700, paddingTop: isRepeat ? (isNestedRepeat ? 4 : 5) : 5, flexShrink: 0 }}>{String(index + 1).padStart(2, '0')}</span>
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: isNestedRepeat ? 3 : 4 }}>
-          <div style={{ display: 'flex', alignItems: isRepeat ? 'center' : 'flex-start', justifyContent: isRepeat ? 'flex-start' : 'space-between', gap: isNestedRepeat ? 3 : 6, flexWrap: isNestedRepeat ? 'nowrap' : 'wrap', minWidth: 0, transform: 'none' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: isNestedRepeat ? 5 : 6 }}>
+          <div style={{ display: 'flex', alignItems: isRepeat ? 'center' : 'flex-start', justifyContent: isRepeat ? 'flex-start' : 'space-between', gap: isNestedRepeat ? 4 : 6, flexWrap: isNestedRepeat ? 'nowrap' : 'wrap', minWidth: 0, transform: 'none' }}>
             <div style={{ display: isRepeat ? 'none' : 'flex', alignItems: 'center', gap: layout.rowGap, minWidth: 0, flex: '1 1 110px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3, minWidth: 0, maxWidth: '100%' }}>
                 {!isRepeat && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', flexDirection: isTightConditional ? 'column' : 'row', alignItems: isTightConditional ? 'stretch' : 'center', gap: isTightConditional ? 4 : 6, flexWrap: isTightConditional ? 'nowrap' : 'wrap', minWidth: 0, maxWidth: '100%' }}>
                     <span style={labelStyle}>IF PATH</span>
                     <select
                       value={command.condition ?? 'ahead'}
@@ -657,7 +662,7 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
                         onUpdateBlock(path, { ...command, condition: event.target.value })
                       }}
                       disabled={isRunning}
-                      style={{ ...selectStyle, cursor: isRunning ? 'not-allowed' : 'pointer' }}
+                      style={{ ...selectStyle, width: isTightConditional ? '100%' : undefined, minWidth: 0, maxWidth: '100%', cursor: isRunning ? 'not-allowed' : 'pointer' }}
                     >
                       {IF_PATH_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value} style={selectStyle}>{option.label}</option>
@@ -674,7 +679,7 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'stretch', gap: branchGap, minWidth: 0, marginLeft: branchMarginLeft, marginRight: branchMarginRight }}>
+          <div style={{ display: 'flex', flexDirection: isTightConditional ? 'column' : 'row', alignItems: 'stretch', gap: branchGap, minWidth: 0, marginLeft: branchMarginLeft, marginRight: branchMarginRight }}>
             {!isRepeat && (
               <div style={{ width: branchLabelColumnWidth, display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', paddingTop: 1, flexShrink: 0 }}>
                 <span onPointerDown={(event) => event.stopPropagation()} style={branchLabelStyle}>DO</span>
@@ -713,7 +718,7 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
           </div>
           {isIfElse && (
             <>
-              <div style={{ display: 'flex', alignItems: 'stretch', gap: branchGap, minWidth: 0, margin: `3px -${layout.deleteSize + 4}px 0 -${branchRowOffset}px` }}>
+              <div style={{ display: 'flex', flexDirection: isTightConditional ? 'column' : 'row', alignItems: 'stretch', gap: branchGap, minWidth: 0, margin: '6px 0 0 0' }}>
                 <div style={{ width: branchLabelColumnWidth, display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', paddingTop: 1, flexShrink: 0 }}>
                   <span onPointerDown={(event) => event.stopPropagation()} style={{ ...branchLabelStyle, fontWeight: 900, letterSpacing: 1.1 }}>ELSE</span>
                 </div>
@@ -782,7 +787,13 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
     const totalHeight = sequence.length === 0
       ? previewHeight
       : heightsRef.current.reduce((sum, value) => sum + (value ?? CHIP_HEIGHT), 0) + ITEM_GAP * Math.max(0, sequence.length - 1)
-    setLayout({ heights: [...heightsRef.current], tops, totalHeight })
+    setLayout((prev) => (
+      prev.totalHeight === totalHeight &&
+      areNumberListsEqual(prev.heights, heightsRef.current) &&
+      areNumberListsEqual(prev.tops, tops)
+        ? prev
+        : { heights: [...heightsRef.current], tops, totalHeight }
+    ))
   }, [previewHeight, sequence])
 
   useLayoutEffect(() => {
@@ -790,6 +801,23 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
     window.addEventListener('resize', measureHeights)
     return () => window.removeEventListener('resize', measureHeights)
   }, [measureHeights])
+
+  useLayoutEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return undefined
+    let frame = null
+    const observer = new ResizeObserver(() => {
+      if (frame !== null) cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(measureHeights)
+    })
+    if (stripRef.current) observer.observe(stripRef.current)
+    itemRefs.current.forEach((node) => {
+      if (node) observer.observe(node)
+    })
+    return () => {
+      if (frame !== null) cancelAnimationFrame(frame)
+      observer.disconnect()
+    }
+  }, [measureHeights, sequence.length])
 
   const computeInsert = useCallback((pointerY) => {
     let cursor = 0
@@ -1067,7 +1095,13 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
     const totalHeight = sequence.length === 0
       ? CHIP_HEIGHT
       : heightsRef.current.reduce((sum, value) => sum + (value ?? CHIP_HEIGHT), 0) + ITEM_GAP * Math.max(0, sequence.length - 1)
-    setLayout({ heights: [...heightsRef.current], tops, totalHeight })
+    setLayout((prev) => (
+      prev.totalHeight === totalHeight &&
+      areNumberListsEqual(prev.heights, heightsRef.current) &&
+      areNumberListsEqual(prev.tops, tops)
+        ? prev
+        : { heights: [...heightsRef.current], tops, totalHeight }
+    ))
   }, [sequence])
 
   useLayoutEffect(() => {
@@ -1075,6 +1109,23 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
     window.addEventListener('resize', measureHeights)
     return () => window.removeEventListener('resize', measureHeights)
   }, [measureHeights])
+
+  useLayoutEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return undefined
+    let frame = null
+    const observer = new ResizeObserver(() => {
+      if (frame !== null) cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(measureHeights)
+    })
+    if (stripRef.current) observer.observe(stripRef.current)
+    itemRefs.current.forEach((node) => {
+      if (node) observer.observe(node)
+    })
+    return () => {
+      if (frame !== null) cancelAnimationFrame(frame)
+      observer.disconnect()
+    }
+  }, [measureHeights, sequence.length])
 
   const computeInsert = useCallback((pointerY) => {
     let cursor = 0
@@ -1295,6 +1346,154 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
   )
 }
 
+function ShowCodeModal({ code, theme, onClose }) {
+  const isLight = theme === 'light'
+  const panelBg = isLight
+    ? 'linear-gradient(180deg, rgba(255,255,255,0.99), rgba(235,248,255,0.98))'
+    : 'linear-gradient(180deg, rgba(7,14,26,0.99), rgba(11,18,34,0.98))'
+  const border = isLight ? '#2fc9df' : '#f59e0b'
+  const text = isLight ? '#173f66' : '#e5f4ff'
+  const softText = isLight ? '#446982' : '#a9bed2'
+  const codeBg = isLight ? 'rgba(231,235,241,0.96)' : 'rgba(2,6,14,0.96)'
+  const codeBorder = isLight ? '#c8d3df' : '#24364a'
+  const codeText = isLight ? '#7e57c2' : '#c4b5fd'
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 150,
+        background: isLight ? 'rgba(17,31,51,0.34)' : 'rgba(0,0,0,0.68)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+        boxSizing: 'border-box',
+      }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 18, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 12, scale: 0.98 }}
+        transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+        style={{
+          width: 'min(980px, calc(100vw - 36px))',
+          maxHeight: 'min(780px, calc(100vh - 36px))',
+          background: panelBg,
+          border: `2px solid ${border}`,
+          borderRadius: 16,
+          boxShadow: isLight
+            ? '0 28px 60px rgba(55,117,182,0.24), 0 12px 28px rgba(45,201,223,0.16)'
+            : '0 28px 70px rgba(0,0,0,0.62), 0 0 28px rgba(245,158,11,0.12)',
+          padding: '26px 28px 22px',
+          color: text,
+          boxSizing: 'border-box',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 18,
+          position: 'relative',
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          aria-label="Close Show Code"
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            width: 34,
+            height: 34,
+            borderRadius: '50%',
+            border: `1.5px solid ${isLight ? '#bddff2' : '#33465e'}`,
+            background: isLight ? 'rgba(255,255,255,0.88)' : 'rgba(5,10,18,0.92)',
+            color: softText,
+            cursor: 'pointer',
+            fontSize: 20,
+            lineHeight: 1,
+            fontWeight: 900,
+          }}
+        >
+          ×
+        </button>
+
+        <p style={{ margin: '4px 42px 0 0', fontSize: 18, lineHeight: 1.48, color: text, fontWeight: 650 }}>
+          Even top universities teach block-based coding (e.g.,{' '}
+          <a
+            href="https://www.edx.org/cs50"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: isLight ? '#7c3aed' : '#c4b5fd', textDecoration: 'underline', fontWeight: 800 }}
+          >
+            Harvard
+          </a>
+          {', '}
+          <a
+            href="https://bjc.berkeley.edu"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: isLight ? '#7c3aed' : '#c4b5fd', textDecoration: 'underline', fontWeight: 800 }}
+          >
+            Berkeley
+          </a>
+          {'). But behind the scenes, the blocks you have assembled can also be shown in JavaScript, the world\'s most widely used coding language:'}
+        </p>
+
+        <pre
+          style={{
+            margin: 0,
+            minHeight: 280,
+            maxHeight: 'min(460px, calc(100vh - 260px))',
+            overflow: 'auto',
+            padding: '22px 24px',
+            borderRadius: 12,
+            background: codeBg,
+            border: `1.5px solid ${codeBorder}`,
+            color: codeText,
+            fontSize: 18,
+            lineHeight: 1.55,
+            fontFamily: 'Consolas, "Courier New", monospace',
+            whiteSpace: 'pre',
+            boxShadow: isLight ? 'inset 0 1px 0 rgba(255,255,255,0.8)' : 'inset 0 1px 0 rgba(255,255,255,0.06)',
+          }}
+        >
+          {code}
+        </pre>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              minWidth: 118,
+              padding: '12px 28px',
+              borderRadius: 8,
+              border: `1.5px solid ${isLight ? '#2fc9df' : '#2dd4bf'}`,
+              background: isLight
+                ? 'linear-gradient(135deg, rgba(45,201,223,0.22), rgba(139,92,246,0.14))'
+                : 'linear-gradient(135deg, rgba(45,212,191,0.18), rgba(45,212,191,0.10))',
+              color: isLight ? '#124b73' : '#d7fffa',
+              cursor: 'pointer',
+              fontFamily: 'monospace',
+              fontSize: 15,
+              letterSpacing: 1.4,
+              fontWeight: 900,
+            }}
+          >
+            OK
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 export default function CommandBuilder({
   sequence,
   isRunning,
@@ -1314,7 +1513,6 @@ export default function CommandBuilder({
   onSpeedChange,
   showVisorFlip = true,
   targetCommands = null,
-  showPhaseLabel = false,
   showRepeat = false,
   showCollect = false,
   showIfPath = false,
@@ -1327,12 +1525,14 @@ export default function CommandBuilder({
   const [dragOver, setDragOver] = useState(false)
   const [ifPathPaletteCondition, setIfPathPaletteCondition] = useState(defaultIfPathCondition)
   const [repeatPaletteTimes, setRepeatPaletteTimes] = useState(2)
+  const [showCodeModal, setShowCodeModal] = useState(false)
 
   useEffect(() => {
     setIfPathPaletteCondition(defaultIfPathCondition)
   }, [defaultIfPathCondition])
 
   const totalBlocks = countProgramBlocks(sequence)
+  const programCode = programToJavaScript(sequence)
   const isDisabled = isRunning || sequence.length === 0 || needsReset || runBlocked
   const wrapperBg = theme === 'light' ? 'rgba(255,255,255,0.18)' : 'rgba(6,11,20,0.16)'
   const subPanelStyle = {
@@ -1350,7 +1550,33 @@ export default function CommandBuilder({
     overflow: 'hidden',
     boxShadow: theme === 'light' ? '0 18px 40px rgba(74,144,226,0.12), 0 10px 24px rgba(45,201,223,0.10), inset 0 1px 0 rgba(255,255,255,0.7)' : '0 4px 24px rgba(0,0,0,0.45)',
   }
-  const actionBtn = (disabled) => ({ padding: '3px 10px', background: 'transparent', border: `1.5px solid ${t.btnBorder}`, borderRadius: 6, color: disabled ? t.btnDisabled : t.btnColor, cursor: disabled ? 'not-allowed' : 'pointer', fontSize: 13, fontFamily: 'monospace', fontWeight: 800 })
+  const actionBtn = (disabled) => ({
+    width: 34,
+    height: 30,
+    padding: 0,
+    background: 'transparent',
+    border: `1.5px solid ${t.btnBorder}`,
+    borderRadius: 6,
+    color: disabled ? t.btnDisabled : t.btnColor,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    fontSize: 10,
+    fontFamily: 'monospace',
+    fontWeight: 800,
+    flexShrink: 0,
+  })
+  const showCodeBtn = {
+    padding: '8px 12px',
+    background: theme === 'light' ? 'rgba(45,201,223,0.12)' : 'rgba(45,212,191,0.08)',
+    border: `1.5px solid ${theme === 'light' ? '#2fc9df88' : '#2dd4bf55'}`,
+    borderRadius: 7,
+    color: theme === 'light' ? '#124b73' : '#9ff5ec',
+    cursor: 'pointer',
+    fontSize: 10,
+    fontFamily: 'monospace',
+    letterSpacing: 1,
+    fontWeight: 900,
+    whiteSpace: 'nowrap',
+  }
 
   const handleTopLevelAdd = useCallback((command) => {
     onAdd(command)
@@ -1394,24 +1620,22 @@ export default function CommandBuilder({
   if (phase !== 'develop') return null
 
   return (
-    <div data-tutorial-id="command-builder" style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', height: '100%', flex: 1, minHeight: 0, background: wrapperBg, padding: 0, boxSizing: 'border-box' }}>
-      {showPhaseLabel && <p style={{ fontSize: 10, color: t.phaseLabel, fontFamily: 'monospace', letterSpacing: 3, margin: 0, fontWeight: 800 }}>PHASE 2 - DEVELOP</p>}
+    <div data-tutorial-id="command-builder" style={{ display: 'flex', gap: 16, width: '100%', height: '100%', flex: 1, minHeight: 0, background: wrapperBg, padding: 0, boxSizing: 'border-box' }}>
+      <div style={{ flex: '0 0 280px', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {showVisorFlip && (
+          <motion.button whileTap={{ scale: 0.96 }} onClick={onVisorFlip} disabled={visorFlipCount >= 3} data-tutorial-id="visor-flip-button" style={{ width: '100%', padding: '9px 12px', background: visorFlipCount >= 3 ? t.visorExhBg : t.visorBg, border: `1.5px solid ${visorFlipCount >= 3 ? t.visorExhBd : t.visorBorder}`, borderRadius: 8, color: visorFlipCount >= 3 ? t.visorExhTx : t.visorText, cursor: visorFlipCount >= 3 ? 'not-allowed' : 'pointer', fontFamily: 'monospace', fontSize: 11, letterSpacing: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 700 }}>
+            <span>{'\u{1F441}'} VISOR FLIP</span>
+            <span style={{ fontSize: 10, fontWeight: 800 }}>{3 - visorFlipCount} left</span>
+          </motion.button>
+        )}
 
-      {showVisorFlip && (
-        <motion.button whileTap={{ scale: 0.96 }} onClick={onVisorFlip} disabled={visorFlipCount >= 3} data-tutorial-id="visor-flip-button" style={{ width: '100%', padding: '9px 12px', background: visorFlipCount >= 3 ? t.visorExhBg : t.visorBg, border: `1.5px solid ${visorFlipCount >= 3 ? t.visorExhBd : t.visorBorder}`, borderRadius: 8, color: visorFlipCount >= 3 ? t.visorExhTx : t.visorText, cursor: visorFlipCount >= 3 ? 'not-allowed' : 'pointer', fontFamily: 'monospace', fontSize: 11, letterSpacing: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 700 }}>
-          <span>{'\u{1F441}'} VISOR FLIP</span>
-          <span style={{ fontSize: 10, fontWeight: 800 }}>{3 - visorFlipCount} left</span>
-        </motion.button>
-      )}
+        <SpeedBar speed={speed} onSpeedChange={onSpeedChange} theme={theme} />
 
-      <SpeedBar speed={speed} onSpeedChange={onSpeedChange} theme={theme} />
-
-      <AnimatePresence>
-        {isMirrored && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} style={{ overflow: 'hidden', padding: '6px 10px', background: t.mirrorBg, border: `1.5px solid ${t.mirrorBorder}`, borderRadius: 6, color: t.mirrorText, fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800 }}>WARNING: LEFT / RIGHT FLIPPED</motion.div>}
-      </AnimatePresence>
-      <div style={{ display: 'flex', gap: 14, alignItems: 'stretch', minHeight: 0, flex: 1 }}>
-        <div style={subPanelStyle}>
-          <div data-tutorial-id="command-palette" style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+        <AnimatePresence>
+          {isMirrored && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} style={{ overflow: 'hidden', padding: '6px 10px', background: t.mirrorBg, border: `1.5px solid ${t.mirrorBorder}`, borderRadius: 6, color: t.mirrorText, fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800 }}>WARNING: LEFT / RIGHT FLIPPED</motion.div>}
+        </AnimatePresence>
+        <div style={{ ...subPanelStyle, flex: '1 1 0' }}>
+          <div data-tutorial-id="command-palette" style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0, overflowY: 'auto' }}>
             <p style={{ fontSize: 11, color: t.subLabel, fontFamily: 'monospace', letterSpacing: 1.1, margin: 0, fontWeight: 800 }}>INSTRUCTIONS</p>
             <p style={{ fontSize: 10, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.8, margin: 0 }}>Tap or drag from here</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1434,16 +1658,28 @@ export default function CommandBuilder({
           </div>
         </div>
 
-        <div style={subPanelStyle}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 10, flexShrink: 0 }}>
-            <div>
+        {needsReset && <motion.button key="reset-btn" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.97 }} onClick={onReset} disabled={isRunning} data-tutorial-id="reset-button" style={{ width: '100%', padding: '11px 0', background: t.resetBg, border: '2px solid #fb7185', borderRadius: 8, color: theme === 'light' ? '#be123c' : '#fb7185', fontFamily: 'monospace', fontSize: 13, letterSpacing: 2, cursor: isRunning ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontWeight: 800 }}>{'\u21BA'} RESET LUMA</motion.button>}
+
+        {!needsReset && (
+          <motion.button whileTap={{ scale: 0.97 }} onClick={onRun} disabled={isDisabled} data-tutorial-id="run-button" style={{ width: '100%', padding: '13px 0', background: isDisabled ? t.runBgDisabled : t.runBgActive, border: `2px solid ${isDisabled ? t.runBorderDisabled : t.runBorderActive}`, borderRadius: 8, color: isDisabled ? t.runColorDisabled : t.runColorActive, fontFamily: 'monospace', fontSize: 14, letterSpacing: 2, cursor: isDisabled ? 'not-allowed' : 'pointer', fontWeight: 800 }}>
+            {isRunning ? 'RUNNING' : ifElseBlocked ? 'ADD ELSE COMMAND' : runBlocked ? 'SET PREDICTION FIRST' : 'EXECUTE PROGRAM'}
+          </motion.button>
+        )}
+      </div>
+
+      <div style={{ ...subPanelStyle, flex: '1 1 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexShrink: 0, width: '100%' }}>
+            <div style={{ minWidth: 0, flex: '1 1 auto' }}>
               <p style={{ fontSize: 11, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 1.1, margin: 0, fontWeight: 800, whiteSpace: 'nowrap' }}>PROGRAM <span style={{ color: t.programCount, fontWeight: 600, whiteSpace: 'nowrap' }}>({totalBlocks} {totalBlocks === 1 ? 'block' : 'blocks'})</span></p>
               <p style={{ fontSize: 10, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.8, margin: '4px 0 0 0' }}>Top to bottom order</p>
             </div>
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              {targetCommands !== null && <span style={{ fontSize: 10, color: t.targetCmdColor, fontFamily: 'monospace', letterSpacing: 0.5, marginRight: 4, fontWeight: 700 }}>Best Path: {targetCommands}</span>}
+            <div style={{ flex: '0 1 168px', minWidth: 150, textAlign: 'right', overflow: 'hidden', marginRight: 6 }}>
+              {targetCommands !== null && <span style={{ display: 'block', fontSize: 10.5, color: t.targetCmdColor, fontFamily: 'monospace', letterSpacing: 0.2, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'clip' }}>Shortest Path: {targetCommands} Blocks</span>}
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end', flex: '0 0 auto' }}>
               <button onClick={onRemove} disabled={isRunning || sequence.length === 0} style={actionBtn(isRunning || sequence.length === 0)}>⌫</button>
               <button onClick={onClear} disabled={isRunning || sequence.length === 0} style={actionBtn(isRunning || sequence.length === 0)}>✕</button>
+              <button type="button" onClick={() => setShowCodeModal(true)} style={showCodeBtn}>{'</>'} Show Code</button>
             </div>
           </div>
 
@@ -1471,7 +1707,7 @@ export default function CommandBuilder({
                 event.dataTransfer.getData('repeatTimes') || 2,
               )))
             }}
-            style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', background: dragOver ? (theme === 'light' ? 'linear-gradient(180deg, rgba(210,248,255,0.98), rgba(239,240,255,0.96))' : 'rgba(45,212,191,0.04)') : t.scrollBg, border: `1.5px ${dragOver ? `dashed ${theme === 'light' ? '#2fc9df88' : '#2dd4bf55'}` : `solid ${t.scrollBorder}`}`, borderRadius: 8, padding: 10, boxSizing: 'border-box' }}
+            style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'auto', background: dragOver ? (theme === 'light' ? 'linear-gradient(180deg, rgba(210,248,255,0.98), rgba(239,240,255,0.96))' : 'rgba(45,212,191,0.04)') : t.scrollBg, border: `1.5px ${dragOver ? `dashed ${theme === 'light' ? '#2fc9df88' : '#2dd4bf55'}` : `solid ${t.scrollBorder}`}`, borderRadius: 8, padding: 10, boxSizing: 'border-box' }}
           >
             {sequence.length === 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100%', gap: 6 }}>
@@ -1494,15 +1730,16 @@ export default function CommandBuilder({
             )}
           </div>
         </div>
-      </div>
 
-      {needsReset && <motion.button key="reset-btn" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.97 }} onClick={onReset} disabled={isRunning} data-tutorial-id="reset-button" style={{ width: '100%', padding: '11px 0', background: t.resetBg, border: '2px solid #fb7185', borderRadius: 8, color: theme === 'light' ? '#be123c' : '#fb7185', fontFamily: 'monospace', fontSize: 13, letterSpacing: 2, cursor: isRunning ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontWeight: 800 }}>↺ RESET LUMA</motion.button>}
-
-      {!needsReset && (
-        <motion.button whileTap={{ scale: 0.97 }} onClick={onRun} disabled={isDisabled} data-tutorial-id="run-button" style={{ width: '100%', padding: '13px 0', background: isDisabled ? t.runBgDisabled : t.runBgActive, border: `2px solid ${isDisabled ? t.runBorderDisabled : t.runBorderActive}`, borderRadius: 8, color: isDisabled ? t.runColorDisabled : t.runColorActive, fontFamily: 'monospace', fontSize: 14, letterSpacing: 2, cursor: isDisabled ? 'not-allowed' : 'pointer', fontWeight: 800 }}>
-          {isRunning ? 'RUNNING' : ifElseBlocked ? 'ADD ELSE COMMAND' : runBlocked ? 'SET PREDICTION FIRST' : 'EXECUTE PROGRAM'}
-        </motion.button>
-      )}
+      <AnimatePresence>
+        {showCodeModal && (
+          <ShowCodeModal
+            code={programCode}
+            theme={theme}
+            onClose={() => setShowCodeModal(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

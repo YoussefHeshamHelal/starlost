@@ -109,6 +109,60 @@ export function expandSequence(sequence = []) {
   return expanded
 }
 
+const CODE_INDENT = '  '
+
+function getPathCheckName(condition = 'ahead') {
+  if (condition === 'left') return 'isPathLeft'
+  if (condition === 'right') return 'isPathRight'
+  return 'isPathForward'
+}
+
+function commandsToJavaScriptLines(commands = [], depth = 0) {
+  if (!commands.length) return [`${CODE_INDENT.repeat(depth)}// no commands`]
+
+  return commands.flatMap((command) => {
+    const indent = CODE_INDENT.repeat(depth)
+
+    if (command === 'F') return [`${indent}moveForward();`]
+    if (command === 'TR') return [`${indent}turnRight();`]
+    if (command === 'TL') return [`${indent}turnLeft();`]
+    if (command === 'C') return [`${indent}collect();`]
+
+    if (isRepeatCommand(command)) {
+      return [
+        `${indent}for (let i = 0; i < ${clampRepeatTimes(command.times)}; i++) {`,
+        ...commandsToJavaScriptLines(command.commands ?? [], depth + 1),
+        `${indent}}`,
+      ]
+    }
+
+    if (isIfPathCommand(command)) {
+      const condition = `${getPathCheckName(command.condition)}()`
+      const ifLines = [
+        `${indent}if (${condition}) {`,
+        ...commandsToJavaScriptLines(command.commands ?? [], depth + 1),
+        `${indent}}`,
+      ]
+
+      if ((command.elseCommands?.length ?? 0) === 0) return ifLines
+
+      return [
+        ...ifLines.slice(0, -1),
+        `${indent}} else {`,
+        ...commandsToJavaScriptLines(command.elseCommands ?? [], depth + 1),
+        `${indent}}`,
+      ]
+    }
+
+    return []
+  })
+}
+
+export function programToJavaScript(sequence = []) {
+  if (!sequence.length) return '// Add blocks to the Program box to see JavaScript here.'
+  return commandsToJavaScriptLines(sequence).join('\n')
+}
+
 export function formatSequenceCommand(command) {
   if (isRepeatCommand(command)) {
     const childCount = command.commands?.length ?? 0

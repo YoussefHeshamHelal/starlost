@@ -707,6 +707,34 @@ function LumaStanding({ size, facing, collectEffectKey = null, collectFacing = n
   )
 }
 
+function BottomFacingArrow({ facing }) {
+  const rotation = { south: 0, west: 90, north: 180, east: -90 }[facing] ?? 0
+
+  return (
+    <svg
+      width={42}
+      height={32}
+      viewBox="20 60 34 34"
+      fill="none"
+      style={{
+        position: 'absolute',
+        left: '50%',
+        bottom: -1,
+        transform: 'translateX(-50%)',
+        overflow: 'visible',
+        pointerEvents: 'none',
+        zIndex: 3,
+        filter: 'drop-shadow(0 0 5px rgba(254,240,138,0.5))',
+      }}
+    >
+      <g transform={`translate(37 77) rotate(${rotation}) translate(-37 -77)`}>
+        <path d="M37 86 L28 72 H46 Z" fill="#fef08a" stroke="#fff7c2" strokeWidth="1.5" opacity="0.96" />
+        <path d="M37 72 V66" stroke="#fef08a" strokeWidth="4" strokeLinecap="round" opacity="0.96" />
+      </g>
+    </svg>
+  )
+}
+
 // ─── Main export ────────────────────────────────────────────────────────────────
 function LumaCollectAura({ size, effectKey }) {
   return (
@@ -786,6 +814,7 @@ export default function LumaSprite({
   facing     = 'south',
   tileSize,
   showFacing = false,
+  showDirectionArrow = true,
   collectEffectKey = null,
 }) {
   const size = tileSize * 0.84
@@ -900,6 +929,7 @@ export default function LumaSprite({
           }
         </AnimatePresence>
       </motion.div>
+      {showFacing && showDirectionArrow && <BottomFacingArrow facing={facing} />}
     </motion.div>
   )
 }

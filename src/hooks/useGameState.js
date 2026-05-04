@@ -17,6 +17,7 @@ import {
   generateLevel18Layout,
   generateLevel19Layout,
   generateLevel20Layout,
+  generateLevel21Layout,
 } from '../data/levels'
 import { clampRepeatTimes, countProgramBlocks, hasEmptyRequiredElse, isIfPathCommand, isRepeatCommand } from '../utils/commands'
 
@@ -250,6 +251,17 @@ const FACING_TO_ANSWER = {
   west:  '← Left',
 }
 
+function answerMatchesFacing(answer, facing) {
+  const facingLabel = {
+    north: 'Up',
+    east: 'Right',
+    south: 'Down',
+    west: 'Left',
+  }[facing]
+
+  return Boolean(facingLabel && answer?.includes(facingLabel))
+}
+
 const RADIO_HINT_OPENERS = [
   "Can you see where I am?",
   "Can you tell where I am?",
@@ -263,6 +275,8 @@ const IDENTIFY_SUCCESS_RADIO_MESSAGES = [
   "Yes! You guessed my direction correctly!",
   "Great job! You knew which way I was facing!",
 ]
+
+const ECHO_FINAL_RADIO_MESSAGE = 'Yes! You found the hidden ship fragment.'
 
 const FACING_DEG = { north: 0, east: 90, south: 180, west: 270 }
 
@@ -317,6 +331,7 @@ function generateLayout(generatorKey, facing) {
     case 'level18': return generateLevel18Layout(facing)
     case 'level19': return generateLevel19Layout(facing)
     case 'level20': return generateLevel20Layout(facing)
+    case 'level21': return generateLevel21Layout(facing)
     default: return { walls: [], objects: [], solution: null }
   }
 }
@@ -389,8 +404,12 @@ export function useGameState(levelConfig, animSpeed = 50) {
   const [echoCloudsRevealed, setEchoCloudsRevealed] = useState(false)
   const [echoAnswer, setEchoAnswer] = useState(null)
   const [echoFeedback, setEchoFeedback] = useState(null)
+  const [echoIdentifyActive, setEchoIdentifyActive] = useState(false)
+  const [echoIdentifyAnswer, setEchoIdentifyAnswer] = useState(null)
+  const [echoIdentifyCorrect, setEchoIdentifyCorrect] = useState(false)
   const echoResumeRef = useRef(null)
   const echoResolvedRef = useRef(false)
+  const echoFinalRadioLockedRef = useRef(false)
   const echoContinueStartIndexRef = useRef(null)
 
   const [phase, setPhase] = useState(() => levelConfig.skipIdentify ? 'develop' : 'identify')
@@ -437,6 +456,10 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
     if (levelConfig.id === 17) {
       return "Can you see where I am? There is a box on my right and a box on my left."
+    }
+
+    if (levelConfig.id === 21) {
+      return "Can you see where I am? There’s open path in front of me and on my left, but there’s no path behind me or to my right."
     }
 
     if (levelConfig.id === 6) {
@@ -667,12 +690,16 @@ export function useGameState(levelConfig, animSpeed = 50) {
     setCollectedParts(new Set())
     setCollectionEffects([])
     setNeedsReset(false)
-    setReportOverride(null)
+    setReportOverride(echoFinalRadioLockedRef.current ? ECHO_FINAL_RADIO_MESSAGE : null)
     setEchoActivated(echoResolvedRef.current)
     if (!echoResolvedRef.current) {
       setEchoCloudsRevealed(false)
       setEchoAnswer(null)
       setEchoFeedback(null)
+      setEchoIdentifyActive(false)
+      setEchoIdentifyAnswer(null)
+      setEchoIdentifyCorrect(false)
+      echoFinalRadioLockedRef.current = false
     }
     echoResumeRef.current = null
     echoContinueStartIndexRef.current = null
@@ -696,6 +723,10 @@ export function useGameState(levelConfig, animSpeed = 50) {
     setEchoActivated(true)
     setEchoFeedback(null)
     setEchoAnswer(null)
+    setEchoIdentifyAnswer(null)
+    setEchoIdentifyCorrect(false)
+    setEchoIdentifyActive(Boolean(echoProbe.startsConfused))
+    echoFinalRadioLockedRef.current = false
     setReportOverride(echoProbe.activatedMessage)
     echoResumeRef.current = resume
     echoContinueStartIndexRef.current = continueStartIndex
@@ -703,9 +734,31 @@ export function useGameState(levelConfig, animSpeed = 50) {
     return true
   }, [effectiveLevel.echoProbe, echoCloudsRevealed])
 
+  const answerEchoIdentify = useCallback((answer) => {
+    const echoProbe = effectiveLevel.echoProbe
+    if (!echoProbe || !echoActivated || !echoIdentifyActive || echoIdentifyCorrect) return false
+
+    setEchoIdentifyAnswer(answer)
+    const correct = answerMatchesFacing(answer, echoProbe.facing)
+    setEchoIdentifyCorrect(correct)
+
+    if (correct) {
+      setEchoIdentifyActive(false)
+      setReportOverride(echoProbe.cloudMessage ?? echoProbe.activatedMessage)
+    }
+
+    return correct
+  }, [effectiveLevel.echoProbe, echoActivated, echoIdentifyActive, echoIdentifyCorrect])
+
   const answerEchoQuestion = useCallback((tile) => {
     const echoProbe = effectiveLevel.echoProbe
-    if (!echoProbe || !echoActivated || echoCloudsRevealed) return false
+    if (
+      !echoProbe ||
+      !echoActivated ||
+      echoCloudsRevealed ||
+      echoIdentifyActive ||
+      (echoProbe.startsConfused && !echoIdentifyCorrect)
+    ) return false
 
     const correctCloud = echoProbe.correctCloud ?? { x: 3, y: 2 }
     const correct = tile?.x === correctCloud.x && tile?.y === correctCloud.y
@@ -725,9 +778,12 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
     setEchoFeedback({
       type: 'success',
-      text: 'Yes! You found the hidden ship fragment.',
+      text: ECHO_FINAL_RADIO_MESSAGE,
     })
-    setReportOverride('Yes! You found the hidden ship fragment.')
+    setEchoIdentifyActive(false)
+    setEchoIdentifyCorrect(true)
+    echoFinalRadioLockedRef.current = true
+    setReportOverride(ECHO_FINAL_RADIO_MESSAGE)
     setNeedsReset(false)
     echoResolvedRef.current = true
 
@@ -742,7 +798,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     }, 1600)
 
     return true
-  }, [effectiveLevel.echoProbe, echoActivated, echoCloudsRevealed])
+  }, [effectiveLevel.echoProbe, echoActivated, echoCloudsRevealed, echoIdentifyActive, echoIdentifyCorrect])
 
   // ── PREDICTION PROMPT ────────────────────────────────────────────────────
   const setPrediction = useCallback((tile) => {
@@ -753,25 +809,38 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
   // ── SEQUENCE RUNNER ──────────────────────────────────────────────────────
   const runSequence = useCallback(({ startIndex = 0, onIncomplete = null } = {}) => {
-    const commandsToRun = startIndex > 0 ? sequence.slice(startIndex) : sequence
     if (isRunning) return
     if (echoResolvedRef.current && echoResumeRef.current) {
       const resume = echoResumeRef.current
       echoResumeRef.current = null
       setIsRunning(true)
       setNeedsReset(false)
-      setReportOverride(null)
+      setReportOverride(echoFinalRadioLockedRef.current ? ECHO_FINAL_RADIO_MESSAGE : null)
       resume()
       return
     }
+    const continueStartIndex =
+      startIndex > 0
+        ? startIndex
+        : echoResolvedRef.current && echoContinueStartIndexRef.current !== null
+          ? echoContinueStartIndexRef.current
+          : 0
+    const commandsToRun = continueStartIndex > 0 ? sequence.slice(continueStartIndex) : sequence
     if (commandsToRun.length === 0) return
     if (levelConfig.predictionPrompt && !predictionTile) return
     if (levelConfig.requireElse && hasEmptyRequiredElse(sequence)) return
+    const continuingAfterEcho =
+      echoResolvedRef.current &&
+      echoContinueStartIndexRef.current !== null &&
+      continueStartIndex === echoContinueStartIndexRef.current
     setIsRunning(true)
     setAttemptCount(c => c + 1)
     setNeedsReset(false)
-    echoResolvedRef.current = false
-    setReportOverride(null)
+    if (!continuingAfterEcho && !echoCloudsRevealed) {
+      echoResolvedRef.current = false
+      echoContinueStartIndexRef.current = null
+    }
+    setReportOverride(echoFinalRadioLockedRef.current ? ECHO_FINAL_RADIO_MESSAGE : null)
     setCollectionEffects([])
     clearIfPathSignal()
 
@@ -786,7 +855,12 @@ export function useGameState(levelConfig, animSpeed = 50) {
     const shouldShowIfPathSignal =
       world === 'repair-site' &&
       levelConfig.allowIfPath
-    const programStack = [{ commands: commandsToRun, index: 0, type: 'root' }]
+    const programStack = [{
+      commands: commandsToRun,
+      index: 0,
+      type: 'root',
+      sequenceOffset: continueStartIndex,
+    }]
 
     let stoppedEarly = false
     let blockedType = null
@@ -911,7 +985,9 @@ export function useGameState(levelConfig, animSpeed = 50) {
         if (atGoal && allPartsCollected) {
           setPhase('success')
           setNeedsReset(false)
-          setReportOverride("I made it! The ship core is right here — we did it!")
+          if (!echoFinalRadioLockedRef.current) {
+            setReportOverride("I made it! The ship core is right here — we did it!")
+          }
         } else if (onIncomplete?.({
           luma: currentLuma,
           collectedParts: localCollected,
@@ -926,9 +1002,11 @@ export function useGameState(levelConfig, animSpeed = 50) {
           setHadErrorBefore(true)
           if (!firstFailTime) setFirstFailTime(Date.now())
           setNeedsReset(true)
-          setReportOverride(
-            `I'm at the ship core, but I'm missing ${shipPartObjects.length - localCollected.size} fragment${shipPartObjects.length - localCollected.size > 1 ? 's' : ''}… Reset and try a different path!`
-          )
+          if (!echoFinalRadioLockedRef.current) {
+            setReportOverride(
+              `I'm at the ship core, but I'm missing ${shipPartObjects.length - localCollected.size} fragment${shipPartObjects.length - localCollected.size > 1 ? 's' : ''}… Reset and try a different path!`
+            )
+          }
         } else {
           setHadErrorBefore(true)
           if (!firstFailTime) setFirstFailTime(Date.now())
@@ -959,7 +1037,9 @@ export function useGameState(levelConfig, animSpeed = 50) {
           stoppedEarly = true
 
           const blockedMsg = buildBlockedReport(currentLuma, currentLuma.facing, blockedType, world)
-          setReportOverride(blockedMsg)
+          if (!echoFinalRadioLockedRef.current) {
+            setReportOverride(blockedMsg)
+          }
           setLuma({ ...currentLuma })
 
           setIsRunning(false)
@@ -993,10 +1073,13 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
       setLuma({ ...currentLuma })
 
+      const nextRootCommandIndex =
+        (programStack[0]?.sequenceOffset ?? 0) + (programStack[0]?.index ?? 0)
+
       if (activateEchoIfNeeded(currentLuma, () => {
         setIsRunning(true)
         executeStep()
-      })) {
+      }, nextRootCommandIndex)) {
         return
       }
 
@@ -1018,7 +1101,9 @@ export function useGameState(levelConfig, animSpeed = 50) {
           localCollected,
           world,
         )
-        setReportOverride(collectionMsg)
+        if (!echoFinalRadioLockedRef.current) {
+          setReportOverride(collectionMsg)
+        }
       }
 
       if (!blocked) {
@@ -1032,7 +1117,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     isRunning, sequence, luma, levelConfig, effectiveLevel, isMirrored,
     firstFailTime, collectedParts, shipPartObjects,
     predictionTile, missedFragmentsShown, clearIfPathSignal,
-    activateEchoIfNeeded,
+    activateEchoIfNeeded, echoCloudsRevealed,
   ])
 
   // ── DISMISS MISSED-FRAGMENTS HINT ─────────────────────────────────────────
@@ -1069,11 +1154,12 @@ export function useGameState(levelConfig, animSpeed = 50) {
     // Level 2 specific: whether the radio is currently uncertain
     radioIsUncertain: levelConfig.uncertainRadio && !sptCorrect,
     visorActive, visorFlipCount, flipVisor, closeVisor,
-    sequence, setSequence, isRunning, isMirrored,
+    sequence, setSequence: updateSequence, isRunning, isMirrored,
     addCommand, removeLastCommand, clearSequence, runSequence,
     attemptCount, editCount,
     collectedParts, collectionEffects, activeIfPathSignal,
     echoActivated, echoCloudsRevealed, echoAnswer, echoFeedback, answerEchoQuestion,
+    echoIdentifyActive, echoIdentifyAnswer, echoIdentifyCorrect, answerEchoIdentify,
     missedFragments, dismissMissedFragments,
     needsReset, resetLuma,
     predictionTile, setPrediction, predictionResult,

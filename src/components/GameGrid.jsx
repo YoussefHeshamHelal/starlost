@@ -1,5 +1,5 @@
 // GameGrid.jsx
-import { useContext } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import LumaSprite from './LumaSprite'
 import CrashSiteBackground from './CrashSiteBackground'
@@ -1574,7 +1574,7 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
 // ── Main export ────────────────────────────────────────────────────────────────
 function EchoProbe({ facing = 'east', activated = false }) {
   const footRotation = { south: 0, west: 90, north: 180, east: -90 }[facing] ?? 0
-  const glow = activated ? '#a78bfa' : '#67e8f9'
+  const glow = activated ? '#f87171' : '#67e8f9'
 
   return (
     <motion.div
@@ -1673,8 +1673,185 @@ function EchoProbe({ facing = 'east', activated = false }) {
   )
 }
 
+const ECHO_IDENTIFY_DIRECTIONS = ['south', 'east', 'north', 'west']
+const ECHO_IDENTIFY_TURN_MS = 520
+
+function EchoQuestionMarks({ tileSize = 88 }) {
+  return (
+    <>
+      {[
+        { left: 0.47, top: -0.08, size: 0.26, delay: 0, opacity: [0.78, 1, 0.78], rotate: [-4, 3, -4] },
+        { left: 0.6, top: 0, size: 0.2, delay: 0.22, opacity: [0.55, 0.88, 0.55], rotate: [5, -2, 5] },
+        { left: 0.34, top: 0, size: 0.2, delay: 0.12, opacity: [0.55, 0.88, 0.55], rotate: [-5, 2, -5] },
+      ].map((mark, index) => (
+        <motion.div
+          key={index}
+          animate={{ y: [0, -4, 0], rotate: mark.rotate, opacity: mark.opacity }}
+          transition={{ duration: index === 0 ? 1.8 : 2.1, repeat: Infinity, ease: 'easeInOut', delay: mark.delay }}
+          style={{
+            position: 'absolute',
+            top: tileSize * mark.top,
+            left: tileSize * mark.left,
+            color: index === 0 ? '#fee2e2' : '#fecaca',
+            fontSize: tileSize * mark.size,
+            fontWeight: 900,
+            textShadow: '0 0 8px rgba(248,113,113,0.58)',
+            pointerEvents: 'none',
+            zIndex: 8,
+          }}
+        >
+          ?
+        </motion.div>
+      ))}
+    </>
+  )
+}
+
+function EchoDirectionalProbe({ facing = 'east', activated = false, confused = false, identifying = false, revealFacing = true }) {
+  const [activeFacing, setActiveFacing] = useState(ECHO_IDENTIFY_DIRECTIONS[0])
+
+  useEffect(() => {
+    if (!confused && !identifying) return undefined
+
+    let index = 0
+    const interval = window.setInterval(() => {
+      index = (index + 1) % ECHO_IDENTIFY_DIRECTIONS.length
+      setActiveFacing(ECHO_IDENTIFY_DIRECTIONS[index])
+    }, ECHO_IDENTIFY_TURN_MS)
+
+    return () => window.clearInterval(interval)
+  }, [confused, identifying])
+
+  const displayFacing = confused || identifying ? activeFacing : facing
+  const side = displayFacing === 'east' || displayFacing === 'west'
+  const rear = displayFacing === 'north'
+  const sideSign = displayFacing === 'west' ? -1 : 1
+  const glow = identifying ? '#fca5a5' : activated ? '#f87171' : '#67e8f9'
+  const sideEyeCx = 37 + sideSign * 15
+  const footRotation = { south: 0, west: 90, north: 180, east: -90 }[displayFacing] ?? 0
+  const footAnchorX = side ? 37 + sideSign * 9 : 37
+  const footAnchorY = side ? 72 : displayFacing === 'north' ? 73 : 77
+  const sideFanTransform = sideSign === 1
+    ? 'translate(16 0) scale(1 1)'
+    : 'translate(58 0) scale(-1 1)'
+
+  return (
+    <motion.div
+      animate={{
+        y: identifying ? [0, -3, 0, 2, 0] : activated ? [-4, -9, -4] : [-3, -7, -3],
+        scale: identifying ? [1, 1.04, 1] : activated ? [1, 1.06, 1] : [1, 1.025, 1],
+        filter: [`drop-shadow(0 0 10px ${glow})`, `drop-shadow(0 0 22px ${glow})`, `drop-shadow(0 0 10px ${glow})`],
+      }}
+      transition={{
+        duration: identifying ? ECHO_IDENTIFY_TURN_MS / 1000 : activated ? 1.05 : 2.2,
+        repeat: Infinity,
+        ease: 'easeInOut',
+      }}
+      style={{ position: 'relative', width: 88, height: 88, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }}
+    >
+      {(confused || identifying) && <EchoQuestionMarks tileSize={88} />}
+      <svg width={88} height={88} viewBox="-14 -18 102 112" fill="none" style={{ overflow: 'visible' }}>
+        <defs>
+          <radialGradient id={`echo_dir_metal_${displayFacing}`} cx="40%" cy="30%" r="72%">
+            <stop offset="0%" stopColor="#ffb3a8" />
+            <stop offset="35%" stopColor="#dc2626" />
+            <stop offset="72%" stopColor="#8f141d" />
+            <stop offset="100%" stopColor="#35070b" />
+          </radialGradient>
+          <radialGradient id={`echo_dir_lens_${displayFacing}`} cx="42%" cy="38%" r="58%">
+            <stop offset="0%" stopColor="#ecfeff" />
+            <stop offset="36%" stopColor="#22d3ee" />
+            <stop offset="70%" stopColor="#0891b2" />
+            <stop offset="100%" stopColor="#06131a" />
+          </radialGradient>
+          <linearGradient id={`echo_dir_rotor_${displayFacing}`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#ef7a72" />
+            <stop offset="48%" stopColor="#a51d26" />
+            <stop offset="100%" stopColor="#35070b" />
+          </linearGradient>
+          <filter id={`echo_dir_glow_${displayFacing}`} x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="3.4" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+        </defs>
+        <ellipse cx="37" cy="67" rx={side ? 18 : 25} ry="5" fill="#020617" opacity="0.34" />
+        <ellipse cx="37" cy="64" rx={side ? 12 : 18} ry="4" fill="#67e8f9" opacity={activated || identifying ? 0.26 : 0.13} />
+
+        {!side && (
+          <g opacity="0.98">
+            <path d="M19 25 H31 M43 25 H55" stroke="#5f1017" strokeWidth="5.5" strokeLinecap="round" opacity="0.84" />
+            <path d="M-1 22 C-1 14 6 10 15 11 C24 12 28 17 27 24 C26 31 20 34 11 33 C3 32 -2 28 -1 22 Z"
+              fill={`url(#echo_dir_rotor_${displayFacing})`} stroke="#120307" strokeWidth="2.2" />
+            <path d="M75 22 C75 14 68 10 59 11 C50 12 46 17 47 24 C48 31 54 34 63 33 C71 32 76 28 75 22 Z"
+              fill={`url(#echo_dir_rotor_${displayFacing})`} stroke="#120307" strokeWidth="2.2" />
+            <ellipse cx="13" cy="23" rx="11.3" ry="6.6" fill="#06070a" stroke="#ef4444" strokeWidth="1.3" />
+            <ellipse cx="61" cy="23" rx="11.3" ry="6.6" fill="#06070a" stroke="#ef4444" strokeWidth="1.3" />
+            <path d="M5 23 H21 M13 16 V30 M7 18 L19 28 M7 28 L19 18 M53 23 H69 M61 16 V30 M55 18 L67 28 M55 28 L67 18"
+              stroke="#4b5563" strokeWidth="1.25" strokeLinecap="round" opacity="0.85" />
+          </g>
+        )}
+
+        <g transform={side ? `translate(${sideSign * 5} 0)` : undefined}>
+          <ellipse cx="37" cy="38" rx={side ? 18 : 24} ry={side ? 24 : 24} fill={`url(#echo_dir_metal_${displayFacing})`} stroke="#071717" strokeWidth="2" filter={`url(#echo_dir_glow_${displayFacing})`} />
+          <path d={side
+            ? `M${sideSign === 1 ? 30 : 44} 18 C${sideSign === 1 ? 40 : 34} 15 ${sideSign === 1 ? 49 : 25} 22 ${sideSign === 1 ? 50 : 24} 37 C${sideSign === 1 ? 49 : 25} 52 ${sideSign === 1 ? 40 : 34} 60 ${sideSign === 1 ? 30 : 44} 58`
+            : 'M27 17 C34 12 45 13 51 20'}
+            fill="none" stroke="#fecaca" strokeWidth="1.4" strokeLinecap="round" opacity="0.24" />
+          {!rear && (
+            <>
+              <ellipse
+                cx={side ? sideEyeCx - sideSign * 5 : 37}
+                cy="39"
+                rx={side ? 4.8 : 16.8}
+                ry={side ? 13.8 : 16.8}
+                fill="#071113"
+                stroke="#0f2f2b"
+                strokeWidth="2"
+              />
+              <ellipse
+                cx={side ? sideEyeCx - sideSign * 3.5 : 37}
+                cy="39"
+                rx={side ? 2.4 : 8.2}
+                ry={side ? 9.4 : 8.2}
+                fill={`url(#echo_dir_lens_${displayFacing})`}
+                opacity="0.94"
+                filter={`url(#echo_dir_glow_${displayFacing})`}
+              />
+              <ellipse cx={side ? sideEyeCx - sideSign * 2.5 : 33} cy="31" rx={side ? 1.1 : 2.1} ry="2.1" fill="#ffffff" opacity="0.75" />
+            </>
+          )}
+          {rear && (
+            <>
+              <path d="M27 34 C34 40 42 40 48 34 M29 45 C34 49 41 49 45 45" stroke="#22d3ee" strokeWidth="1.3" strokeLinecap="round" opacity="0.45" />
+            </>
+          )}
+        </g>
+
+        {side && (
+          <g transform={sideFanTransform} opacity="0.98">
+            <path d="M31 22 C31 15 25 11 17 11 C9 11 5 16 6 24 C7 31 13 34 21 33 C27 32 31 28 31 22 Z"
+              fill={`url(#echo_dir_rotor_${displayFacing})`} stroke="#120307" strokeWidth="2.2" />
+            <path d="M20 12 C13 15 10 19 10 24 C10 29 14 32 21 33 C14 33 7 31 6 24 C5 17 10 12 20 12 Z"
+              fill="#3b070c" opacity="0.5" />
+            <ellipse cx="19" cy="23" rx="8.8" ry="6.4" fill="#06070a" stroke="#ef4444" strokeWidth="1.3" />
+            <path d="M13 23 H25 M19 16 V30 M15 18 L23 28 M15 28 L23 18"
+              stroke="#4b5563" strokeWidth="1.2" strokeLinecap="round" opacity="0.85" />
+          </g>
+        )}
+
+        {revealFacing && (
+          <g transform={`translate(${footAnchorX} ${footAnchorY}) rotate(${footRotation}) translate(-37 -77)`}>
+            <path d="M37 86 L28 72 H46 Z" fill="#fef08a" stroke="#fff7c2" strokeWidth="1.5" opacity="0.96" filter={`url(#echo_dir_glow_${displayFacing})`} />
+            <path d="M37 72 V66" stroke="#fef08a" strokeWidth="4" strokeLinecap="round" opacity="0.96" />
+          </g>
+        )}
+      </svg>
+    </motion.div>
+  )
+}
+
 function EchoSignalCloud({ tileSize, selectable = false, selected = false, result = null }) {
-  const ringColor = result === 'success' ? '#22c55e' : result === 'retry' ? '#fb7185' : '#67e8f9'
+  const ringColor = result === 'success' ? '#22c55e' : result === 'retry' ? '#fb7185' : '#f87171'
 
   return (
     <motion.div
@@ -1741,13 +1918,13 @@ function EchoSignalCloud({ tileSize, selectable = false, selected = false, resul
             position: 'absolute',
             inset: -1,
             zIndex: 4,
-            border: `4px solid ${selected ? ringColor : '#f59e0b'}`,
+            border: `4px solid ${selected ? ringColor : '#f87171'}`,
             borderRadius: 8,
-            background: selected ? `${ringColor}1f` : 'rgba(245,158,11,0.10)',
+            background: selected ? `${ringColor}1f` : 'rgba(254,226,226,0.22)',
             boxSizing: 'border-box',
             boxShadow: selected
               ? `0 0 26px ${ringColor}99, inset 0 0 22px ${ringColor}33`
-              : '0 0 18px rgba(245,158,11,0.48), inset 0 0 16px rgba(255,255,255,0.2)',
+              : '0 0 18px rgba(248,113,113,0.46), inset 0 0 16px rgba(255,255,255,0.2)',
           }}
         >
           {selected && (
@@ -1833,6 +2010,8 @@ export default function GameGrid({
   activeIfPathSignal = null,
   echoActivated = false,
   echoCloudsRevealed = false,
+  echoIdentifyActive = false,
+  echoIdentifyCorrect = false,
   echoSelectionActive = false,
   echoSelectedCloud = null,
   onEchoCloudTileClick,
@@ -1961,7 +2140,8 @@ export default function GameGrid({
                   if (predictionModeActive && onTileClick) onTileClick(col, row)
                 }}
                 data-tutorial-id={
-                  luma.x === col && luma.y === row ? 'luma-marker'
+                  isEchoProbe ? 'echo-marker'
+                  : luma.x === col && luma.y === row ? 'luma-marker'
                   : isGoal ? 'goal-marker'
                   : firstObstacle && firstObstacle.x === col && firstObstacle.y === row ? (isRepairSite ? 'box-tile' : 'rock-tile')
                   : firstShipFragment && firstShipFragment.x === col && firstShipFragment.y === row ? 'ship-fragment-tile'
@@ -2076,7 +2256,17 @@ export default function GameGrid({
                 {isGoal && !isWall && !cloudedByEcho && <GoalBeacon />}
                 {isEchoProbe && (
                   <div data-tutorial-id="echo-probe" style={{ zIndex: echoOverlapsLuma ? 11 : 4 }}>
-                    <EchoProbe facing={echoProbe.facing} activated={echoActivated} />
+                    {echoProbe.startsConfused ? (
+                      <EchoDirectionalProbe
+                        facing={echoProbe.facing}
+                        activated={echoActivated}
+                        confused={!echoIdentifyCorrect}
+                        identifying={echoIdentifyActive && !echoIdentifyCorrect}
+                        revealFacing
+                      />
+                    ) : (
+                      <EchoProbe facing={echoProbe.facing} activated={echoActivated} />
+                    )}
                   </div>
                 )}
                 {obj?.type === 'ship_part' && !isWall && !isGoal && !cloudedByEcho && (() => {
@@ -2149,6 +2339,7 @@ export default function GameGrid({
             rotateDeg={luma.rotateDeg ?? 0}
             tileSize={TILE_SIZE}
             showFacing={sptCorrect || !!levelConfig.skipIdentify}
+            showDirectionArrow={false}
             collectEffectKey={activeLumaCollection?.id ?? null}
           />
         </div>

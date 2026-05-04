@@ -863,6 +863,71 @@ export function generateLevel20Layout() {
   }
 }
 
+export function generateLevel21Layout() {
+  return {
+    walls: [
+      { x: 2, y: 0 },
+      { x: 3, y: 0 },
+      { x: 4, y: 0 },
+      { x: 1, y: 1 },
+      { x: 4, y: 1 },
+      { x: 1, y: 2 },
+      { x: 3, y: 3 },
+      { x: 0, y: 4 },
+      { x: 2, y: 4 },
+    ],
+    objects: [
+      { type: 'ship_part', x: 2, y: 1 },
+    ],
+    solution: [
+      createRepeatCommand(12, [
+        createIfPathCommand('right', [
+          'TR',
+          'F',
+        ], [
+          createIfPathCommand('ahead', [
+            'F',
+          ], [
+            'TL',
+          ]),
+        ]),
+      ]),
+      'F',
+      'C',
+      createRepeatCommand(8, [
+        createIfPathCommand('left', [
+          'TL',
+          'F',
+        ], [
+          createIfPathCommand('ahead', [
+            'F',
+          ], [
+            'TR',
+          ]),
+        ]),
+      ]),
+    ],
+    lumaStart: { x: 0, y: 0 },
+    goal: { x: 4, y: 4 },
+    lumaFacing: 'south',
+    echoProbe: {
+      x: 2,
+      y: 2,
+      facing: 'east',
+      startsConfused: true,
+      showFacingArrow: false,
+      activatedMessage: 'ECHO online... I can sense a box behind me.',
+      cloudMessage: 'From my view, the hidden ship fragment is on my left.',
+      correctCloud: { x: 2, y: 1 },
+    },
+    echoClouds: [
+      { x: 2, y: 1 },
+      { x: 3, y: 2 },
+      { x: 2, y: 3 },
+    ],
+  }
+}
+
 export const LEVELS = [
   {
     id: 1,
@@ -1544,6 +1609,43 @@ export const LEVELS = [
     allowCollect: true,
     defaultIfPathCondition: 'right',
     repeatDefaults: { times: 5 },
+    useIfElse: true,
+    requireElse: true,
+  },
+  {
+    id: 21,
+    name: 'Final Echo Relay',
+    world: 'repair-site',
+    tutorial: true,
+    grid: { cols: COLS, rows: ROWS },
+    lumaStart: { x: 0, y: 0 },
+    lumaFacing: 'south',
+    goal: { x: 4, y: 4 },
+    walls: [],
+    objects: [],
+    fog: false,
+    sptQuestion: {
+      prompt: 'Which direction is LUMA facing?',
+      options: ['↑ Up', '→ Right', '↓ Down', '← Left'],
+      correct: null,
+    },
+    solution: null,
+    decompositionPrompt: false,
+    predictionPrompt: false,
+    mirrorControls: false,
+    echoPosition: null,
+    strategyCardAfter: false,
+    noVisorFlip: false,
+    skipIdentify: false,
+    noRadio: false,
+    layoutGenerator: 'level21',
+    targetCommands: 16,
+    uncertainRadio: false,
+    allowRepeat: true,
+    allowIfPath: true,
+    allowCollect: true,
+    defaultIfPathCondition: 'right',
+    repeatDefaults: { times: 2 },
     useIfElse: true,
     requireElse: true,
   },
