@@ -11,6 +11,8 @@ export default function LaunchSiteBackground({ width, height, cols = 5, rows = 5
   ]
 
   const guideLights = Array.from({ length: 7 }, (_, index) => index)
+  const upperGuideLights = guideLights
+  const lowerGuideLights = guideLights
   const ringLightCount = 24
   const ringLights = Array.from({ length: ringLightCount }, (_, index) => index)
 
@@ -311,7 +313,7 @@ export default function LaunchSiteBackground({ width, height, cols = 5, rows = 5
       </g>
 
       {/* Upper guide lights */}
-      {guideLights.map((index) => {
+      {upperGuideLights.map((index) => {
         const y = upperGuideYs[index]
         const leftX = W * (0.455 - index * 0.004)
         const rightX = W * (0.545 + index * 0.004)
@@ -328,7 +330,7 @@ export default function LaunchSiteBackground({ width, height, cols = 5, rows = 5
       })}
 
       {/* Lower guide lights */}
-      {guideLights.map((index) => {
+      {lowerGuideLights.map((index) => {
         const y = mirrorY(upperGuideYs[index])
         const leftX = W * (0.435 + index * 0.004)
         const rightX = W * (0.565 - index * 0.004)

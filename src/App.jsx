@@ -1148,8 +1148,8 @@ const LEVEL_19_ROUTE_HINT_STEPS = [
     id: 'level-19-route-do-two-commands',
     targetId: 'sequence-area',
     placement: 'left',
-    title: 'Use two commands inside DO',
-    body: 'The DO part inside IF can hold more than one command. For this first route, the best path is 6 blocks.',
+    title: 'Use two blocks inside DO',
+    body: 'The DO part inside IF can hold more than one block. For this first route, the best path is 6 blocks.',
     nextLabel: 'Build Route 1',
   },
 ]
@@ -1396,6 +1396,11 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   const currentLevelTutorialPlan = useMemo(
     () => buildCurrentLevelTutorialPlan(levelConfig.id, tutorialFeatureKeys),
     [levelConfig.id, tutorialFeatureKeys]
+  )
+
+  const replayableTutorialSteps = useMemo(
+    () => getRenderableTutorialSteps(currentLevelTutorialPlan, tutorialContext),
+    [currentLevelTutorialPlan, tutorialContext]
   )
 
   const currentTutorialStep = tutorialSteps[tutorialIndex] ?? null
@@ -1674,7 +1679,17 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     if (levelConfig.id === 19) resetLevel19RouteStage()
     resetLuma()
   }, [levelConfig.id, resetLevel19RouteStage, resetLuma])
+  const level19ReplayableTutorialSteps = useMemo(
+    () => getRenderableTutorialSteps(
+      level19Route1Complete ? LEVEL_19_ROUTE_2_STEPS : LEVEL_19_ROUTE_HINT_STEPS,
+      tutorialContext
+    ),
+    [level19Route1Complete, tutorialContext]
+  )
   const canReplayTutorial =
+    (levelConfig.id === 19
+      ? level19ReplayableTutorialSteps.length > 0
+      : replayableTutorialSteps.length > 0) &&
     levelConfig.id !== 14 &&
     levelConfig.id !== 4 &&
     levelConfig.id !== 12 &&
@@ -2108,6 +2123,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                     showIfElse={Boolean(levelConfig.useIfElse) || levelConfig.id >= 18}
                     defaultIfPathCondition={effectiveDefaultIfPathCondition}
                     lockedProgram={Boolean(levelConfig.traceMode)}
+                    paletteDisabled={currentTutorialStep?.id === 'level-1-palette'}
                   />
                 </div>
               </motion.div>

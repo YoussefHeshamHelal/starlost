@@ -118,7 +118,7 @@ function getPathCheckName(condition = 'ahead') {
 }
 
 function commandsToJavaScriptLines(commands = [], depth = 0) {
-  if (!commands.length) return [`${CODE_INDENT.repeat(depth)}// no commands`]
+  if (!commands.length) return [`${CODE_INDENT.repeat(depth)}// no blocks`]
 
   return commands.flatMap((command) => {
     const indent = CODE_INDENT.repeat(depth)

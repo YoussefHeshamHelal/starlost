@@ -2488,7 +2488,7 @@ export default function GameGrid({
                   isEchoProbe ? 'echo-marker'
                   : luma.x === col && luma.y === row ? 'luma-marker'
                   : isGoal ? (isLaunchSite ? 'launch-pad-goal' : 'goal-marker')
-                  : firstObstacle && firstObstacle.x === col && firstObstacle.y === row ? ((isRepairSite || isLaunchSite) ? 'box-tile' : 'rock-tile')
+                  : firstObstacle && firstObstacle.x === col && firstObstacle.y === row ? ((isRepairSite || isLaunchSite) ? 'box-tile' : isForestTrail ? 'tree-tile' : 'rock-tile')
                   : firstShipFragment && firstShipFragment.x === col && firstShipFragment.y === row ? 'ship-fragment-tile'
                   : undefined
                 }

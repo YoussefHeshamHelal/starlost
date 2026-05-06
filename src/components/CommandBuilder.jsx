@@ -570,6 +570,8 @@ function RowDelete({ color, isRunning, onDelete, theme, depth = 0, positioned = 
   return (
     <button
       type="button"
+      title="Delete"
+      aria-label="Delete"
       onPointerDown={(event) => event.stopPropagation()}
       onClick={onDelete}
       disabled={isRunning}
@@ -1605,6 +1607,7 @@ export default function CommandBuilder({
   ifElseBlocked = false,
   defaultIfPathCondition = 'ahead',
   lockedProgram = false,
+  paletteDisabled = false,
 }) {
   const theme = useContext(ThemeContext)
   const t = THEMES[theme]
@@ -1787,7 +1790,7 @@ export default function CommandBuilder({
                 <PaletteButton
                   key={code}
                   code={code}
-                  disabled={isRunning}
+                  disabled={isRunning || paletteDisabled}
                   onAdd={handleTopLevelAdd}
                   theme={theme}
                   tutorialId={code === 'F' ? 'command-forward' : code === 'C' ? 'command-collect' : code === 'TR' || code === 'TL' ? 'command-turn' : code === 'IF_PATH' ? (showIfElse ? 'command-if-else-path' : 'command-if-path') : 'command-repeat'}
@@ -1806,7 +1809,7 @@ export default function CommandBuilder({
 
         {!needsReset && (
           <motion.button whileTap={{ scale: 0.97 }} onClick={onRun} disabled={isDisabled} data-tutorial-id="run-button" style={{ width: '100%', padding: '13px 0', background: isDisabled ? t.runBgDisabled : t.runBgActive, border: `2px solid ${isDisabled ? t.runBorderDisabled : t.runBorderActive}`, borderRadius: 8, color: isDisabled ? t.runColorDisabled : t.runColorActive, fontFamily: 'monospace', fontSize: 14, letterSpacing: 2, cursor: isDisabled ? 'not-allowed' : 'pointer', fontWeight: 800 }}>
-            {isRunning ? 'RUNNING' : ifElseBlocked ? 'ADD ELSE COMMAND' : runBlocked ? 'SET PREDICTION FIRST' : 'EXECUTE PROGRAM'}
+            {isRunning ? 'RUNNING' : ifElseBlocked ? 'ADD ELSE BLOCK' : runBlocked ? 'SET PREDICTION FIRST' : 'EXECUTE PROGRAM'}
           </motion.button>
         )}
       </div>
@@ -1821,8 +1824,8 @@ export default function CommandBuilder({
               {targetCommands !== null && <span style={{ display: 'block', fontSize: 10.5, color: t.targetCmdColor, fontFamily: 'monospace', letterSpacing: 0.2, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'clip' }}>Shortest Path: {targetCommands} Blocks</span>}
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end', flex: '0 0 auto' }}>
-              <button onClick={onRemove} disabled={isRunning || sequence.length === 0} style={actionBtn(isRunning || sequence.length === 0)}>⌫</button>
-              <button onClick={onClear} disabled={isRunning || sequence.length === 0} style={actionBtn(isRunning || sequence.length === 0)}>✕</button>
+              <button title="Delete" aria-label="Delete" onClick={onRemove} disabled={isRunning || sequence.length === 0} style={actionBtn(isRunning || sequence.length === 0)}>⌫</button>
+              <button title="Clear" aria-label="Clear" onClick={onClear} disabled={isRunning || sequence.length === 0} style={actionBtn(isRunning || sequence.length === 0)}>✕</button>
               <button type="button" onClick={() => setShowCodeModal(true)} style={showCodeBtn}>{'</>'} Show Code</button>
             </div>
           </div>
@@ -1856,7 +1859,7 @@ export default function CommandBuilder({
             {sequence.length === 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100%', gap: 6 }}>
                 <div style={{ fontSize: 18, opacity: theme === 'light' ? 0.28 : 0.18, color: theme === 'light' ? '#14b8d4' : '#5a8890' }}>↓</div>
-                <p style={{ color: t.emptyText, fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, margin: 0, userSelect: 'none', fontWeight: 700 }}>Drag commands here</p>
+                <p style={{ color: t.emptyText, fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, margin: 0, userSelect: 'none', fontWeight: 700 }}>Drag blocks here</p>
               </div>
             ) : (
               <DraggableProgram
@@ -1887,4 +1890,3 @@ export default function CommandBuilder({
     </div>
   )
 }
-

@@ -236,7 +236,7 @@ export default function TutorialOverlay({
               🤖
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              {!step.hideProgress && (
+              {!step.hideProgress && totalSteps > 1 && (
                 <div
                   style={{
                     display: 'inline-flex',
