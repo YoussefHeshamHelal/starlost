@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
+﻿import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ThemeContext } from '../context/theme'
 import {
@@ -343,40 +343,49 @@ function getRowEstimate(command) {
 
 function SpeedBar({ speed, onSpeedChange, theme }) {
   const t = THEMES[theme]
-  const trackRef = useRef(null)
-  const dragging = useRef(false)
+  const safeSpeed = Math.max(10, Math.min(100, Number(speed) || 50))
+  const fillPct = ((safeSpeed - 10) / 90) * 100
+  const trackColor = safeSpeed < 40 ? '#f59e0b' : safeSpeed < 75 ? (theme === 'light' ? '#14b8d4' : '#2dd4bf') : '#10b981'
 
-  const computeSpeed = useCallback((clientX) => {
-    if (!trackRef.current) return
-    const rect = trackRef.current.getBoundingClientRect()
-    const usableLeft = rect.left + THUMB_R
-    const usableWidth = rect.width - THUMB_R * 2
-    const ratio = Math.max(0, Math.min(1, (clientX - usableLeft) / usableWidth))
-    const raw = Math.round((ratio * 90 + 10) / 5) * 5
-    onSpeedChange(Math.max(10, Math.min(100, raw)))
+  const handleSpeedChange = useCallback((eventOrValue) => {
+    const rawValue = typeof eventOrValue === 'number'
+      ? eventOrValue
+      : Number(eventOrValue?.target?.value)
+    const nextSpeed = Math.max(10, Math.min(100, Number(rawValue) || 50))
+    onSpeedChange?.(nextSpeed)
   }, [onSpeedChange])
-
-  const fillPct = ((speed - 10) / 90) * 100
-  const trackColor = speed < 40 ? '#f59e0b' : speed < 75 ? (theme === 'light' ? '#14b8d4' : '#2dd4bf') : '#10b981'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <p style={{ fontSize: 10, color: t.speedLabelClr, fontFamily: 'monospace', letterSpacing: 1, margin: 0, fontWeight: 800 }}>LUMA SPEED</p>
-        <span style={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 800, color: trackColor }}>{speed}%</span>
+        <span style={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 800, color: trackColor }}>{safeSpeed}%</span>
       </div>
 
-      <div
-        ref={trackRef}
-        onPointerDown={(event) => { dragging.current = true; event.currentTarget.setPointerCapture(event.pointerId); computeSpeed(event.clientX) }}
-        onPointerMove={(event) => { if (dragging.current) computeSpeed(event.clientX) }}
-        onPointerUp={() => { dragging.current = false }}
-        style={{ position: 'relative', height: THUMB_R * 2, cursor: 'pointer', touchAction: 'none' }}
-      >
-        <div style={{ position: 'absolute', left: THUMB_R, right: THUMB_R, top: '50%', transform: 'translateY(-50%)', height: 4, background: t.railBg, borderRadius: 2, border: `1px solid ${t.railBorder}` }}>
+      <div style={{ position: 'relative', height: THUMB_R * 2, cursor: 'pointer', touchAction: 'none' }}>
+        <div style={{ position: 'absolute', left: THUMB_R, right: THUMB_R, top: '50%', transform: 'translateY(-50%)', height: 4, background: t.railBg, borderRadius: 2, border: `1px solid ${t.railBorder}`, overflow: 'hidden' }}>
           <div style={{ width: `${fillPct}%`, height: '100%', background: `linear-gradient(90deg, #f59e0b, ${trackColor})` }} />
         </div>
-        <div style={{ position: 'absolute', left: `calc(${fillPct / 100} * (100% - ${THUMB_R * 2}px))`, top: '50%', transform: 'translateY(-50%)', width: THUMB_R * 2, height: THUMB_R * 2, borderRadius: '50%', background: trackColor }} />
+        <div style={{ position: 'absolute', left: `calc(${fillPct / 100} * (100% - ${THUMB_R * 2}px))`, top: '50%', transform: 'translateY(-50%)', width: THUMB_R * 2, height: THUMB_R * 2, borderRadius: '50%', background: trackColor, boxShadow: `0 0 12px ${trackColor}66`, pointerEvents: 'none' }} />
+        <input
+          type="range"
+          min="10"
+          max="100"
+          step="5"
+          value={safeSpeed}
+          onChange={handleSpeedChange}
+          aria-label="LUMA speed"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            opacity: 0,
+            cursor: 'pointer',
+            margin: 0,
+            padding: 0,
+          }}
+        />
       </div>
 
       <div style={{ position: 'relative', height: 10, fontSize: 8, color: t.tickColor, fontFamily: 'monospace', letterSpacing: 0.5, fontWeight: 700 }}>

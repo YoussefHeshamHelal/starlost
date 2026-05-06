@@ -279,6 +279,15 @@ export const LEVEL_TUTORIALS = {
     }),
   ],
   22: [
+    levelStep('level-22-final-level-intro', {
+      targetId: 'grid-panel',
+      placement: 'right',
+      title: 'Final level',
+      body: 'This is the final level. Solve it so LUMA can launch her fixed ship and go home.',
+      waitForTarget: true,
+      showWhen: ({ phase }) => phase === 'develop',
+      nextLabel: "Let's finish",
+    }),
     levelStep('level-22-trace-code', {
       targetId: 'trace-program-box',
       placement: 'left',
@@ -310,7 +319,7 @@ export const LEVEL_TUTORIALS = {
       targetId: 'grid-panel',
       placement: 'right',
       title: 'Find the correct tile',
-      body: 'If you choose the right tile, the launch pad will appear and LUMA will run the program.',
+      body: 'If you choose the right tile, the launch pad will appear and LUMA will run the program and go home.',
       waitForTarget: true,
       showWhen: ({ phase }) => phase === 'develop',
       nextLabel: 'Launch time',

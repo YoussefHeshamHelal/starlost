@@ -750,63 +750,157 @@ function VisorRepairBox({ zone, W, H }) {
   )
 }
 
+function DetailedLaunchPadSvg({ width = 96, height = 88, idPrefix = 'launch-pad', side = false, mirror = false, artworkOffsetY = 0 }) {
+  const groupTransform = [
+    'translate(48 44)',
+    mirror ? 'scale(-1 1)' : '',
+    side ? 'scale(1 0.82)' : 'scale(1 1)',
+    'translate(-48 -44)',
+    artworkOffsetY ? `translate(0 ${artworkOffsetY})` : '',
+  ].filter(Boolean).join(' ')
+
+  return (
+    <svg width={width} height={height} viewBox="0 0 96 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id={`${idPrefix}-center`} cx="50%" cy="42%" r="60%">
+          <stop offset="0%" stopColor="#4f3a31" />
+          <stop offset="42%" stopColor="#2b211f" />
+          <stop offset="78%" stopColor="#111319" />
+          <stop offset="100%" stopColor="#06080d" />
+        </radialGradient>
+        <linearGradient id={`${idPrefix}-outerMetal`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#f2caa5" />
+          <stop offset="24%" stopColor="#c99a76" />
+          <stop offset="48%" stopColor="#89706a" />
+          <stop offset="72%" stopColor="#4a596b" />
+          <stop offset="100%" stopColor="#1a2230" />
+        </linearGradient>
+        <linearGradient id={`${idPrefix}-blueRing`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#4b789f" />
+          <stop offset="44%" stopColor="#294b70" />
+          <stop offset="100%" stopColor="#0a1829" />
+        </linearGradient>
+        <linearGradient id={`${idPrefix}-cyanStrip`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#67e8f9" stopOpacity="0" />
+          <stop offset="18%" stopColor="#67e8f9" stopOpacity="0.95" />
+          <stop offset="50%" stopColor="#ecfeff" stopOpacity="1" />
+          <stop offset="82%" stopColor="#38bdf8" stopOpacity="0.95" />
+          <stop offset="100%" stopColor="#67e8f9" stopOpacity="0" />
+        </linearGradient>
+        <radialGradient id={`${idPrefix}-markerGlow`} cx="50%" cy="50%" r="60%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+          <stop offset="46%" stopColor="#bfecff" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id={`${idPrefix}-deckSheen`} cx="46%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#f8fafc" stopOpacity="0.18" />
+          <stop offset="38%" stopColor="#9fb4c7" stopOpacity="0.08" />
+          <stop offset="100%" stopColor="#020617" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id={`${idPrefix}-coreWarmth`} cx="46%" cy="38%" r="68%">
+          <stop offset="0%" stopColor="#7b6152" stopOpacity="0.52" />
+          <stop offset="42%" stopColor="#2f2728" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="#05070c" stopOpacity="0" />
+        </radialGradient>
+        <filter id={`${idPrefix}-shadow`} x="-30%" y="-30%" width="170%" height="180%">
+          <feDropShadow dx="0" dy="7" stdDeviation="4" floodColor="#020617" floodOpacity="0.56" />
+        </filter>
+        <filter id={`${idPrefix}-glow`} x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="2.4" result="b" />
+          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+        <filter id={`${idPrefix}-tightGlow`} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="1.4" result="b" />
+          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+
+      <g transform={groupTransform}>
+        <ellipse cx="48" cy="63.5" rx="34" ry="6.8" fill="#020617" opacity="0.42" />
+
+        <g filter={`url(#${idPrefix}-shadow)`}>
+          <ellipse cx="48" cy="35" rx="37" ry="27.5" fill="#0d131d" stroke="#1f2937" strokeWidth="2" />
+          <ellipse cx="48" cy="33" rx="34" ry="25" fill={`url(#${idPrefix}-outerMetal)`} stroke="#efc39b" strokeOpacity="0.66" strokeWidth="1.5" />
+          <ellipse cx="48" cy="35.5" rx="35.4" ry="24.8" fill="none" stroke="#0a1220" strokeOpacity="0.72" strokeWidth="5" />
+          <ellipse cx="48" cy="31.8" rx="31.5" ry="22.8" fill="none" stroke="#fff2df" strokeOpacity="0.18" strokeWidth="1.1" />
+          <ellipse cx="48" cy="33" rx="27" ry="20.5" fill={`url(#${idPrefix}-blueRing)`} stroke="#3e6b98" strokeOpacity="0.96" strokeWidth="1.25" />
+          <ellipse cx="48" cy="33" rx="30.4" ry="22.6" fill="none" stroke="#161f2c" strokeOpacity="0.75" strokeWidth="3.2" strokeDasharray="16 7 5 8" />
+          <ellipse cx="48" cy="33" rx="30.7" ry="22.8" fill="none" stroke={`url(#${idPrefix}-cyanStrip)`} strokeOpacity="0.92" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="15 21" filter={`url(#${idPrefix}-tightGlow)`} />
+          <ellipse cx="48" cy="33" rx="24.4" ry="18.4" fill="none" stroke="#60d7ff" strokeOpacity="0.7" strokeWidth="1.8" strokeDasharray="38 28" filter={`url(#${idPrefix}-tightGlow)`} />
+          <ellipse cx="48" cy="33" rx="25.4" ry="19" fill="none" stroke="#93c5fd" strokeOpacity="0.13" strokeWidth="2.1" />
+          {Array.from({ length: 24 }, (_, index) => {
+            const angle = index * 15
+            const rad = (angle * Math.PI) / 180
+            const x1 = 48 + Math.cos(rad) * 24.1
+            const y1 = 33 + Math.sin(rad) * 18.2
+            const x2 = 48 + Math.cos(rad) * 27.4
+            const y2 = 33 + Math.sin(rad) * 20.7
+            return (
+              <line
+                key={`rib-${index}`}
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke={index % 2 === 0 ? '#dbeafe' : '#8ca8bc'}
+                strokeOpacity={index % 2 === 0 ? 0.26 : 0.15}
+                strokeWidth="1.2"
+                strokeLinecap="round"
+              />
+            )
+          })}
+          <ellipse cx="48" cy="32" rx="22.2" ry="16.2" fill={`url(#${idPrefix}-center)`} stroke="#b29178" strokeOpacity="0.46" strokeWidth="1.1" />
+          <ellipse cx="48" cy="32" rx="20.2" ry="14.7" fill={`url(#${idPrefix}-coreWarmth)`} />
+          <ellipse cx="48" cy="31.4" rx="18.7" ry="13.4" fill="#0b0e14" opacity="0.28" />
+          <ellipse cx="48" cy="29" rx="18.6" ry="8.6" fill="#111827" opacity="0.3" />
+          <ellipse cx="48" cy="32" rx="18.4" ry="13.5" fill="none" stroke="#ffffff" strokeOpacity="0.12" strokeWidth="1" />
+          <path d="M30 32 C36 29 60 29 66 32 M31 34 C37 37 59 37 65 34" stroke="#cbd5e1" strokeOpacity="0.18" strokeWidth="0.8" fill="none" />
+          <ellipse cx="48" cy="33" rx="33" ry="24.2" fill={`url(#${idPrefix}-deckSheen)`} />
+
+          <path d="M48 18.7 L51.4 23.9 L48 22.6 L44.6 23.9 Z" fill={`url(#${idPrefix}-markerGlow)`} stroke="#dff8ff" strokeOpacity="0.82" strokeWidth="0.75" filter={`url(#${idPrefix}-tightGlow)`} />
+          <path d="M29 32 L34.6 28.9 L33 32 L34.6 35.1 Z" fill={`url(#${idPrefix}-markerGlow)`} stroke="#dff8ff" strokeOpacity="0.82" strokeWidth="0.75" filter={`url(#${idPrefix}-tightGlow)`} />
+          <path d="M67 32 L61.4 28.9 L63 32 L61.4 35.1 Z" fill={`url(#${idPrefix}-markerGlow)`} stroke="#dff8ff" strokeOpacity="0.82" strokeWidth="0.75" filter={`url(#${idPrefix}-tightGlow)`} />
+          <path d="M48 48.8 L51.4 43.6 L48 44.9 L44.6 43.6 Z" fill={`url(#${idPrefix}-markerGlow)`} stroke="#dff8ff" strokeOpacity="0.82" strokeWidth="0.75" filter={`url(#${idPrefix}-tightGlow)`} />
+          <path d="M22 28 L25.2 26.4 M70.8 26.4 L74 28 M22 38 L25.2 39.6 M70.8 39.6 L74 38" stroke="#67e8f9" strokeOpacity="0.78" strokeWidth="1.2" strokeLinecap="round" filter={`url(#${idPrefix}-tightGlow)`} />
+          <path d="M30 24 C35 18.8 43 16.5 52 17.4 M64.5 25.5 C68.6 29.4 69.6 35.3 67 40.3 M31.5 43.5 C37.1 49.1 47 50.8 56.8 48" stroke="#f8fafc" strokeOpacity="0.16" strokeWidth="1.25" strokeLinecap="round" fill="none" />
+          <path d="M33 34 C38 30.5 57 30.5 63 34 M36 39 C42 42 54 42 60 39" stroke="#0b0f17" strokeOpacity="0.45" strokeWidth="1.1" strokeLinecap="round" fill="none" />
+          {[0, 60, 120, 180, 240, 300].map((angle) => {
+            const rad = (angle * Math.PI) / 180
+            return (
+              <circle
+                key={`bolt-${angle}`}
+                cx={48 + Math.cos(rad) * 28.8}
+                cy={33 + Math.sin(rad) * 21.2}
+                r="1.35"
+                fill="#e2e8f0"
+                opacity="0.48"
+              />
+            )
+          })}
+          <path d="M25 31 L30 29 M66 29 L71 31 M42 50 H54" stroke="#e2e8f0" strokeOpacity="0.38" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M34 23.5 Q48 17.5 62 23.5" stroke="#f8fafc" strokeOpacity="0.1" strokeWidth="1.1" fill="none" />
+          <path d="M28.5 33 Q48 25 67.5 33" stroke="#f8fafc" strokeOpacity="0.08" strokeWidth="1.1" fill="none" />
+        </g>
+      </g>
+    </svg>
+  )
+}
+
 function LaunchPadGoal() {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.35, rotate: -16 }}
-      animate={{ opacity: 1, scale: [0.82, 1.08, 1], rotate: [0, 2, 0] }}
-      transition={{ duration: 0.72, ease: [0.16, 1, 0.3, 1] }}
-      style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', filter: 'drop-shadow(0 0 18px rgba(34,211,238,0.9))' }}
+      initial={{ opacity: 0, scale: 0.34, rotate: -8 }}
+      animate={{ opacity: 1, scale: [0.82, 1.05, 1], rotate: [0, 1.2, 0] }}
+      transition={{ duration: 0.68, ease: [0.16, 1, 0.3, 1] }}
+      style={{
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        filter: 'drop-shadow(0 12px 14px rgba(2,6,23,0.52))',
+      }}
     >
-      {[0, 1, 2].map((index) => (
-        <motion.div
-          key={index}
-          animate={{ scale: [0.65, 1.8], opacity: [0.8, 0] }}
-          transition={{ duration: 1.45, delay: index * 0.28, repeat: Infinity, ease: 'easeOut' }}
-          style={{ position: 'absolute', width: 46, height: 46, borderRadius: '50%', border: '2px solid #67e8f9' }}
-        />
-      ))}
-      <svg width={62} height={62} viewBox="0 0 62 62" fill="none">
-        <defs>
-          <radialGradient id="launchPadCore" cx="50%" cy="42%" r="58%">
-            <stop offset="0%" stopColor="#ecfeff" />
-            <stop offset="42%" stopColor="#22d3ee" />
-            <stop offset="100%" stopColor="#075985" />
-          </radialGradient>
-          <linearGradient id="launchPadMetal" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#cbd5e1" />
-            <stop offset="44%" stopColor="#64748b" />
-            <stop offset="100%" stopColor="#172033" />
-          </linearGradient>
-          <filter id="launchPadGlow" x="-40%" y="-40%" width="180%" height="180%">
-            <feGaussianBlur stdDeviation="2.4" result="b" />
-            <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-        </defs>
-        <ellipse cx="31" cy="53" rx="24" ry="5" fill="#020617" opacity="0.46" />
-        <circle cx="31" cy="31" r="25" fill="#0f172a" stroke="#94a3b8" strokeWidth="2" />
-        <circle cx="31" cy="31" r="18" fill="url(#launchPadMetal)" stroke="#e2e8f0" strokeOpacity="0.64" strokeWidth="1.4" />
-        <circle cx="31" cy="31" r="10" fill="url(#launchPadCore)" filter="url(#launchPadGlow)">
-          <animate attributeName="opacity" values="0.72;1;0.76" dur="1.1s" repeatCount="indefinite" />
-        </circle>
-        {[0, 60, 120, 180, 240, 300].map((angle) => {
-          const rad = (angle * Math.PI) / 180
-          return (
-            <rect
-              key={angle}
-              x={31 + 20 * Math.cos(rad) - 2}
-              y={31 + 20 * Math.sin(rad) - 2}
-              width="4"
-              height="4"
-              rx="1"
-              fill="#67e8f9"
-              opacity="0.86"
-            />
-          )
-        })}
-        <path d="M31 8 L35 20 L31 17 L27 20 Z" fill="#f8fafc" opacity="0.86" />
-        <path d="M18 43 L44 43 M16 38 L46 38" stroke="#67e8f9" strokeOpacity="0.72" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
+      <DetailedLaunchPadSvg width={86} height={80} idPrefix="map-launch-pad" artworkOffsetY={9} />
     </motion.div>
   )
 }
@@ -982,24 +1076,110 @@ function ZoneContent({ tile, zone, W, H }) {
   }
 
   if (tile.type === 'launch_pad') {
-    const cx = isFront ? W * 0.5 : isLeft ? W * 0.1 : W * 0.9
-    const cy = isFront ? H * 0.58 : H * 0.62
-    const sx = isFront ? 1.22 : 0.82
-    const sy = isFront ? 0.9 : 0.74
+    const cx = isFront ? W * 0.5 : isLeft ? W * 0.11 : W * 0.89
+    const cy = isFront ? H * 0.5 : H * 0.55
+    const sx = isFront ? 2.74 : 1.58
+    const sy = isFront ? 1.96 : 1.26
     const mirror = !isFront && !isLeft
 
     return (
-      <g transform={`${mirror ? `translate(${2 * cx} 0) scale(-1 1) ` : ''}translate(${cx - 31 * sx} ${cy - 31 * sy}) scale(${sx} ${sy})`}>
-        <ellipse cx="31" cy="53" rx="24" ry="5" fill="#020617" opacity="0.5" />
-        <circle cx="31" cy="31" r="25" fill="#0f172a" stroke="#94a3b8" strokeWidth="2" />
-        <circle cx="31" cy="31" r="18" fill="url(#launch_pad_visor_metal)" stroke="#e2e8f0" strokeOpacity="0.64" strokeWidth="1.4" />
-        <circle cx="31" cy="31" r="10" fill="url(#launch_pad_visor_core)" filter="url(#launch_pad_visor_glow)" />
+      <g transform={`${mirror ? `translate(${2 * cx} 0) scale(-1 1) ` : ''}translate(${cx - 38 * sx} ${cy - 36 * sy}) scale(${sx} ${sy})`}>
+        <defs>
+          <radialGradient id="visorFortnitePadCenter" cx="48%" cy="42%" r="62%">
+            <stop offset="0%" stopColor="#4e372d" />
+            <stop offset="48%" stopColor="#241c1b" />
+            <stop offset="100%" stopColor="#06080d" />
+          </radialGradient>
+          <linearGradient id="visorFortnitePadBronze" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#d0a077" />
+            <stop offset="34%" stopColor="#9f7659" />
+            <stop offset="64%" stopColor="#5b4d50" />
+            <stop offset="100%" stopColor="#1c2330" />
+          </linearGradient>
+          <linearGradient id="visorFortnitePadBlueRing" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#426f98" />
+            <stop offset="52%" stopColor="#263f61" />
+            <stop offset="100%" stopColor="#0a1220" />
+          </linearGradient>
+          <linearGradient id="visorFortnitePadCyanStrip" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#67e8f9" stopOpacity="0" />
+            <stop offset="18%" stopColor="#67e8f9" stopOpacity="0.95" />
+            <stop offset="50%" stopColor="#ecfeff" stopOpacity="1" />
+            <stop offset="82%" stopColor="#38bdf8" stopOpacity="0.95" />
+            <stop offset="100%" stopColor="#67e8f9" stopOpacity="0" />
+          </linearGradient>
+          <radialGradient id="visorFortnitePadMarkerGlow" cx="50%" cy="50%" r="60%">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+            <stop offset="46%" stopColor="#bfecff" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id="visorFortnitePadSheen" cx="46%" cy="30%" r="70%">
+            <stop offset="0%" stopColor="#f8fafc" stopOpacity="0.18" />
+            <stop offset="40%" stopColor="#9fb4c7" stopOpacity="0.08" />
+            <stop offset="100%" stopColor="#020617" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id="visorFortnitePadCoreWarmth" cx="46%" cy="38%" r="68%">
+            <stop offset="0%" stopColor="#7b6152" stopOpacity="0.5" />
+            <stop offset="42%" stopColor="#2f2728" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="#05070c" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <ellipse cx="38" cy="62.2" rx="32" ry="7.3" fill="#020617" opacity="0.5" />
+        <ellipse cx="38" cy="39" rx="33.4" ry="24.2" fill="#07101b" opacity="0.86" />
+        <ellipse cx="38" cy="35.5" rx="33.6" ry="25.7" fill="#111827" stroke="#0b1220" strokeWidth="2.4" />
+        <ellipse cx="38" cy="32" rx="30.7" ry="23.4" fill="url(#visorFortnitePadBronze)" stroke="#e6c19d" strokeOpacity="0.68" strokeWidth="1.4" />
+        <ellipse cx="38" cy="35.1" rx="31.6" ry="23.2" fill="none" stroke="#050914" strokeOpacity="0.82" strokeWidth="5" />
+        <ellipse cx="38" cy="30.4" rx="28.3" ry="21" fill="none" stroke="#fff2df" strokeOpacity="0.18" strokeWidth="1.1" />
+        <ellipse cx="38" cy="32" rx="24" ry="18.5" fill="url(#visorFortnitePadBlueRing)" stroke="#2b4b73" strokeWidth="1.2" />
+        <ellipse cx="38" cy="34.8" rx="25.4" ry="18.2" fill="none" stroke="#07111f" strokeOpacity="0.75" strokeWidth="4" />
+        <ellipse cx="38" cy="32" rx="27.2" ry="20.3" fill="none" stroke="#161f2c" strokeOpacity="0.75" strokeWidth="2.6" strokeDasharray="14 6 5 7" />
+        <ellipse cx="38" cy="32" rx="27.4" ry="20.5" fill="none" stroke="url(#visorFortnitePadCyanStrip)" strokeOpacity="0.9" strokeWidth="2.1" strokeLinecap="round" strokeDasharray="13 19" />
+        <ellipse cx="38" cy="32" rx="21.8" ry="16.3" fill="none" stroke="#60d7ff" strokeOpacity="0.68" strokeWidth="1.5" strokeDasharray="32 24" />
+        <ellipse cx="38" cy="32" rx="22.5" ry="17" fill="none" stroke="#93c5fd" strokeOpacity="0.13" strokeWidth="1.8" />
+        {Array.from({ length: 20 }, (_, index) => {
+          const angle = index * 18
+          const rad = (angle * Math.PI) / 180
+          return (
+            <line
+              key={`visor-pad-rib-${index}`}
+              x1={38 + Math.cos(rad) * 21.6}
+              y1={32 + Math.sin(rad) * 16.5}
+              x2={38 + Math.cos(rad) * 24.4}
+              y2={32 + Math.sin(rad) * 18.6}
+              stroke={index % 2 === 0 ? '#dbeafe' : '#8ca8bc'}
+              strokeOpacity={index % 2 === 0 ? 0.24 : 0.14}
+              strokeWidth="1"
+              strokeLinecap="round"
+            />
+          )
+        })}
+        <ellipse cx="38" cy="31" rx="19.6" ry="14.8" fill="url(#visorFortnitePadCenter)" stroke="#a58570" strokeOpacity="0.5" strokeWidth="1" />
+        <ellipse cx="38" cy="31" rx="17.8" ry="13.4" fill="url(#visorFortnitePadCoreWarmth)" />
+        <ellipse cx="38" cy="31.6" rx="17.2" ry="12.7" fill="#05070d" opacity="0.42" />
+        <ellipse cx="38" cy="28.4" rx="16.5" ry="7.5" fill="#1b2432" opacity="0.34" />
+        <path d="M22 31 C28 28.5 48 28.5 54 31 M23 34 C29 36.5 47 36.5 53 34" stroke="#cbd5e1" strokeOpacity="0.17" strokeWidth="0.72" fill="none" />
+        <ellipse cx="38" cy="32" rx="29.4" ry="22.3" fill="url(#visorFortnitePadSheen)" />
+        <path d="M38 18.2 L41.2 23.1 L38 21.8 L34.8 23.1 Z" fill="url(#visorFortnitePadMarkerGlow)" stroke="#dff8ff" strokeOpacity="0.82" strokeWidth="0.68" />
+        <path d="M21 32 L26.2 29.1 L24.7 32 L26.2 34.9 Z" fill="url(#visorFortnitePadMarkerGlow)" stroke="#dff8ff" strokeOpacity="0.82" strokeWidth="0.68" />
+        <path d="M55 32 L49.8 29.1 L51.3 32 L49.8 34.9 Z" fill="url(#visorFortnitePadMarkerGlow)" stroke="#dff8ff" strokeOpacity="0.82" strokeWidth="0.68" />
+        <path d="M38 46.8 L41.2 41.9 L38 43.2 L34.8 41.9 Z" fill="url(#visorFortnitePadMarkerGlow)" stroke="#dff8ff" strokeOpacity="0.82" strokeWidth="0.68" />
+        <path d="M15.5 28 L18.4 26.7 M57.6 26.7 L60.5 28 M15.5 37 L18.4 38.3 M57.6 38.3 L60.5 37" stroke="#67e8f9" strokeOpacity="0.76" strokeWidth="1.05" strokeLinecap="round" />
+        <path d="M18 23.8 C25 18 35 16.2 45 18 M61 24.8 C65 29 65.4 36.4 61.6 41.6 M21 43 C29 49.5 43 51.2 54 46.5" stroke="#f8fafc" strokeOpacity="0.18" strokeWidth="1.18" strokeLinecap="round" fill="none" />
+        <path d="M25 34 C31 31 47 31 53 34 M28 39 C33 41.6 43 41.6 49 39" stroke="#0b0f17" strokeOpacity="0.42" strokeWidth="1" strokeLinecap="round" fill="none" />
         {[0, 60, 120, 180, 240, 300].map((angle) => {
           const rad = (angle * Math.PI) / 180
-          return <rect key={angle} x={31 + 20 * Math.cos(rad) - 2} y={31 + 20 * Math.sin(rad) - 2} width="4" height="4" rx="1" fill="#67e8f9" opacity="0.86" />
+          return (
+            <circle
+              key={`visor-pad-bolt-${angle}`}
+              cx={38 + Math.cos(rad) * 25.6}
+              cy={32 + Math.sin(rad) * 19.3}
+              r="1.1"
+              fill="#e2e8f0"
+              opacity="0.46"
+            />
+          )
         })}
-        <path d="M31 8 L35 20 L31 17 L27 20 Z" fill="#f8fafc" opacity="0.86" />
-        <path d="M18 43 L44 43 M16 38 L46 38" stroke="#67e8f9" strokeOpacity="0.72" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M16 31 L21 29 M55 29 L60 31 M33 48 H43" stroke="#e2e8f0" strokeOpacity="0.38" strokeWidth="1.2" strokeLinecap="round" />
       </g>
     )
   }
@@ -2162,6 +2342,7 @@ export default function GameGrid({
   onEchoCloudTileClick,
   traceModeActive = false,
   traceSelection = null,
+  traceEliminatedTiles = [],
   traceGoalRevealed = true,
   onTraceCellClick,
   onTileClick,
@@ -2211,7 +2392,7 @@ export default function GameGrid({
   const isForestTrail = activeLevel.world === 'forest-trail'
   const isRepairSite = activeLevel.world === 'repair-site'
   const isLaunchSite = activeLevel.world === 'launch-site'
-  const ObstacleVisual = isLaunchSite ? LaunchBarrierObstacle : isRepairSite ? CargoCrateObstacle : isForestTrail ? ForestTreeObstacle : RockObstacle
+  const ObstacleVisual = isLaunchSite ? CargoCrateObstacle : isRepairSite ? CargoCrateObstacle : isForestTrail ? ForestTreeObstacle : RockObstacle
   const BackgroundComponent = isLaunchSite ? LaunchSiteBackground : isRepairSite ? RepairSiteBackground : isForestTrail ? ForestTrailBackground : CrashSiteBackground
   const scanLabel = isLaunchSite
     ? 'ORBITAL SCAN - LAUNCH SITE W4'
@@ -2277,6 +2458,8 @@ export default function GameGrid({
               traceSelection &&
               traceSelection.x === col &&
               traceSelection.y === row
+            const isTraceEliminated = traceEliminatedTiles.includes(`${col},${row}`)
+            const isTraceSelectable = traceModeActive && !isWall && !isTraceEliminated
             const checkpointSelectedColor = checkpointChoiceSelection?.result === 'success'
               ? '#22c55e'
               : '#ef4444'
@@ -2294,7 +2477,7 @@ export default function GameGrid({
                     return
                   }
 
-                  if (traceModeActive && !isWall && onTraceCellClick) {
+                  if (isTraceSelectable && onTraceCellClick) {
                     onTraceCellClick({ x: col, y: row })
                     return
                   }
@@ -2305,7 +2488,7 @@ export default function GameGrid({
                   isEchoProbe ? 'echo-marker'
                   : luma.x === col && luma.y === row ? 'luma-marker'
                   : isGoal ? (isLaunchSite ? 'launch-pad-goal' : 'goal-marker')
-                  : firstObstacle && firstObstacle.x === col && firstObstacle.y === row ? (isRepairSite ? 'box-tile' : 'rock-tile')
+                  : firstObstacle && firstObstacle.x === col && firstObstacle.y === row ? ((isRepairSite || isLaunchSite) ? 'box-tile' : 'rock-tile')
                   : firstShipFragment && firstShipFragment.x === col && firstShipFragment.y === row ? 'ship-fragment-tile'
                   : undefined
                 }
@@ -2313,10 +2496,10 @@ export default function GameGrid({
                   position:'absolute', left: col * TILE_SIZE, top: row * TILE_SIZE,
                   width: TILE_SIZE, height: TILE_SIZE, zIndex: echoOverlapsLuma ? 10 : 2,
                   display:'flex', alignItems:'center', justifyContent:'center',
-                  cursor: (traceModeActive && !isWall) || isEchoSelectableCloud ? 'pointer' : undefined,
+                  cursor: isTraceSelectable || isEchoSelectableCloud ? 'pointer' : undefined,
                 }}
               >
-                {traceModeActive && !isWall && !isTraceSelected && (
+                {isTraceSelectable && !isTraceSelected && (
                   <motion.div
                     whileHover={{ scale: 1.03, opacity: 0.95 }}
                     style={{
@@ -2347,15 +2530,15 @@ export default function GameGrid({
                         position: 'absolute',
                         inset: 2,
                         borderRadius: 10,
-                        border: `4px solid ${traceSelection.result === 'success' ? '#22d3ee' : '#fb7185'}`,
+                        border: `4px solid ${traceSelection.result === 'success' ? '#22c55e' : '#fb7185'}`,
                         background: traceSelection.result === 'success'
-                          ? 'radial-gradient(circle, rgba(236,254,255,0.34), rgba(34,211,238,0.13) 50%, rgba(16,185,129,0.08))'
+                          ? 'radial-gradient(circle, rgba(240,253,244,0.42), rgba(34,197,94,0.20) 50%, rgba(22,163,74,0.10))'
                           : 'rgba(254,226,226,0.22)',
                         zIndex: 8,
                         pointerEvents: 'none',
                         boxSizing: 'border-box',
                         boxShadow: traceSelection.result === 'success'
-                          ? '0 0 34px rgba(34,211,238,0.9), inset 0 0 24px rgba(236,254,255,0.5)'
+                          ? '0 0 34px rgba(34,197,94,0.9), inset 0 0 24px rgba(240,253,244,0.55)'
                           : '0 0 22px rgba(248,113,113,0.72), inset 0 0 16px rgba(255,255,255,0.22)',
                       }}
                     >
@@ -2369,7 +2552,7 @@ export default function GameGrid({
                             position: 'absolute',
                             inset: 12,
                             borderRadius: '50%',
-                            border: '2px solid #ecfeff',
+                            border: '2px solid #bbf7d0',
                           }}
                         />
                       ))}
@@ -2391,8 +2574,8 @@ export default function GameGrid({
                             width: 7,
                             height: 7,
                             borderRadius: '50%',
-                            background: spark % 2 === 0 ? '#ecfeff' : '#67e8f9',
-                            boxShadow: '0 0 12px #67e8f9',
+                            background: spark % 2 === 0 ? '#dcfce7' : '#22c55e',
+                            boxShadow: '0 0 12px #22c55e',
                           }}
                         />
                       ))}
@@ -2610,4 +2793,3 @@ export default function GameGrid({
     </div>
   )
 }
-

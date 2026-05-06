@@ -581,6 +581,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
   const [startTime]       = useState(() => Date.now())
   const [firstFailTime, setFirstFailTime] = useState(null)
   const [traceSelection, setTraceSelection] = useState(null)
+  const [traceEliminatedTiles, setTraceEliminatedTiles] = useState([])
   const [traceGoalRevealed, setTraceGoalRevealed] = useState(() => !levelConfig.hideGoalUntilTraceCorrect)
   const traceRunStartedRef = useRef(false)
 
@@ -1142,14 +1143,18 @@ export function useGameState(levelConfig, animSpeed = 50) {
     if (!levelConfig.traceMode || phase !== 'develop' || isRunning || traceRunStartedRef.current) return false
     if ((effectiveLevel.walls ?? []).some(wall => wall.x === tile?.x && wall.y === tile?.y)) return false
 
+    const traceKey = `${tile?.x},${tile?.y}`
+    if (traceEliminatedTiles.includes(traceKey)) return false
+
     const correctCell = levelConfig.tracingCorrectCell
     const correct = Boolean(correctCell && tile?.x === correctCell.x && tile?.y === correctCell.y)
+    const selectionId = `trace-${Date.now()}-${tile?.x}-${tile?.y}`
 
     setTraceSelection({
       x: tile?.x,
       y: tile?.y,
       result: correct ? 'success' : 'retry',
-      id: `trace-${Date.now()}-${tile?.x}-${tile?.y}`,
+      id: selectionId,
     })
 
     if (!correct) {
@@ -1157,19 +1162,33 @@ export function useGameState(levelConfig, animSpeed = 50) {
       if (!firstFailTime) setFirstFailTime(Date.now())
       setSelfCorrected(true)
       setReportOverride("Not quite. Trace the code again and try another ending tile.")
+      window.setTimeout(() => {
+        setTraceEliminatedTiles((previousTiles) => (
+          previousTiles.includes(traceKey) ? previousTiles : [...previousTiles, traceKey]
+        ))
+        setTraceSelection((currentSelection) => (
+          currentSelection?.id === selectionId ? null : currentSelection
+        ))
+      }, 880)
       return false
     }
 
-    traceRunStartedRef.current = true
+        traceRunStartedRef.current = true
     setTraceGoalRevealed(true)
     setReportOverride("Correct! The launch pad is appearing. Watch LUMA run the launch code!")
+
+    window.setTimeout(() => {
+      setTraceSelection((currentSelection) => (
+        currentSelection?.id === selectionId ? null : currentSelection
+      ))
+    }, 920)
 
     window.setTimeout(() => {
       runSequence()
     }, 1050)
 
     return true
-  }, [effectiveLevel.walls, firstFailTime, isRunning, levelConfig.traceMode, levelConfig.tracingCorrectCell, phase, runSequence])
+  }, [effectiveLevel.walls, firstFailTime, isRunning, levelConfig.traceMode, levelConfig.tracingCorrectCell, phase, runSequence, traceEliminatedTiles])
 
   const dismissMissedFragments = useCallback(() => {
     setMissedFragments(false)
@@ -1213,7 +1232,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     missedFragments, dismissMissedFragments,
     needsReset, resetLuma,
     predictionTile, setPrediction, predictionResult,
-    traceSelection, traceGoalRevealed, answerTraceCell,
+    traceSelection, traceEliminatedTiles, traceGoalRevealed, answerTraceCell,
     getGBISnapshot,
     // Expose effective layout for GameGrid
     effectiveLevel,

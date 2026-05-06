@@ -1320,7 +1320,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     missedFragments, dismissMissedFragments,
     needsReset, resetLuma,
     predictionTile, setPrediction, predictionResult,
-    traceSelection, traceGoalRevealed, answerTraceCell,
+    traceSelection, traceEliminatedTiles, traceGoalRevealed, answerTraceCell,
     effectiveLevel, getGBISnapshot,
   } = useGameState(levelConfig, animSpeed)
   const [checkpointChoiceComplete, setCheckpointChoiceComplete] = useState(false)
@@ -1884,6 +1884,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
               onEchoCloudTileClick={answerEchoQuestion}
               traceModeActive={traceModeActive}
               traceSelection={traceSelection}
+              traceEliminatedTiles={traceEliminatedTiles}
               traceGoalRevealed={traceGoalRevealed}
               onTraceCellClick={answerTraceCell}
             />
