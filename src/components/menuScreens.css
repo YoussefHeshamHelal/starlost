@@ -313,7 +313,7 @@
 
 .mission-bubble {
   position: absolute;
-  left: 19.8%;
+  left: 21.9%;
   top: 31.6%;
   width: 13.4%;
   margin: 0;
@@ -331,7 +331,7 @@
 .mission-status {
   position: absolute;
   top: 29.2%;
-  right: 20.2%;
+  right: 21.6%;
   color: #62ff80;
   font-size: clamp(11px, 1vw, 18px);
   font-weight: 1000;
@@ -684,5 +684,5 @@
   .start-actions { width: 62%; }
   .star-zone__badge { right: 16%; }
   .mission-form { left: 36%; width: 46%; }
-  .mission-bubble { left: 19%; width: 18%; }
+  .mission-bubble { left: 21.1%; width: 18%; }
 }
