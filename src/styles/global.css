@@ -4,10 +4,15 @@
   box-sizing: border-box;
 }
 
+html {
+  background: #020617;
+  min-height: 100%;
+}
+
 /* Base body — neutral dark background as fallback.
    The App component overrides this with its own full-screen themed background. */
 body {
-  background-color: #060d1a;
+  background-color: #020617;
   color: #e8edf5;
   font-family: 'Segoe UI', sans-serif;
   min-height: 100vh;
@@ -22,6 +27,7 @@ body {
 #root {
   width: 100%;
   min-height: 100vh;
+  background: #020617;
   display: flex;
   align-items: center;
   justify-content: center;

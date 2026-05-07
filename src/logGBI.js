@@ -12,7 +12,7 @@ import { serverTimestamp, doc, setDoc } from 'firebase/firestore'
  *
  * For levels without a strategy card, called once with the full snapshot.
  *
- * @param {string} participantId  - Unique child ID, e.g. "child_01"
+ * @param {string} participantId  - Unique 4-digit mission code, e.g. "4827"
  * @param {number} levelId        - Level number (1, 2, 3…)
  * @param {object} gbiData        - Either getGBISnapshot() result OR { strategyCard: '...' }
  * @param {string} [sessionId]    - Optional session label; defaults to "session_1"
@@ -24,7 +24,7 @@ export async function logGBI(participantId, levelId, gbiData, sessionId = 'sessi
   }
 
   // Path matches your Firestore rules exactly:
-  // participants/{childId}/sessions/{sessionId}/levels/{levelId}
+  // participants/{participantId}/sessions/{sessionId}/levels/{levelId}
   const levelDocRef = doc(
     db,
     'participants', String(participantId),

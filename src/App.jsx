@@ -10,10 +10,14 @@ import {
 import { useGameState } from './hooks/useGameState'
 import GameGrid from './components/GameGrid'
 import CommandBuilder from './components/CommandBuilder'
-import HomePage from './components/HomePage'
+import StartPage from './components/StartPage'
+import MissionSetup from './components/MissionSetup'
+import StarMapLevelSelect from './components/StarMapLevelSelect'
 import TutorialOverlay from './components/TutorialOverlay'
 import { logGBI } from './logGBI'
 import { ThemeContext, useTheme, THEMES } from './context/theme'
+import { isValidParticipantId, touchParticipantSession } from './utils/participants'
+import { fetchSessionProgress, updateSessionProgress } from './utils/progress'
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 const HEADER_H = 56
@@ -24,6 +28,14 @@ const EARLY_MAP_SCALE = 1.1
 const PLAYABLE_LEVELS = 22
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
 const SPEED_STORAGE_KEY = 'starlost:anim-speed'
+const PARTICIPANT_STORAGE_KEY = 'starlost:participantId'
+const OUTER_PHASES = new Set(['start', 'mission-setup', 'home'])
+const OUTER_PAGE_BG = '#020617'
+const OUTER_BG_ASSETS = [
+  '/assets/ui/start-page-bg.png',
+  '/assets/ui/mission-control-bg.png',
+  '/assets/ui/star-map-bg.png',
+]
 
 function readStoredAnimSpeed() {
   if (typeof window === 'undefined') return 50
@@ -34,6 +46,18 @@ function readStoredAnimSpeed() {
     return Number.isFinite(value) ? Math.max(10, Math.min(100, value)) : 50
   } catch {
     return 50
+  }
+}
+
+function readStoredParticipantId() {
+  if (typeof window === 'undefined') return ''
+  try {
+    const storedId = window.localStorage?.getItem(PARTICIPANT_STORAGE_KEY) || ''
+    if (isValidParticipantId(storedId)) return storedId
+    if (storedId) window.localStorage?.removeItem(PARTICIPANT_STORAGE_KEY)
+    return ''
+  } catch {
+    return ''
   }
 }
 
@@ -1780,7 +1804,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
       onStrategyCard(levelConfig.id)
       return
     }
-    onComplete()
+    onComplete(levelConfig.id)
   }
   const phaseBadgeText =
     phase === 'identify'
@@ -2157,12 +2181,12 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
 }
 
 // ── Root ──────────────────────────────────────────────────────────────────────
-const PARTICIPANT_ID = 'child_01'
-
 export default function App() {
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0)
   const [levelSessionKey, setLevelSessionKey] = useState(0)
-  const [appPhase, setAppPhase] = useState('home')
+  const [appPhase, setAppPhase] = useState('start')
+  const [participantId, setParticipantId] = useState(readStoredParticipantId)
+  const [completedLevels, setCompletedLevels] = useState([])
   const [strategyCardLevelId, setStrategyCardLevelId] = useState(null)
   const [theme, setTheme] = useState('light')
   const [levelHeaderControls, setLevelHeaderControls] = useState(null)
@@ -2185,6 +2209,60 @@ export default function App() {
   const t = THEMES[theme]
   const level = LEVELS[currentLevelIndex]
   const gameTopOffset = HEADER_H
+  const isOuterPhase = OUTER_PHASES.has(appPhase)
+
+  useEffect(() => {
+    OUTER_BG_ASSETS.forEach(src => {
+      const image = new Image()
+      image.src = src
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!['home', 'playing', 'strategy-card'].includes(appPhase)) return
+    if (!participantId) {
+      const redirectTimer = window.setTimeout(() => setAppPhase('mission-setup'), 0)
+      return () => window.clearTimeout(redirectTimer)
+    }
+    if (appPhase !== 'home') return
+
+    let cancelled = false
+    fetchSessionProgress(participantId)
+      .then(progress => {
+        if (!cancelled) setCompletedLevels(progress.completedLevels)
+      })
+      .catch(err => {
+        console.error('[Progress] Failed to load session progress:', err)
+        if (!cancelled) setCompletedLevels([])
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [appPhase, participantId])
+
+  const handleMissionComplete = useCallback((nextParticipantId) => {
+    setParticipantId(nextParticipantId)
+    setCompletedLevels([])
+    setAppPhase('home')
+  }, [])
+
+  const handleContinueMission = useCallback(async () => {
+    const storedParticipantId = readStoredParticipantId()
+    if (!storedParticipantId) {
+      setParticipantId('')
+      setAppPhase('mission-setup')
+      return
+    }
+
+    setParticipantId(storedParticipantId)
+    try {
+      await touchParticipantSession(storedParticipantId)
+    } catch (err) {
+      console.error('[StartPage] Failed to refresh saved mission code:', err)
+    }
+    setAppPhase('home')
+  }, [])
 
   const handleSelectLevel = useCallback((levelNumber) => {
     if (levelNumber < 1 || levelNumber > PLAYABLE_LEVELS) return
@@ -2201,39 +2279,45 @@ export default function App() {
     setLevelHeaderControls(null)
   }, [])
 
-  const handleLevelComplete = () => {
-    if (currentLevelIndex < Math.min(PLAYABLE_LEVELS, LEVELS.length) - 1)
-      setCurrentLevelIndex(i => i + 1)
-    else
-      setAppPhase('home')
-  }
+  const completeLevelProgress = useCallback(async (completedLevelId) => {
+    if (!participantId) return
+    try {
+      const progress = await updateSessionProgress(participantId, completedLevelId, completedLevels)
+      setCompletedLevels(progress.completedLevels)
+    } catch (err) {
+      console.error('[Progress] Failed to update session progress:', err)
+    }
+  }, [completedLevels, participantId])
 
-  const handleShowStrategyCard = (completedLevelId) => {
+  const handleLevelComplete = useCallback((completedLevelId) => {
+    completeLevelProgress(completedLevelId)
+    setAppPhase('home')
+  }, [completeLevelProgress])
+
+  const handleShowStrategyCard = useCallback((completedLevelId) => {
+    completeLevelProgress(completedLevelId)
     setStrategyCardLevelId(completedLevelId)
     setLevelHeaderControls(null)
     setAppPhase('strategy-card')
-  }
+  }, [completeLevelProgress])
 
   const handleStrategyCardDone = () => {
-    setAppPhase('playing')
+    setAppPhase('home')
     setStrategyCardLevelId(null)
     setLevelHeaderControls(null)
-    if (currentLevelIndex < Math.min(PLAYABLE_LEVELS, LEVELS.length) - 1)
-      setCurrentLevelIndex(i => i + 1)
-    else
-      setAppPhase('home')
   }
 
   return (
     <ThemeContext.Provider value={theme}>
       <div style={{
         width: '100vw', height: '100vh', overflow: 'hidden',
-        background: t.appBg,
+        background: isOuterPhase ? OUTER_PAGE_BG : t.appBg,
         transition: 'background 0.5s ease',
       }}>
         <style>{ANIM_STYLES}</style>
 
         {/* ── Header ── */}
+        {(appPhase === 'playing' || appPhase === 'strategy-card') && (
         <motion.header
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -2327,21 +2411,55 @@ export default function App() {
           {/* Theme toggle */}
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
         </motion.header>
+        )}
 
         {/* ── Game screens ── */}
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="sync">
+          {appPhase === 'start' && (
+            <motion.div
+              key="start"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ width: '100%', height: '100%' }}
+            >
+              <StartPage
+                onStart={() => setAppPhase('mission-setup')}
+                onContinue={handleContinueMission}
+              />
+            </motion.div>
+          )}
+
+          {appPhase === 'mission-setup' && (
+            <motion.div
+              key="mission-setup"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ width: '100%', height: '100%' }}
+            >
+              <MissionSetup
+                onBack={() => setAppPhase('start')}
+                onComplete={handleMissionComplete}
+              />
+            </motion.div>
+          )}
+
           {appPhase === 'home' && (
             <motion.div
               key="home"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.35 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
               style={{ width: '100%', height: '100%' }}
             >
-              <HomePage
-                headerHeight={HEADER_H}
+              <StarMapLevelSelect
+                completedLevels={completedLevels}
                 onSelectLevel={handleSelectLevel}
+                onBack={() => setAppPhase('start')}
               />
             </motion.div>
           )}
@@ -2358,7 +2476,7 @@ export default function App() {
               <LevelScreen
                 key={`${level.id}-${levelSessionKey}`}
                 levelConfig={level}
-                participantId={PARTICIPANT_ID}
+                participantId={participantId}
                 onComplete={handleLevelComplete}
                 onStrategyCard={handleShowStrategyCard}
                 onGoHome={handleGoHome}
@@ -2381,7 +2499,7 @@ export default function App() {
             >
               <StrategyCardScreen
                 levelId={strategyCardLevelId ?? level.id}
-                participantId={PARTICIPANT_ID}
+                participantId={participantId}
                 onDone={handleStrategyCardDone}
                 topOffset={gameTopOffset}
               />
