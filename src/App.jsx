@@ -36,6 +36,46 @@ const OUTER_BG_ASSETS = [
   '/assets/ui/mission-control-bg.png',
   '/assets/ui/star-map-bg.png',
 ]
+const PAGE_TRANSITION = {
+  duration: 0.28,
+  ease: [0.22, 1, 0.36, 1],
+}
+const PAGE_VARIANTS = {
+  initial: { opacity: 1, y: 8, scale: 0.995 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 1, y: -6, scale: 0.998 },
+}
+const LEVEL_PAGE_VARIANTS = {
+  initial: { opacity: 0, y: 18, scale: 0.985, filter: 'blur(8px)' },
+  animate: { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' },
+  exit: { opacity: 0, y: -14, scale: 0.992, filter: 'blur(6px)' },
+}
+const MAP_LEVEL_TRANSITION = {
+  duration: 0,
+}
+const MAP_LEVEL_VARIANTS = {
+  initial: { opacity: 1, y: 0, scale: 1 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 1, y: 0, scale: 1 },
+}
+const PAGE_SHELL_STYLE = {
+  position: 'absolute',
+  inset: 0,
+  width: '100%',
+  height: '100%',
+  willChange: 'opacity, transform, filter',
+}
+const ACTIVE_PAGE_SHELL_STYLE = {
+  ...PAGE_SHELL_STYLE,
+  zIndex: 2,
+}
+const HEADER_TRANSITION = {
+  duration: 0.4,
+  ease: [0.22, 1, 0.36, 1],
+}
+const INSTANT_TRANSITION = {
+  duration: 0,
+}
 
 function readStoredAnimSpeed() {
   if (typeof window === 'undefined') return 50
@@ -749,7 +789,7 @@ function MissedFragmentsAlert({ onDismiss }) {
 }
 
 // ── Success Screen ────────────────────────────────────────────────────────────
-function SuccessScreen({ levelId, onNext }) {
+function SuccessScreen({ levelId, onNext, isFinalLevel = false }) {
   const theme = useTheme()
   const t = THEMES[theme]
   return (
@@ -804,7 +844,7 @@ function SuccessScreen({ levelId, onNext }) {
             fontWeight: 800,
           }}
         >
-          NEXT LEVEL →
+          {isFinalLevel ? 'HOME' : 'NEXT LEVEL →'}
         </motion.button>
       </div>
     </motion.div>
@@ -1324,7 +1364,7 @@ function hasUnseenTutorialStep(plan, levelId) {
 }
 
 // ── Level Screen ──────────────────────────────────────────────────────────────
-function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, onGoHome, onHeaderControls, topOffset = HEADER_H, animSpeed, onAnimSpeedChange }) {
+function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, onGoHome, onHeaderControls, topOffset = HEADER_H, animSpeed, onAnimSpeedChange, fastEntry = false }) {
   const [tutorialSteps, setTutorialSteps] = useState([])
   const [tutorialIndex, setTutorialIndex] = useState(0)
   const theme = useTheme()
@@ -1812,6 +1852,9 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
       : phase === 'develop'
         ? (levelConfig.traceMode ? 'PHASE 2 - TRACE' : 'PHASE 2 - DEVELOP')
         : 'COMPLETE'
+  const panelInitial = fastEntry ? false : { opacity: 0, x: 20 }
+  const sptPanelInitial = fastEntry ? false : { opacity: 0, x: 20, y: 30 }
+  const panelTransition = fastEntry ? { duration: 0 } : undefined
 
   return (
     <div style={{
@@ -1942,9 +1985,10 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
             {phase === 'identify' && levelConfig.sptQuestion && (
               <motion.div
                 key="spt"
-                initial={{ opacity: 0, x: 20, y: 30 }}
+                initial={sptPanelInitial}
                 animate={{ opacity: 1, x: 0, y: 30 }}
                 exit={{ opacity: 0, x: -20, y: 30 }}
+                transition={panelTransition}
                 style={{ width: '100%' }}
               >
                 <SPTQuestion
@@ -1963,9 +2007,10 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
             {phase === 'develop' && echoIdentifyActive && (
               <motion.div
                 key="echo-identify-full"
-                initial={{ opacity: 0, x: 20 }}
+                initial={panelInitial}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
+                transition={panelTransition}
                 style={{ width: '100%' }}
               >
                 <EchoIdentifyQuestion
@@ -1980,9 +2025,10 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
             {phase === 'develop' && !echoIdentifyActive && (
               <motion.div
                 key="builder"
-                initial={{ opacity: 0, x: 20 }}
+                initial={panelInitial}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
+                transition={panelTransition}
                 style={{ width: '100%', height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', gap: 8 }}
               >
                 {levelConfig.predictionPrompt && (
@@ -2159,7 +2205,11 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
 
       <AnimatePresence>
         {phase === 'success' && (
-          <SuccessScreen levelId={levelConfig.id} onNext={handleSuccessNext} />
+          <SuccessScreen
+            levelId={levelConfig.id}
+            onNext={handleSuccessNext}
+            isFinalLevel={levelConfig.id >= PLAYABLE_LEVELS}
+          />
         )}
         {missedFragments && (
           <MissedFragmentsAlert onDismiss={dismissMissedFragments} />
@@ -2210,6 +2260,19 @@ export default function App() {
   const level = LEVELS[currentLevelIndex]
   const gameTopOffset = HEADER_H
   const isOuterPhase = OUTER_PHASES.has(appPhase)
+  const previousAppPhaseRef = useRef(appPhase)
+  const previousAppPhase = previousAppPhaseRef.current
+  const pageTransitionMode = previousAppPhase === 'playing' && appPhase === 'playing' ? 'wait' : 'sync'
+  const isMapGameplayTransition =
+    (previousAppPhase === 'home' && appPhase === 'playing') ||
+    (previousAppPhase === 'playing' && appPhase === 'home')
+  const headerTransition = isMapGameplayTransition ? INSTANT_TRANSITION : HEADER_TRANSITION
+  const menuPageVariants = isMapGameplayTransition ? MAP_LEVEL_VARIANTS : PAGE_VARIANTS
+  const gameplayPageVariants =
+    previousAppPhase === 'playing' && appPhase === 'playing'
+      ? LEVEL_PAGE_VARIANTS
+      : MAP_LEVEL_VARIANTS
+  const pageTransition = isMapGameplayTransition ? MAP_LEVEL_TRANSITION : PAGE_TRANSITION
 
   useEffect(() => {
     OUTER_BG_ASSETS.forEach(src => {
@@ -2217,6 +2280,10 @@ export default function App() {
       image.src = src
     })
   }, [])
+
+  useEffect(() => {
+    previousAppPhaseRef.current = appPhase
+  }, [appPhase])
 
   useEffect(() => {
     if (!['home', 'playing', 'strategy-card'].includes(appPhase)) return
@@ -2291,6 +2358,15 @@ export default function App() {
 
   const handleLevelComplete = useCallback((completedLevelId) => {
     completeLevelProgress(completedLevelId)
+    setLevelHeaderControls(null)
+    if (completedLevelId < PLAYABLE_LEVELS) {
+      setCurrentLevelIndex(completedLevelId)
+      setLevelSessionKey(key => key + 1)
+      setStrategyCardLevelId(null)
+      setAppPhase('playing')
+      return
+    }
+    setStrategyCardLevelId(null)
     setAppPhase('home')
   }, [completeLevelProgress])
 
@@ -2302,25 +2378,36 @@ export default function App() {
   }, [completeLevelProgress])
 
   const handleStrategyCardDone = () => {
-    setAppPhase('home')
-    setStrategyCardLevelId(null)
+    const completedLevelId = strategyCardLevelId
     setLevelHeaderControls(null)
+    setStrategyCardLevelId(null)
+    if (completedLevelId && completedLevelId < PLAYABLE_LEVELS) {
+      setCurrentLevelIndex(completedLevelId)
+      setLevelSessionKey(key => key + 1)
+      setAppPhase('playing')
+      return
+    }
+    setAppPhase('home')
   }
 
   return (
     <ThemeContext.Provider value={theme}>
       <div style={{
-        width: '100vw', height: '100vh', overflow: 'hidden',
+        width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative',
         background: isOuterPhase ? OUTER_PAGE_BG : t.appBg,
-        transition: 'background 0.5s ease',
+        transition: isMapGameplayTransition ? 'none' : 'background 0.5s ease',
       }}>
         <style>{ANIM_STYLES}</style>
 
         {/* ── Header ── */}
-        {(appPhase === 'playing' || appPhase === 'strategy-card') && (
+        <AnimatePresence>
+          {(appPhase === 'playing' || appPhase === 'strategy-card') && (
         <motion.header
-          initial={{ opacity: 0, y: -16 }}
+          key="game-header"
+          initial={{ opacity: 0, y: -18 }}
           animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -16 }}
+          transition={headerTransition}
           style={{
             position: 'fixed', top: 0, left: 0, right: 0,
             height: HEADER_H, padding: '0 24px',
@@ -2338,18 +2425,34 @@ export default function App() {
         >
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-              style={{ fontSize: 22 }}
-            >🚀</motion.div>
-            <h1 style={{
-              fontSize: 17, fontWeight: 900, color: t.headerTitle,
-              letterSpacing: 6, fontFamily: 'monospace', margin: 0,
-              transition: 'color 0.5s',
-            }}>
-              STARLOST
-            </h1>
+            {appPhase === 'playing' ? (
+              <img
+                src={theme === 'light' ? '/assets/ui/starlost-logo.png' : '/assets/ui/starlost-logo-dark.png'}
+                alt="STARLOST"
+                style={{
+                  display: 'block',
+                  width: 'auto',
+                  height: 54,
+                  maxWidth: 230,
+                  objectFit: 'contain',
+                }}
+              />
+            ) : (
+              <>
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                  style={{ fontSize: 22 }}
+                >🚀</motion.div>
+                <h1 style={{
+                  fontSize: 17, fontWeight: 900, color: t.headerTitle,
+                  letterSpacing: 6, fontFamily: 'monospace', margin: 0,
+                  transition: 'color 0.5s',
+                }}>
+                  STARLOST
+                </h1>
+              </>
+            )}
             {appPhase === 'playing' && levelHeaderControls && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 10 }}>
                 <button
@@ -2405,24 +2508,26 @@ export default function App() {
             transform: 'translateX(-50%)',
             textAlign: 'center',
           }}>
-            Help LUMA find the way home.
+            {appPhase === 'playing' ? 'Lost in space. Guided by you.' : 'Help LUMA find the way home.'}
           </p>
 
           {/* Theme toggle */}
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
         </motion.header>
-        )}
+          )}
+        </AnimatePresence>
 
         {/* ── Game screens ── */}
-        <AnimatePresence mode="sync">
+        <AnimatePresence mode={pageTransitionMode}>
           {appPhase === 'start' && (
             <motion.div
               key="start"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              style={{ width: '100%', height: '100%' }}
+              variants={PAGE_VARIANTS}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={pageTransition}
+              style={ACTIVE_PAGE_SHELL_STYLE}
             >
               <StartPage
                 onStart={() => setAppPhase('mission-setup')}
@@ -2434,11 +2539,12 @@ export default function App() {
           {appPhase === 'mission-setup' && (
             <motion.div
               key="mission-setup"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              style={{ width: '100%', height: '100%' }}
+              variants={PAGE_VARIANTS}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={pageTransition}
+              style={ACTIVE_PAGE_SHELL_STYLE}
             >
               <MissionSetup
                 onBack={() => setAppPhase('start')}
@@ -2450,11 +2556,12 @@ export default function App() {
           {appPhase === 'home' && (
             <motion.div
               key="home"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              style={{ width: '100%', height: '100%' }}
+              variants={menuPageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={pageTransition}
+              style={ACTIVE_PAGE_SHELL_STYLE}
             >
               <StarMapLevelSelect
                 completedLevels={completedLevels}
@@ -2467,11 +2574,12 @@ export default function App() {
           {appPhase === 'playing' && (
             <motion.div
               key={`level-${level.id}-${levelSessionKey}`}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.35 }}
-              style={{ width: '100%', height: '100%' }}
+              variants={gameplayPageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={pageTransition}
+              style={ACTIVE_PAGE_SHELL_STYLE}
             >
               <LevelScreen
                 key={`${level.id}-${levelSessionKey}`}
@@ -2484,6 +2592,7 @@ export default function App() {
                 topOffset={gameTopOffset}
                 animSpeed={animSpeed}
                 onAnimSpeedChange={handleAnimSpeedChange}
+                fastEntry={isMapGameplayTransition}
               />
             </motion.div>
           )}
@@ -2491,11 +2600,12 @@ export default function App() {
           {appPhase === 'strategy-card' && (
             <motion.div
               key="strategy-card"
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.4 }}
-              style={{ width: '100%', height: '100%' }}
+              variants={PAGE_VARIANTS}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={pageTransition}
+              style={ACTIVE_PAGE_SHELL_STYLE}
             >
               <StrategyCardScreen
                 levelId={strategyCardLevelId ?? level.id}

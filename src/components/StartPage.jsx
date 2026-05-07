@@ -82,10 +82,10 @@ export default function StartPage({ onStart, onContinue }) {
   return (
     <motion.main
       className="starlost-menu"
-      initial={{ opacity: 0 }}
+      initial={false}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
+      exit={{ opacity: 1 }}
+      transition={{ duration: 0 }}
       aria-label="STARLOST start page"
     >
       <img className="starlost-menu__bg" src="/assets/ui/start-page-bg.png" alt="" />

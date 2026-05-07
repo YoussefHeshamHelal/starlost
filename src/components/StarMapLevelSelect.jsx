@@ -100,10 +100,35 @@ function LevelNode({ level, position, completedLevels, onSelectLevel }) {
   )
 }
 
+function ZoneTrail({ zone }) {
+  if (zone.path.length < 2) return null
+
+  const points = zone.path
+    .map(level => zone.positions[level])
+    .filter(Boolean)
+    .map(position => `${position.left},${position.top}`)
+    .join(' ')
+
+  return (
+    <svg
+      className="star-zone__trail"
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <polyline className="star-zone__trail-glow" points={points} />
+      <polyline className="star-zone__trail-core" points={points} />
+      <polyline className="star-zone__trail-spark" points={points} />
+    </svg>
+  )
+}
+
 function StarZone({ zone, completedLevels, onSelectLevel }) {
   return (
     <section className={`star-zone ${zone.className}`} aria-label={zone.title}>
       <h2 className="star-zone__title">{zone.title}</h2>
+      <ZoneTrail zone={zone} />
       {zone.path.map(level => (
         <LevelNode
           key={level}
@@ -140,10 +165,10 @@ export default function StarMapLevelSelect({
   return (
     <motion.main
       className="starlost-menu"
-      initial={{ opacity: 0 }}
+      initial={false}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
+      exit={{ opacity: 1 }}
+      transition={{ duration: 0 }}
       aria-label="Star map level select"
     >
       <img className="starlost-menu__bg" src="/assets/ui/star-map-bg.png" alt="" />
