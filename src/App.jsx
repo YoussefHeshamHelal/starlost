@@ -392,17 +392,6 @@ const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, s
           : '0 4px 28px rgba(0,0,0,0.5)',
       }}
     >
-      <p style={{
-        margin: 0,
-        fontSize: 10,
-        letterSpacing: 2.4,
-        fontFamily: 'monospace',
-        color: theme === 'light' ? '#1579ac' : '#2dd4bf',
-        fontWeight: 900,
-      }}>
-        LUMA IDENTIFY
-      </p>
-
       {showVisorFlip && (
         <VisorFlipButton
           visorFlipCount={visorFlipCount}

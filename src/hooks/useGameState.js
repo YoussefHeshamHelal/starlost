@@ -430,7 +430,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     }
 
     if (levelConfig.id === 17) {
-      return "Can you see where I am? There is a box on my right and a box on my left."
+      return "Can you see where I am? There is a box on my right and a box on my left, and a ship fragment in front of me."
     }
 
     if (levelConfig.id === 21) {
