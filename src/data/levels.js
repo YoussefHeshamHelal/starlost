@@ -760,6 +760,36 @@ export function generateLevel16Layout() {
 export function generateLevel18Layout() {
   return {
     walls: [
+      { x: 4, y: 0 },
+
+      { x: 0, y: 1 },
+      { x: 2, y: 1 },
+      { x: 4, y: 1 },
+
+      { x: 0, y: 2 },
+      { x: 2, y: 2 },
+
+      { x: 1, y: 3 },
+
+      { x: 1, y: 4 },
+      { x: 3, y: 4 },
+      { x: 4, y: 4 },
+    ],
+    objects: [],
+    solution: [
+      createRepeatCommand(9, [
+        createIfPathCommand('ahead', ['F'], ['TR']),
+      ]),
+    ],
+    lumaStart: { x: 0, y: 0 },
+    goal: { x: 2, y: 3 },
+    lumaFacing: 'east',
+  }
+}
+
+export function generateLevel19Layout() {
+  return {
+    walls: [
       { x: 0, y: 0 },
       { x: 4, y: 0 },
       { x: 1, y: 2 },
@@ -786,37 +816,6 @@ export function generateLevel18Layout() {
     lumaStart: { x: 0, y: 4 },
     goal: { x: 4, y: 4 },
     lumaFacing: 'north',
-  }
-}
-
-export function generateLevel19Layout() {
-  return {
-    walls: [
-      { x: 1, y: 0 },
-      { x: 1, y: 1 },
-      { x: 3, y: 2 },
-      { x: 0, y: 4 },
-      { x: 3, y: 4 },
-      { x: 4, y: 0 },
-    ],
-    objects: [
-      { type: 'ship_part', x: 2, y: 1 },
-      { type: 'ship_part', x: 4, y: 3 },
-    ],
-    solution: [
-      createRepeatCommand(5, [
-        createIfPathCommand('left', ['TL', 'F'], ['F']),
-      ]),
-      'C',
-      createRepeatCommand(4, [
-        createIfPathCommand('right', ['TR', 'F'], ['F']),
-      ]),
-      'C',
-      'F',
-    ],
-    lumaStart: { x: 0, y: 0 },
-    goal: { x: 4, y: 4 },
-    lumaFacing: 'south',
   }
 }
 
@@ -1532,13 +1531,13 @@ export const LEVELS = [
   },
   {
     id: 18,
-    name: 'IF/ELSE Fragment Corridor',
+    name: 'IF/ELSE Turn Choice',
     world: 'repair-site',
     tutorial: true,
     grid: { cols: COLS, rows: ROWS },
-    lumaStart: { x: 0, y: 4 },
-    lumaFacing: 'north',
-    goal: { x: 4, y: 4 },
+    lumaStart: { x: 0, y: 0 },
+    lumaFacing: 'east',
+    goal: { x: 2, y: 3 },
     walls: [],
     objects: [],
     fog: false,
@@ -1557,11 +1556,11 @@ export const LEVELS = [
     skipIdentify: false,
     noRadio: false,
     layoutGenerator: 'level18',
-    targetCommands: 5,
+    targetCommands: 4,
     uncertainRadio: false,
     allowRepeat: true,
     allowIfPath: true,
-    allowCollect: true,
+    allowCollect: false,
     defaultIfPathCondition: 'ahead',
     repeatDefaults: { times: 2 },
     useIfElse: true,
@@ -1569,12 +1568,12 @@ export const LEVELS = [
   },
   {
     id: 19,
-    name: 'Decomposition Relay Prep',
+    name: 'IF/ELSE Fragment Corridor',
     world: 'repair-site',
-    tutorial: false,
+    tutorial: true,
     grid: { cols: COLS, rows: ROWS },
-    lumaStart: { x: 0, y: 0 },
-    lumaFacing: 'south',
+    lumaStart: { x: 0, y: 4 },
+    lumaFacing: 'north',
     goal: { x: 4, y: 4 },
     walls: [],
     objects: [],
@@ -1594,12 +1593,12 @@ export const LEVELS = [
     skipIdentify: false,
     noRadio: false,
     layoutGenerator: 'level19',
-    targetCommands: 13,
+    targetCommands: 5,
     uncertainRadio: false,
     allowRepeat: true,
     allowIfPath: true,
     allowCollect: true,
-    defaultIfPathCondition: 'left',
+    defaultIfPathCondition: 'ahead',
     repeatDefaults: { times: 2 },
     useIfElse: true,
     requireElse: true,

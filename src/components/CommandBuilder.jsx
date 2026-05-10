@@ -464,7 +464,10 @@ function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathConditi
     >
       {isIfPath ? (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <div
+            data-tutorial-id={showIfElse ? 'command-if-path' : undefined}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}
+          >
             <span style={{ color: ifElsePreviewColor, fontSize: 10, lineHeight: 1, fontWeight: 800, letterSpacing: 0.8, whiteSpace: 'nowrap' }}>IF PATH</span>
             <select
               value={ifPathCondition}

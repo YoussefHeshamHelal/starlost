@@ -225,6 +225,18 @@ export const LEVEL_TUTORIALS = {
       nextLabel: 'Ready',
     }),
   ],
+  19: [
+    levelStep('level-19-two-blocks-inside-if', {
+      targetId: 'command-if-else-path',
+      placement: 'left',
+      title: 'More blocks inside IF or ELSE',
+      body: 'The IF and ELSE parts can hold more than one block. This lets LUMA do more than one action depending on whether the path check is true or false.',
+      waitForTarget: true,
+      hideProgress: true,
+      nextLabel: 'Got it',
+      showWhen: ({ phase }) => phase === 'develop',
+    }),
+  ],
   20: [
     levelStep('level-20-hidden-fragment', {
       targetId: 'grid-panel',

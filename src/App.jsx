@@ -1167,75 +1167,6 @@ function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER
 const TUTORIAL_LEVELS_KEY = 'starlost:tutorial:levels'
 const TUTORIAL_FEATURES_KEY = 'starlost:tutorial:features'
 const LEVEL_1_RESET_TUTORIAL_KEY = 'level-1-reset'
-const LEVEL_19_EFFICIENT_FRAGMENT = { x: 2, y: 1 }
-const LEVEL_19_CHECKPOINT_TILES = [
-  LEVEL_19_EFFICIENT_FRAGMENT,
-  { x: 4, y: 3 },
-]
-const LEVEL_19_CHECKPOINT_PROMPT = 'Choose which fragment LUMA should reach first to make the path most efficient.'
-const LEVEL_19_CHECKPOINT_SUCCESS = 'Great choice! That fragment makes the path shorter and easier to split into 2 routes.'
-const LEVEL_19_CHECKPOINT_RETRY = 'That could still work, but it would take more blocks. Try to find the fragment that makes the path more efficient.'
-const LEVEL_19_ROUTE_HINT_STEPS = [
-  {
-    id: 'level-19-route-split-intro',
-    targetId: 'grid-panel',
-    placement: 'right',
-    title: 'Split the path into two routes',
-    body: 'This path is too long to think about all at once. First, we will make a small program for Route 1 to reach the first fragment. After LUMA collects it, we will continue with Route 2 to reach the next fragment and the ship core.',
-    nextLabel: 'Route 1 first',
-  },
-  {
-    id: 'level-19-route-hint-map',
-    targetId: 'grid-panel',
-    placement: 'right',
-    title: 'First, make Route 1',
-    body: 'Start with only the first small program. Help LUMA reach the first fragment and collect it. Stop there for now — we will do the second route after LUMA gets this fragment.',
-    nextLabel: 'Start Route 1',
-  },
-  {
-    id: 'level-19-route-one-at-a-time',
-    targetId: 'sequence-area',
-    placement: 'left',
-    title: 'One route at a time',
-    body: 'This first program should end after COLLECT at the first fragment. Do not try to reach the ship core yet.',
-    nextLabel: 'Got it',
-  },
-  {
-    id: 'level-19-route-check-left',
-    targetId: 'command-if-else-path',
-    placement: 'left',
-    title: 'Check the left side',
-    body: 'In the previous levels, LUMA often checked the path ahead. This time, try making LUMA check the path on her left.',
-    nextLabel: 'One more hint',
-  },
-  {
-    id: 'level-19-route-do-two-commands',
-    targetId: 'sequence-area',
-    placement: 'left',
-    title: 'Use two blocks inside DO',
-    body: 'The DO part inside IF can hold more than one block. For this first route, the best path is 6 blocks.',
-    nextLabel: 'Build Route 1',
-  },
-]
-const LEVEL_19_ROUTE_2_STEPS = [
-  {
-    id: 'level-19-route-2-continue',
-    targetId: 'sequence-area',
-    placement: 'left',
-    title: 'Great! Now continue the program',
-    body: 'LUMA collected the first fragment. Keep those blocks. Now add Route 2 under them so LUMA can reach the second fragment, collect it, and then go to the ship core.',
-    nextLabel: 'Build Route 2',
-  },
-  {
-    id: 'level-19-route-2-different',
-    targetId: 'command-if-else-path',
-    placement: 'left',
-    title: 'Route 2 is different',
-    body: 'The second route can use another Repeat with IF/ELSE. This time, LUMA may need to check the right side.',
-    nextLabel: 'Ready',
-  },
-]
-
 function readTutorialSessionSet(key) {
   try {
     const raw = sessionStorage.getItem(key)
@@ -1387,16 +1318,6 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     traceSelection, traceEliminatedTiles, traceGoalRevealed, answerTraceCell,
     effectiveLevel, getGBISnapshot,
   } = useGameState(levelConfig, animSpeed)
-  const [checkpointChoiceComplete, setCheckpointChoiceComplete] = useState(false)
-  const [checkpointChoiceFeedback, setCheckpointChoiceFeedback] = useState(null)
-  const [checkpointChoiceSelection, setCheckpointChoiceSelection] = useState(null)
-  const [level19Route1Complete, setLevel19Route1Complete] = useState(false)
-  const [level19ContinueStartIndex, setLevel19ContinueStartIndex] = useState(0)
-  const checkpointChoiceFinishTimerRef = useRef(null)
-  const checkpointChoiceActive =
-    levelConfig.id === 19 &&
-    phase === 'develop' &&
-    !checkpointChoiceComplete
   const echoQuestionActive =
     Boolean(effectiveLevel.echoProbe) &&
     echoActivated &&
@@ -1508,79 +1429,6 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     }
   }, [closeTutorial, startTutorial])
 
-  const handleCheckpointTileClick = useCallback((col, row) => {
-    if (!checkpointChoiceActive) return
-
-    const isEfficientChoice =
-      col === LEVEL_19_EFFICIENT_FRAGMENT.x &&
-      row === LEVEL_19_EFFICIENT_FRAGMENT.y
-
-    setCheckpointChoiceSelection({
-      x: col,
-      y: row,
-      result: isEfficientChoice ? 'success' : 'retry',
-    })
-
-    if (!isEfficientChoice) {
-      setCheckpointChoiceFeedback({
-        type: 'retry',
-        text: LEVEL_19_CHECKPOINT_RETRY,
-      })
-      return
-    }
-
-    setCheckpointChoiceFeedback({
-      type: 'success',
-      text: LEVEL_19_CHECKPOINT_SUCCESS,
-    })
-
-    if (checkpointChoiceFinishTimerRef.current) {
-      window.clearTimeout(checkpointChoiceFinishTimerRef.current)
-    }
-
-    checkpointChoiceFinishTimerRef.current = window.setTimeout(() => {
-      setCheckpointChoiceComplete(true)
-      setCheckpointChoiceFeedback(null)
-      setCheckpointChoiceSelection(null)
-      startTutorial(LEVEL_19_ROUTE_HINT_STEPS)
-    }, 900)
-  }, [checkpointChoiceActive, startTutorial])
-
-  useEffect(() => () => {
-    if (checkpointChoiceFinishTimerRef.current) {
-      window.clearTimeout(checkpointChoiceFinishTimerRef.current)
-    }
-  }, [])
-
-  const resetLevel19RouteStage = useCallback(() => {
-    setLevel19Route1Complete(false)
-    setLevel19ContinueStartIndex(0)
-  }, [])
-
-  const handleLevel19Route1Incomplete = useCallback(({ luma: finalLuma, collectedParts: finalCollectedParts, sequenceLength }) => {
-    const firstFragmentCollected = finalCollectedParts.has(0)
-    const secondFragmentCollected = finalCollectedParts.has(1)
-    const route1Finished =
-      finalLuma.x === LEVEL_19_EFFICIENT_FRAGMENT.x &&
-      finalLuma.y === LEVEL_19_EFFICIENT_FRAGMENT.y &&
-      finalLuma.facing === 'north' &&
-      firstFragmentCollected &&
-      !secondFragmentCollected
-
-    if (!route1Finished) return false
-
-    setLevel19Route1Complete(true)
-    setLevel19ContinueStartIndex(sequenceLength)
-    startTutorial(LEVEL_19_ROUTE_2_STEPS)
-    return true
-  }, [startTutorial])
-
-  useEffect(() => {
-    if (levelConfig.id === 19) return undefined
-    const timer = window.setTimeout(resetLevel19RouteStage, 0)
-    return () => window.clearTimeout(timer)
-  }, [levelConfig.id, resetLevel19RouteStage])
-
   useEffect(() => {
     if (tutorialSteps.length > 0) return undefined
 
@@ -1591,7 +1439,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
         levelConfig.id !== 15 &&
         levelConfig.id !== 16 &&
         levelConfig.id !== 17 &&
-        levelConfig.id !== 18) ||
+        levelConfig.id !== 18 &&
+        levelConfig.id !== 19) ||
       phase === 'develop'
 
     if (!autoTutorialReady) {
@@ -1667,93 +1516,27 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   }, [closeTutorial, currentTutorialStep, tutorialContext, tutorialSteps.length])
 
   const handleReorder = useCallback((newSeq) => {
-    if (
-      levelConfig.id === 19 &&
-      level19Route1Complete &&
-      level19ContinueStartIndex > 0
-    ) {
-      const oldRoute1 = JSON.stringify(sequence.slice(0, level19ContinueStartIndex))
-      const nextRoute1 = JSON.stringify(newSeq.slice(0, level19ContinueStartIndex))
-      if (newSeq.length < level19ContinueStartIndex || oldRoute1 !== nextRoute1) {
-        resetLevel19RouteStage()
-      }
-    }
-
     if (setSequence) setSequence(newSeq)
-  }, [
-    level19ContinueStartIndex,
-    level19Route1Complete,
-    levelConfig.id,
-    resetLevel19RouteStage,
-    sequence,
-    setSequence,
-  ])
+  }, [setSequence])
 
   const handleVisorClose = useCallback(() => closeVisor(), [closeVisor])
   const handleAnswerSPT = useCallback((answer) => answerSPT(answer), [answerSPT])
   const handleFlipVisor = useCallback(() => flipVisor(), [flipVisor])
   const handleAddCommand = useCallback((cmd) => addCommand(cmd), [addCommand])
   const handleRemoveLastCommand = useCallback(() => {
-    if (
-      levelConfig.id === 19 &&
-      level19Route1Complete &&
-      sequence.length - 1 < level19ContinueStartIndex
-    ) {
-      resetLevel19RouteStage()
-    }
     removeLastCommand()
-  }, [
-    level19ContinueStartIndex,
-    level19Route1Complete,
-    levelConfig.id,
-    removeLastCommand,
-    resetLevel19RouteStage,
-    sequence.length,
-  ])
+  }, [removeLastCommand])
   const handleClearSequence = useCallback(() => {
-    if (levelConfig.id === 19) resetLevel19RouteStage()
     clearSequence()
-  }, [clearSequence, levelConfig.id, resetLevel19RouteStage])
+  }, [clearSequence])
   const handleRunSequence = useCallback(() => {
-    if (levelConfig.id === 19) {
-      if (level19Route1Complete) {
-        if (sequence.length <= level19ContinueStartIndex) {
-          startTutorial(LEVEL_19_ROUTE_2_STEPS)
-          return
-        }
-        runSequence({ startIndex: level19ContinueStartIndex })
-        return
-      }
-
-      runSequence({ onIncomplete: handleLevel19Route1Incomplete })
-      return
-    }
-
     runSequence()
-  }, [
-    handleLevel19Route1Incomplete,
-    level19ContinueStartIndex,
-    level19Route1Complete,
-    levelConfig.id,
-    runSequence,
-    sequence.length,
-    startTutorial,
-  ])
+  }, [runSequence])
   const handleResetLuma = useCallback(() => {
-    if (levelConfig.id === 19) resetLevel19RouteStage()
     resetLuma()
-  }, [levelConfig.id, resetLevel19RouteStage, resetLuma])
-  const level19ReplayableTutorialSteps = useMemo(
-    () => getRenderableTutorialSteps(
-      level19Route1Complete ? LEVEL_19_ROUTE_2_STEPS : LEVEL_19_ROUTE_HINT_STEPS,
-      tutorialContext
-    ),
-    [level19Route1Complete, tutorialContext]
-  )
+  }, [resetLuma])
   const canReplayTutorial =
-    (levelConfig.id === 19
-      ? level19ReplayableTutorialSteps.length > 0
-      : replayableTutorialSteps.length > 0) &&
+    replayableTutorialSteps.length > 0 &&
     levelConfig.id !== 14 &&
     levelConfig.id !== 4 &&
     levelConfig.id !== 12 &&
@@ -1770,16 +1553,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   const handleReplayTutorial = useCallback(() => {
     if (!canReplayTutorial) return
 
-    if (levelConfig.id === 19) {
-      launchTutorialWhenReady(
-        level19Route1Complete ? LEVEL_19_ROUTE_2_STEPS : LEVEL_19_ROUTE_HINT_STEPS,
-        { persist: false }
-      )
-      return
-    }
-
     launchTutorialWhenReady(currentLevelTutorialPlan, { persist: false })
-  }, [canReplayTutorial, currentLevelTutorialPlan, launchTutorialWhenReady, level19Route1Complete, levelConfig.id])
+  }, [canReplayTutorial, currentLevelTutorialPlan, launchTutorialWhenReady])
 
   useEffect(() => {
     if (!onHeaderControls) return undefined
@@ -1827,9 +1602,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     (levelConfig.predictionPrompt && predictionTile === null && predictionResult === null) ||
     ifElseBlocked
   const effectiveDefaultIfPathCondition =
-    levelConfig.id === 19
-      ? (level19Route1Complete ? 'right' : 'left')
-      : levelConfig.id === 21
+    levelConfig.id === 21
         ? (echoCloudsRevealed ? 'left' : 'right')
       : (levelConfig.defaultIfPathCondition ?? 'ahead')
 
@@ -1951,10 +1724,6 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
               predictionTile={predictionTile}
               predictionResult={predictionResult}
               onTileClick={handleTileClick}
-              checkpointChoiceActive={checkpointChoiceActive}
-              checkpointChoiceTiles={LEVEL_19_CHECKPOINT_TILES}
-              checkpointChoiceSelection={checkpointChoiceSelection}
-              onCheckpointTileClick={handleCheckpointTileClick}
               collectionEffects={collectionEffects}
               activeIfPathSignal={activeIfPathSignal}
               echoActivated={echoActivated}
@@ -2048,122 +1817,11 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                     />
                   )}
                 </AnimatePresence>
-                <AnimatePresence>
-                  {checkpointChoiceActive && (
-                    <motion.div
-                      key="checkpoint-choice"
-                      initial={{ opacity: 0, y: -10, scale: 0.94, rotate: -0.6 }}
-                      animate={{
-                        opacity: 1,
-                        y: [ -10, 3, 0 ],
-                        scale: [ 0.94, 1.025, 1 ],
-                        rotate: [ -0.6, 0.35, 0 ],
-                      }}
-                      exit={{ opacity: 0, y: -8, scale: 0.97 }}
-                      transition={{ duration: 0.46, ease: [0.16, 1, 0.3, 1] }}
-                      style={{
-                        position: 'relative',
-                        flexShrink: 0,
-                        overflow: 'hidden',
-                        padding: '14px 16px',
-                        borderRadius: 18,
-                        border: `2px solid ${checkpointChoiceFeedback?.type === 'success' ? '#10b981' : checkpointChoiceFeedback?.type === 'retry' ? '#ef4444' : '#f59e0b'}`,
-                        background: theme === 'light'
-                          ? 'linear-gradient(135deg, rgba(255,255,255,0.97), rgba(255,247,237,0.94))'
-                          : 'linear-gradient(135deg, rgba(13,18,34,0.96), rgba(24,18,8,0.94))',
-                        boxShadow: checkpointChoiceFeedback?.type === 'success'
-                          ? '0 18px 34px rgba(16,185,129,0.20), inset 0 1px 0 rgba(255,255,255,0.42)'
-                          : checkpointChoiceFeedback?.type === 'retry'
-                            ? '0 18px 34px rgba(239,68,68,0.18), inset 0 1px 0 rgba(255,255,255,0.36)'
-                            : theme === 'light'
-                              ? '0 18px 34px rgba(245,158,11,0.18), inset 0 1px 0 rgba(255,255,255,0.72)'
-                              : '0 18px 34px rgba(0,0,0,0.46), 0 0 20px rgba(245,158,11,0.14)',
-                        boxSizing: 'border-box',
-                        textAlign: 'left',
-                      }}
-                    >
-                      <motion.div
-                        aria-hidden="true"
-                        animate={{ x: ['-20%', '120%'], opacity: [0, 0.46, 0] }}
-                        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          bottom: 0,
-                          width: 70,
-                          transform: 'skewX(-18deg)',
-                          background: 'rgba(255,255,255,0.28)',
-                          pointerEvents: 'none',
-                        }}
-                      />
-                      <div style={{
-                        position: 'relative',
-                        display: 'flex',
-                        alignItems: checkpointChoiceFeedback ? 'flex-start' : 'center',
-                        justifyContent: checkpointChoiceFeedback ? 'flex-start' : 'center',
-                        gap: 12,
-                      }}>
-                        <motion.div
-                          animate={{ y: [0, -3, 0], rotate: [0, -4, 4, 0] }}
-                          transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-                          style={{
-                            flexShrink: 0,
-                            width: 38,
-                            height: 38,
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: checkpointChoiceFeedback?.type === 'success'
-                              ? 'rgba(16,185,129,0.16)'
-                              : checkpointChoiceFeedback?.type === 'retry'
-                                ? 'rgba(239,68,68,0.14)'
-                                : 'rgba(245,158,11,0.16)',
-                            border: `1.5px solid ${checkpointChoiceFeedback?.type === 'success' ? '#10b98166' : checkpointChoiceFeedback?.type === 'retry' ? '#ef444466' : '#f59e0b66'}`,
-                            fontSize: 20,
-                            color: checkpointChoiceFeedback?.type === 'success' ? '#10b981' : checkpointChoiceFeedback?.type === 'retry' ? '#ef4444' : '#f59e0b',
-                            fontWeight: 1000,
-                            textShadow: '0 1px 0 rgba(0,0,0,0.18), 0 0 8px rgba(255,255,255,0.92), 0 0 14px rgba(245,158,11,0.42)',
-                            lineHeight: 1,
-                          }}
-                        >
-                          ?
-                        </motion.div>
-                        <div style={{ flex: checkpointChoiceFeedback ? 1 : '0 1 auto', minWidth: 0, textAlign: checkpointChoiceFeedback ? 'left' : 'center' }}>
-                          <p style={{
-                            margin: 0,
-                            fontSize: 13,
-                            lineHeight: 1.45,
-                            color: t.textPrimary,
-                            fontWeight: 900,
-                          }}>
-                            {LEVEL_19_CHECKPOINT_PROMPT}
-                          </p>
-                          {checkpointChoiceFeedback && (
-                            <motion.p
-                              initial={{ opacity: 0, y: 4 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              style={{
-                                margin: '8px 0 0 0',
-                                fontSize: 12,
-                                lineHeight: 1.45,
-                                color: checkpointChoiceFeedback.type === 'success' ? '#10b981' : '#dc2626',
-                                fontWeight: 800,
-                              }}
-                            >
-                              {checkpointChoiceFeedback.text}
-                            </motion.p>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
                 <div style={{
                   minHeight: 0,
                   height: '100%',
-                  pointerEvents: checkpointChoiceActive || echoQuestionActive || echoIdentifyActive ? 'none' : 'auto',
-                  opacity: checkpointChoiceActive || echoQuestionActive || echoIdentifyActive ? 0.56 : 1,
+                  pointerEvents: echoQuestionActive || echoIdentifyActive ? 'none' : 'auto',
+                  opacity: echoQuestionActive || echoIdentifyActive ? 0.56 : 1,
                 }}>
                   <CommandBuilder
                     key={`command-builder-${levelConfig.id}`}
@@ -2234,7 +1892,10 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
 export default function App() {
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0)
   const [levelSessionKey, setLevelSessionKey] = useState(0)
-  const [appPhase, setAppPhase] = useState('start')
+  const [appPhaseState, setAppPhaseState] = useState({
+    current: 'start',
+    previous: 'start',
+  })
   const [participantId, setParticipantId] = useState(readStoredParticipantId)
   const [completedLevels, setCompletedLevels] = useState([])
   const [strategyCardLevelId, setStrategyCardLevelId] = useState(null)
@@ -2256,12 +1917,28 @@ export default function App() {
     }
   }, [])
 
+  const appPhase = appPhaseState.current
+  const previousAppPhase = appPhaseState.previous
+  const setAppPhase = useCallback((nextPhaseOrUpdater) => {
+    setAppPhaseState(prev => {
+      const nextPhase =
+        typeof nextPhaseOrUpdater === 'function'
+          ? nextPhaseOrUpdater(prev.current)
+          : nextPhaseOrUpdater
+
+      if (nextPhase === prev.current) return prev
+
+      return {
+        previous: prev.current,
+        current: nextPhase,
+      }
+    })
+  }, [])
+
   const t = THEMES[theme]
   const level = LEVELS[currentLevelIndex]
   const gameTopOffset = HEADER_H
   const isOuterPhase = OUTER_PHASES.has(appPhase)
-  const previousAppPhaseRef = useRef(appPhase)
-  const previousAppPhase = previousAppPhaseRef.current
   const pageTransitionMode = previousAppPhase === 'playing' && appPhase === 'playing' ? 'wait' : 'sync'
   const isMapGameplayTransition =
     (previousAppPhase === 'home' && appPhase === 'playing') ||
@@ -2280,10 +1957,6 @@ export default function App() {
       image.src = src
     })
   }, [])
-
-  useEffect(() => {
-    previousAppPhaseRef.current = appPhase
-  }, [appPhase])
 
   useEffect(() => {
     if (!['home', 'playing', 'strategy-card'].includes(appPhase)) return
@@ -2306,13 +1979,13 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [appPhase, participantId])
+  }, [appPhase, participantId, setAppPhase])
 
   const handleMissionComplete = useCallback((nextParticipantId) => {
     setParticipantId(nextParticipantId)
     setCompletedLevels([])
     setAppPhase('home')
-  }, [])
+  }, [setAppPhase])
 
   const handleContinueMission = useCallback(async () => {
     const storedParticipantId = readStoredParticipantId()
@@ -2329,7 +2002,7 @@ export default function App() {
       console.error('[StartPage] Failed to refresh saved mission code:', err)
     }
     setAppPhase('home')
-  }, [])
+  }, [setAppPhase])
 
   const handleSelectLevel = useCallback((levelNumber) => {
     if (levelNumber < 1 || levelNumber > PLAYABLE_LEVELS) return
@@ -2338,13 +2011,13 @@ export default function App() {
     setStrategyCardLevelId(null)
     setLevelHeaderControls(null)
     setAppPhase('playing')
-  }, [])
+  }, [setAppPhase])
 
   const handleGoHome = useCallback(() => {
     setAppPhase('home')
     setStrategyCardLevelId(null)
     setLevelHeaderControls(null)
-  }, [])
+  }, [setAppPhase])
 
   const completeLevelProgress = useCallback(async (completedLevelId) => {
     if (!participantId) return
@@ -2368,14 +2041,14 @@ export default function App() {
     }
     setStrategyCardLevelId(null)
     setAppPhase('home')
-  }, [completeLevelProgress])
+  }, [completeLevelProgress, setAppPhase])
 
   const handleShowStrategyCard = useCallback((completedLevelId) => {
     completeLevelProgress(completedLevelId)
     setStrategyCardLevelId(completedLevelId)
     setLevelHeaderControls(null)
     setAppPhase('strategy-card')
-  }, [completeLevelProgress])
+  }, [completeLevelProgress, setAppPhase])
 
   const handleStrategyCardDone = () => {
     const completedLevelId = strategyCardLevelId
