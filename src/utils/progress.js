@@ -1,7 +1,7 @@
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 
-export const TOTAL_LEVELS = 21
+export const TOTAL_LEVELS = 23
 
 export function normalizeCompletedLevels(completedLevels) {
   if (!Array.isArray(completedLevels)) return []

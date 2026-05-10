@@ -93,6 +93,14 @@ function getObstacleArticle(world) {
   return 'a rock'
 }
 
+function getGoalVisual(level) {
+  return level.goalVisual ?? level.goalType ?? 'ship_core'
+}
+
+function isLaunchPadGoal(level) {
+  return getGoalVisual(level) === 'launch_pad'
+}
+
 // ── Regular radio report builder ──────────────────────────────────────────────
 function buildRadioReport(lumaPos, facing, walls = [], objects = [], goal, collectedIndices = new Set(), world = 'crash-site', includeOpener = false) {
   const lumaCtx = { x: lumaPos.x, y: lumaPos.y, facing }
@@ -433,8 +441,12 @@ export function useGameState(levelConfig, animSpeed = 50) {
       return "Can you see where I am? There is a box on my right and a box on my left, and a ship fragment in front of me."
     }
 
-    if (levelConfig.id === 21) {
-      return "Can you see where I am? The path is blocked behind me."
+    if (levelConfig.id === 21 || levelConfig.id === 22) {
+      return "Can you see where I am? There’s open path in front of me and on my right, but there’s no path behind me or to my left."
+    }
+
+    if (levelConfig.id === 23) {
+      return "Can you see where I am? There is no path behind me."
     }
 
     if (levelConfig.id === 6) {
@@ -521,7 +533,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
   const helmetReport = levelConfig.noRadio
     ? reportOverride ?? liveReport
-    : levelConfig.id === 21 && reportOverride
+    : levelConfig.traceMode && reportOverride
       ? reportOverride
       : sptCorrect
       ? successRadioMessage
@@ -589,13 +601,13 @@ export function useGameState(levelConfig, animSpeed = 50) {
           effectiveLevel.walls,
         ))
       }
-      if (levelConfig.id === 21) {
-        setReportOverride("Yes! Now I know which way I'm facing. Let's trace the launch code.")
+      if (levelConfig.traceMode) {
+        setReportOverride("Yes! Now I know which way I'm facing. Let's trace the code.")
       }
       setPhase('develop')
     }
     return correct
-  }, [effectiveLevel.walls, levelConfig.id, resolvedFacing, resolvedStart.x, resolvedStart.y, sptCorrectAnswer])
+  }, [effectiveLevel.walls, levelConfig.id, levelConfig.traceMode, resolvedFacing, resolvedStart.x, resolvedStart.y, sptCorrectAnswer])
 
   // ── VISOR FLIP ───────────────────────────────────────────────────────────
   const openVisor = useCallback(() => {
@@ -834,7 +846,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
         if (atGoal && allPartsCollected) {
           setPhase('success')
           setNeedsReset(false)
-          setReportOverride(levelConfig.id === 21
+          setReportOverride(isLaunchPadGoal(levelConfig)
               ? "Launch pad reached! LUMA is ready to fly home."
               : "I made it! The ship core is right here — we did it!")
         } else if (onIncomplete?.({
@@ -990,7 +1002,9 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
         traceRunStartedRef.current = true
     setTraceGoalRevealed(true)
-    setReportOverride("Correct! The launch pad is appearing. Watch LUMA run the launch code!")
+    setReportOverride(isLaunchPadGoal(levelConfig)
+      ? "Correct! The launch pad is appearing. Watch LUMA run the launch code!"
+      : "Correct! The ship core is appearing. Watch LUMA run the program!")
 
     window.setTimeout(() => {
       setTraceSelection((currentSelection) => (
@@ -1003,7 +1017,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     }, 1050)
 
     return true
-  }, [effectiveLevel.walls, firstFailTime, isRunning, levelConfig.traceMode, levelConfig.tracingCorrectCell, phase, runSequence, traceEliminatedTiles])
+  }, [effectiveLevel.walls, firstFailTime, isRunning, levelConfig, phase, runSequence, traceEliminatedTiles])
 
   const dismissMissedFragments = useCallback(() => {
     setMissedFragments(false)

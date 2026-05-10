@@ -63,9 +63,11 @@ const ZONES = [
     id: 'launch',
     className: 'star-zone--launch',
     title: COPY.launchSite,
-    path: [21],
+    path: [21, 22, 23],
     positions: {
-      21: { left: 51, top: 58 },
+      21: { left: 28, top: 62 },
+      22: { left: 51, top: 48 },
+      23: { left: 74, top: 62 },
     },
   },
 ]
@@ -83,7 +85,7 @@ function LevelNode({ level, position, completedLevels, onSelectLevel }) {
   const className = [
     'star-node',
     completed ? 'star-node--completed' : '',
-    level === 21 ? 'star-node--launch' : '',
+    level >= 21 && level <= 23 ? 'star-node--launch' : '',
   ].filter(Boolean).join(' ')
 
   return (

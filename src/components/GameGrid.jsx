@@ -13,6 +13,14 @@ const DEFAULT_TILE_SIZE = 104
 const DIRECTIONS = ['north', 'east', 'south', 'west']
 const MOVE_DELTAS = { north:[0,-1], east:[1,0], south:[0,1], west:[-1,0] }
 
+function getGoalVisual(level) {
+  return level.goalVisual ?? level.goalType ?? 'ship_core'
+}
+
+function isLaunchPadGoal(level) {
+  return getGoalVisual(level) === 'launch_pad'
+}
+
 // Get what's in a specific relative direction from LUMA
 function getTileInDirection(luma, relDir, level) {
   const { grid, walls = [], objects = [], goal } = level
@@ -36,7 +44,7 @@ function getTileInDirection(luma, relDir, level) {
   if (walls.some(w => w.x === ax && w.y === ay))
     return worldObstacle
   if (goal && goal.x === ax && goal.y === ay) {
-    if (level.world === 'launch-site') {
+    if (isLaunchPadGoal(level)) {
       return { type: 'launch_pad', label: 'LAUNCH PAD', emoji: '\u2726', color: '#22d3ee' }
     }
     return { type: 'goal', label: 'SHIP CORE!', emoji: '⭐', color: '#f59e0b' }
@@ -1076,10 +1084,10 @@ function ZoneContent({ tile, zone, W, H }) {
   }
 
   if (tile.type === 'launch_pad') {
-    const cx = isFront ? W * 0.5 : isLeft ? W * 0.11 : W * 0.89
+    const cx = isFront ? W * 0.5 : isLeft ? W * 0.02 : W * 0.98
     const cy = isFront ? H * 0.5 : H * 0.55
-    const sx = isFront ? 2.74 : 1.58
-    const sy = isFront ? 1.96 : 1.26
+    const sx = isFront ? 2.74 : 2.82
+    const sy = isFront ? 1.96 : 2.08
     const mirror = !isFront && !isLeft
 
     return (
@@ -1952,6 +1960,7 @@ export default function GameGrid({
   const isForestTrail = activeLevel.world === 'forest-trail'
   const isRepairSite = activeLevel.world === 'repair-site'
   const isLaunchSite = activeLevel.world === 'launch-site'
+  const goalIsLaunchPad = isLaunchPadGoal(activeLevel)
   const ObstacleVisual = isLaunchSite ? CargoCrateObstacle : isRepairSite ? CargoCrateObstacle : isForestTrail ? ForestTreeObstacle : RockObstacle
   const BackgroundComponent = isLaunchSite ? LaunchSiteBackground : isRepairSite ? RepairSiteBackground : isForestTrail ? ForestTrailBackground : CrashSiteBackground
   const scanLabel = isLaunchSite
@@ -2021,7 +2030,7 @@ export default function GameGrid({
                 }}
                 data-tutorial-id={
                   luma.x === col && luma.y === row ? 'luma-marker'
-                  : isGoal ? (isLaunchSite ? 'launch-pad-goal' : 'goal-marker')
+                  : isGoal ? (goalIsLaunchPad ? 'launch-pad-goal' : 'goal-marker')
                   : firstObstacle && firstObstacle.x === col && firstObstacle.y === row ? ((isRepairSite || isLaunchSite) ? 'box-tile' : isForestTrail ? 'tree-tile' : 'rock-tile')
                   : firstShipFragment && firstShipFragment.x === col && firstShipFragment.y === row ? 'ship-fragment-tile'
                   : undefined
@@ -2160,7 +2169,7 @@ export default function GameGrid({
 
 
                 {isWall && <div style={{ filter:'drop-shadow(0 4px 8px rgba(0,0,0,0.8))' }}><ObstacleVisual /></div>}
-                {isGoal && !isWall && (isLaunchSite ? <LaunchPadGoal /> : <GoalBeacon />)}
+                {isGoal && !isWall && (goalIsLaunchPad ? <LaunchPadGoal /> : <GoalBeacon />)}
                 {obj?.type === 'ship_part' && !isWall && !isGoal && (() => {
                   const partIndex = objects.filter(o => o.type === 'ship_part').findIndex(p => p.x === col && p.y === row)
                   const isCollected = collectedParts.has(partIndex)

@@ -25,7 +25,7 @@ const GRID_PX  = 520   // 5 tiles × 104 px
 const PANEL_W  = 810
 const GAP      = 24
 const EARLY_MAP_SCALE = 1.1
-const PLAYABLE_LEVELS = 21
+const PLAYABLE_LEVELS = 23
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
 const SPEED_STORAGE_KEY = 'starlost:anim-speed'
 const PARTICIPANT_STORAGE_KEY = 'starlost:participantId'
@@ -618,7 +618,9 @@ function SuccessScreen({ levelId, onNext, isFinalLevel = false }) {
             LEVEL {levelId} COMPLETE
           </h2>
           <p style={{ fontSize: 14, color: t.textPrimary, lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
-            LUMA made it back to the ship core! Great navigating.
+            {isFinalLevel
+              ? 'Launch pad reached! LUMA is ready to fly home.'
+              : 'LUMA made it back to the ship core! Great navigating.'}
           </p>
         </div>
 
@@ -1323,7 +1325,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     (levelConfig.id !== 17 || phase === 'develop') &&
     (levelConfig.id !== 18 || phase === 'develop') &&
     (levelConfig.id !== 19 || phase === 'develop') &&
-    (levelConfig.id !== 21 || phase === 'develop')
+    (!levelConfig.traceMode || phase === 'develop')
   const handleReplayTutorial = useCallback(() => {
     if (!canReplayTutorial) return
 
@@ -1754,6 +1756,27 @@ export default function App() {
     setLevelHeaderControls(null)
   }, [setAppPhase])
 
+  const handleLevelHeaderControls = useCallback((controls) => {
+    const controlsLevelId = level?.id
+    const controlsSessionKey = levelSessionKey
+
+    if (controls) {
+      setLevelHeaderControls({
+        ...controls,
+        levelId: controlsLevelId,
+        sessionKey: controlsSessionKey,
+      })
+      return
+    }
+
+    setLevelHeaderControls(previousControls => (
+      previousControls?.levelId === controlsLevelId &&
+      previousControls?.sessionKey === controlsSessionKey
+        ? null
+        : previousControls
+    ))
+  }, [level?.id, levelSessionKey])
+
   const completeLevelProgress = useCallback(async (completedLevelId) => {
     if (!participantId) return
     try {
@@ -1996,7 +2019,7 @@ export default function App() {
                 onComplete={handleLevelComplete}
                 onStrategyCard={handleShowStrategyCard}
                 onGoHome={handleGoHome}
-                onHeaderControls={setLevelHeaderControls}
+                onHeaderControls={handleLevelHeaderControls}
                 topOffset={gameTopOffset}
                 animSpeed={animSpeed}
                 onAnimSpeedChange={handleAnimSpeedChange}

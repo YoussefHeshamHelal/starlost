@@ -1550,14 +1550,19 @@ export const LEVELS = [
   },
   {
     id: 21,
-    name: 'Launch Code Trace',
+    name: 'Launch Trace Intro',
     world: 'launch-site',
     tutorial: true,
     grid: { cols: COLS, rows: ROWS },
-    lumaStart: { x: 2, y: 4 },
+    lumaStart: { x: 0, y: 4 },
     lumaFacing: 'north',
-    goal: { x: 1, y: 0 },
-    walls: [],
+    goal: { x: 3, y: 1 },
+    goalVisual: 'ship_core',
+    walls: [
+      { x: 0, y: 0 },
+      { x: 4, y: 0 },
+      { x: 4, y: 4 },
+    ],
     objects: [],
     fog: false,
     sptQuestion: {
@@ -1565,15 +1570,77 @@ export const LEVELS = [
       options: ['↑ Up', '→ Right', '↓ Down', '← Left'],
       correct: null,
     },
-    solution: null,
+    solution: [
+      createRepeatCommand(7, [
+        createIfPathCommand('ahead', ['F'], ['TR']),
+      ]),
+    ],
     givenProgram: [
-      createRepeatCommand(16, [
-        createIfPathCommand('right', [
-          'TR',
+      createRepeatCommand(7, [
+        createIfPathCommand('ahead', ['F'], ['TR']),
+      ]),
+    ],
+    predictionPrompt: false,
+    mirrorControls: false,
+    strategyCardAfter: false,
+    noVisorFlip: false,
+    skipIdentify: false,
+    noRadio: false,
+    targetCommands: 4,
+    uncertainRadio: false,
+    allowRepeat: true,
+    allowIfPath: true,
+    allowCollect: false,
+    defaultIfPathCondition: 'ahead',
+    useIfElse: true,
+    requireElse: true,
+    traceMode: true,
+    hideGoalUntilTraceCorrect: true,
+    tracingCorrectCell: { x: 3, y: 1 },
+  },
+  {
+    id: 22,
+    name: 'Nested Launch Trace',
+    world: 'launch-site',
+    tutorial: false,
+    grid: { cols: COLS, rows: ROWS },
+    lumaStart: { x: 4, y: 0 },
+    lumaFacing: 'south',
+    goal: { x: 1, y: 2 },
+    goalVisual: 'ship_core',
+    walls: [
+      { x: 2, y: 0 },
+      { x: 1, y: 1 },
+      { x: 4, y: 2 },
+      { x: 2, y: 3 },
+    ],
+    objects: [],
+    fog: false,
+    sptQuestion: {
+      prompt: 'Which direction is LUMA facing?',
+      options: ['\u2191 Up', '\u2192 Right', '\u2193 Down', '\u2190 Left'],
+      correct: null,
+    },
+    solution: [
+      createRepeatCommand(8, [
+        createIfPathCommand('ahead', [
           'F',
         ], [
-          createIfPathCommand('ahead', [
-            'F',
+          createIfPathCommand('right', [
+            'TR',
+          ], [
+            'TL',
+          ]),
+        ]),
+      ]),
+    ],
+    givenProgram: [
+      createRepeatCommand(8, [
+        createIfPathCommand('ahead', [
+          'F',
+        ], [
+          createIfPathCommand('right', [
+            'TR',
           ], [
             'TL',
           ]),
@@ -1586,17 +1653,82 @@ export const LEVELS = [
     noVisorFlip: false,
     skipIdentify: false,
     noRadio: false,
-    layoutGenerator: 'level21',
-    targetCommands: 7,
+    targetCommands: 6,
     uncertainRadio: false,
     allowRepeat: true,
     allowIfPath: true,
     allowCollect: false,
-    defaultIfPathCondition: 'right',
+    defaultIfPathCondition: 'ahead',
     useIfElse: true,
     requireElse: true,
     traceMode: true,
     hideGoalUntilTraceCorrect: true,
-    tracingCorrectCell: { x: 1, y: 0 },
+    tracingCorrectCell: { x: 1, y: 2 },
+  },
+  {
+    id: 23,
+    name: 'Final Launch Trace',
+    world: 'launch-site',
+    tutorial: true,
+    grid: { cols: COLS, rows: ROWS },
+    lumaStart: { x: 2, y: 0 },
+    lumaFacing: 'south',
+    goal: { x: 3, y: 4 },
+    goalVisual: 'launch_pad',
+    walls: [
+      { x: 4, y: 1 },
+      { x: 0, y: 2 },
+      { x: 2, y: 3 },
+    ],
+    objects: [],
+    fog: false,
+    sptQuestion: {
+      prompt: 'Which direction is LUMA facing?',
+      options: ['\u2191 Up', '\u2192 Right', '\u2193 Down', '\u2190 Left'],
+      correct: null,
+    },
+    solution: [
+      createRepeatCommand(10, [
+        createIfPathCommand('ahead', [
+          'F',
+        ], [
+          createIfPathCommand('left', [
+            'TL',
+          ], [
+            'TR',
+          ]),
+        ]),
+      ]),
+    ],
+    givenProgram: [
+      createRepeatCommand(10, [
+        createIfPathCommand('ahead', [
+          'F',
+        ], [
+          createIfPathCommand('left', [
+            'TL',
+          ], [
+            'TR',
+          ]),
+        ]),
+      ]),
+    ],
+    predictionPrompt: false,
+    mirrorControls: false,
+    strategyCardAfter: false,
+    noVisorFlip: false,
+    skipIdentify: false,
+    noRadio: false,
+    targetCommands: 6,
+    uncertainRadio: false,
+    allowRepeat: true,
+    allowIfPath: true,
+    allowCollect: false,
+    defaultIfPathCondition: 'ahead',
+    useIfElse: true,
+    requireElse: true,
+    traceMode: true,
+    hideGoalUntilTraceCorrect: true,
+    tracingCorrectCell: { x: 3, y: 4 },
   },
 ]
