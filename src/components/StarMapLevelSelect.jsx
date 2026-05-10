@@ -49,7 +49,7 @@ const ZONES = [
     id: 'repair',
     className: 'star-zone--repair',
     title: COPY.repairSite,
-    path: [15, 16, 17, 18, 19, 20, 21],
+    path: [15, 16, 17, 18, 19, 20],
     positions: {
       15: { left: 22, top: 46 },
       16: { left: 40, top: 36 },
@@ -57,16 +57,15 @@ const ZONES = [
       18: { left: 77, top: 35 },
       19: { left: 80, top: 71 },
       20: { left: 58, top: 74 },
-      21: { left: 36, top: 74 },
     },
   },
   {
     id: 'launch',
     className: 'star-zone--launch',
     title: COPY.launchSite,
-    path: [22],
+    path: [21],
     positions: {
-      22: { left: 51, top: 58 },
+      21: { left: 51, top: 58 },
     },
   },
 ]
@@ -84,7 +83,7 @@ function LevelNode({ level, position, completedLevels, onSelectLevel }) {
   const className = [
     'star-node',
     completed ? 'star-node--completed' : '',
-    level === 22 ? 'star-node--launch' : '',
+    level === 21 ? 'star-node--launch' : '',
   ].filter(Boolean).join(' ')
 
   return (

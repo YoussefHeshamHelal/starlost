@@ -238,78 +238,19 @@ export const LEVEL_TUTORIALS = {
     }),
   ],
   20: [
-    levelStep('level-20-hidden-fragment', {
-      targetId: 'grid-panel',
-      placement: 'right',
-      title: 'A hidden fragment',
-      body: 'There is a missing ship fragment in the path, but LUMA cannot find it on her own.',
+    levelStep('level-20-nested-if-else', {
+      targetId: 'command-if-else-path',
+      placement: 'top',
+      title: 'Nested IF/ELSE blocks',
+      body: 'You can put an IF/ELSE block inside another IF/ELSE block. This makes LUMA check the path in 3 directions instead of 2.',
       waitForTarget: true,
+      hideProgress: true,
+      showWhen: ({ phase }) => phase === 'develop',
       nextLabel: 'Got it',
-    }),
-    levelStep('level-20-meet-echo', {
-      targetId: 'echo-marker',
-      placement: 'right',
-      title: 'Meet ECHO',
-      body: 'ECHO is a helper drone. ECHO can help find the hidden ship fragment by giving a clue. Guide LUMA to ECHO to activate ECHO.',
-      waitForTarget: true,
-      nextLabel: 'Okay',
-    }),
-    levelStep('level-20-use-arrow', {
-      targetId: 'echo-marker',
-      placement: 'right',
-      title: 'Use ECHO\'s arrow',
-      body: 'Look at ECHO\'s arrow to know which way ECHO is facing.',
-      waitForTarget: true,
-      nextLabel: 'I see',
-    }),
-    levelStep('level-20-echo-view', {
-      targetId: 'echo-marker',
-      placement: 'right',
-      title: 'ECHO has a point of view',
-      body: 'ECHO sees the map from where he is facing. Get into ECHO\'s point of view to find the hidden ship fragment.',
-      waitForTarget: true,
-      nextLabel: 'Okay',
-    }),
-    levelStep('level-20-choose-cloud', {
-      targetId: 'grid-panel',
-      placement: 'right',
-      title: 'Choose the right cloud',
-      body: 'After ECHO gives a clue, tap the cloud where you think the hidden ship fragment is.',
-      waitForTarget: true,
-      nextLabel: 'Ready',
     }),
   ],
   21: [
-    levelStep('level-21-smarter-rule', {
-      targetId: 'command-if-else-path',
-      placement: 'left',
-      title: 'Use a smarter rule',
-      body: 'Some paths need more than one check. Try using IF/ELSE inside another IF/ELSE so LUMA can choose between turning, moving, or trying another way.',
-      waitForTarget: true,
-      showWhen: ({ phase }) => phase === 'develop',
-      nextLabel: 'Okay',
-    }),
-    levelStep('level-21-nested-if-else', {
-      targetId: 'sequence-area',
-      placement: 'left',
-      title: 'Nested IF/ELSE',
-      body: 'A nested IF/ELSE means one IF/ELSE is placed inside another one. It helps when there are three possible choices.',
-      waitForTarget: true,
-      showWhen: ({ phase }) => phase === 'develop',
-      nextLabel: 'I see',
-    }),
-    levelStep('level-21-echo-identify', {
-      targetId: 'echo-marker',
-      placement: 'right',
-      title: 'ECHO needs help too',
-      body: 'Later, when LUMA reaches ECHO, ECHO will also need a direction check. Use ECHO\'s clue to figure out which way ECHO is facing.',
-      waitForTarget: true,
-      showWhen: ({ phase }) => phase === 'develop',
-      nextLabel: 'Got it',
-    }),
-  ],
-  22: [
-    levelStep('level-22-final-level-intro', {
+    levelStep('level-21-final-level-intro', {
       targetId: 'grid-panel',
       placement: 'right',
       title: 'Final level',
@@ -318,7 +259,7 @@ export const LEVEL_TUTORIALS = {
       showWhen: ({ phase }) => phase === 'develop',
       nextLabel: "Let's finish",
     }),
-    levelStep('level-22-trace-code', {
+    levelStep('level-21-trace-code', {
       targetId: 'trace-program-box',
       placement: 'left',
       title: 'Trace the code',
@@ -327,7 +268,7 @@ export const LEVEL_TUTORIALS = {
       showWhen: ({ phase }) => phase === 'develop',
       nextLabel: 'Okay',
     }),
-    levelStep('level-22-read-carefully', {
+    levelStep('level-21-read-carefully', {
       targetId: 'trace-program-box',
       placement: 'left',
       title: 'Read carefully',
@@ -336,7 +277,7 @@ export const LEVEL_TUTORIALS = {
       showWhen: ({ phase }) => phase === 'develop',
       nextLabel: 'I see',
     }),
-    levelStep('level-22-choose-ending', {
+    levelStep('level-21-choose-ending', {
       targetId: 'grid-panel',
       placement: 'right',
       title: 'Choose the ending tile',
@@ -345,7 +286,7 @@ export const LEVEL_TUTORIALS = {
       showWhen: ({ phase }) => phase === 'develop',
       nextLabel: 'Ready',
     }),
-    levelStep('level-22-launch-pad', {
+    levelStep('level-21-launch-pad', {
       targetId: 'grid-panel',
       placement: 'right',
       title: 'Find the correct tile',

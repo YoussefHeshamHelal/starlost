@@ -1,5 +1,5 @@
 // GameGrid.jsx
-import { useContext, useEffect, useState } from 'react'
+import { useContext } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import LumaSprite from './LumaSprite'
 import CrashSiteBackground from './CrashSiteBackground'
@@ -1897,449 +1897,14 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
 }
 
 // ── Main export ────────────────────────────────────────────────────────────────
-function EchoProbe({ facing = 'east', activated = false }) {
-  const footRotation = { south: 0, west: 90, north: 180, east: -90 }[facing] ?? 0
-  const glow = activated ? '#f87171' : '#67e8f9'
-
-  return (
-    <motion.div
-      animate={{
-        y: activated ? [-4, -9, -4] : [-3, -7, -3],
-        scale: activated ? [1, 1.06, 1] : [1, 1.025, 1],
-        filter: activated
-          ? [`drop-shadow(0 0 12px ${glow})`, `drop-shadow(0 0 22px ${glow})`, `drop-shadow(0 0 14px ${glow})`]
-          : [`drop-shadow(0 0 8px ${glow})`, `drop-shadow(0 0 14px ${glow})`, `drop-shadow(0 0 8px ${glow})`],
-      }}
-      transition={{ duration: activated ? 1.05 : 2.2, repeat: Infinity, ease: 'easeInOut' }}
-      style={{ position: 'relative', width: 88, height: 88, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }}
-    >
-      <svg width={88} height={88} viewBox="-7 -4 88 90" fill="none" style={{ overflow: 'visible' }}>
-        <defs>
-          <radialGradient id="echo_metal" cx="42%" cy="34%" r="72%">
-            <stop offset="0%" stopColor="#ff9b91" />
-            <stop offset="32%" stopColor="#dc2626" />
-            <stop offset="70%" stopColor="#8f141d" />
-            <stop offset="100%" stopColor="#35070b" />
-          </radialGradient>
-          <linearGradient id="echo_rotor_metal" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#ef7a72" />
-            <stop offset="48%" stopColor="#a51d26" />
-            <stop offset="100%" stopColor="#35070b" />
-          </linearGradient>
-          <linearGradient id="echo_gold_panel" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#111827" />
-            <stop offset="55%" stopColor="#020617" />
-            <stop offset="100%" stopColor="#000000" />
-          </linearGradient>
-          <radialGradient id="echo_lens" cx="44%" cy="42%" r="58%">
-            <stop offset="0%" stopColor="#ecfeff" />
-            <stop offset="36%" stopColor="#22d3ee" />
-            <stop offset="64%" stopColor="#0891b2" />
-            <stop offset="100%" stopColor="#06131a" />
-          </radialGradient>
-          <radialGradient id="echo_glass" cx="36%" cy="28%" r="70%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.72" />
-            <stop offset="24%" stopColor="#fca5a5" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#130306" stopOpacity="0" />
-          </radialGradient>
-          <filter id="echo_soft_glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="4" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-          <filter id="echo_lens_glow" x="-70%" y="-70%" width="240%" height="240%">
-            <feGaussianBlur stdDeviation="3.2" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-        </defs>
-        <ellipse cx="37" cy="67" rx="25" ry="5" fill="#020617" opacity="0.34" />
-        <ellipse cx="37" cy="64" rx="18" ry="4" fill="#67e8f9" opacity={activated ? 0.26 : 0.13}>
-          <animate attributeName="opacity" values="0.1;0.28;0.1" dur="1.8s" repeatCount="indefinite" />
-        </ellipse>
-
-        <g opacity="0.98">
-          <path d="M19 25 H31 M43 25 H55" stroke="#5f1017" strokeWidth="5.5" strokeLinecap="round" opacity="0.84" />
-          <path d="M-1 22 C-1 14 6 10 15 11 C24 12 28 17 27 24 C26 31 20 34 11 33 C3 32 -2 28 -1 22 Z"
-            fill="url(#echo_rotor_metal)" stroke="#120307" strokeWidth="2.2" />
-          <path d="M75 22 C75 14 68 10 59 11 C50 12 46 17 47 24 C48 31 54 34 63 33 C71 32 76 28 75 22 Z"
-            fill="url(#echo_rotor_metal)" stroke="#120307" strokeWidth="2.2" />
-          <ellipse cx="13" cy="23" rx="11.3" ry="6.6" fill="#06070a" stroke="#ef4444" strokeWidth="1.3" />
-          <ellipse cx="61" cy="23" rx="11.3" ry="6.6" fill="#06070a" stroke="#ef4444" strokeWidth="1.3" />
-          <path d="M4 23 C9 18 17 18 22 23 C17 28 9 28 4 23 Z M52 23 C57 18 65 18 70 23 C65 28 57 28 52 23 Z"
-            fill="#111827" opacity="0.86" />
-          <path d="M5 23 H21 M13 16 V30 M7 18 L19 28 M7 28 L19 18 M53 23 H69 M61 16 V30 M55 18 L67 28 M55 28 L67 18"
-            stroke="#4b5563" strokeWidth="1.25" strokeLinecap="round" opacity="0.85" />
-          <path d="M2 16 C9 13 18 13 25 16 M49 16 C56 13 65 13 72 16" stroke="#fecaca" strokeWidth="1" strokeLinecap="round" opacity="0.38" />
-          <path d="M3 29 C11 33 19 31 25 27 M49 27 C55 31 63 33 71 29" stroke="#22d3ee" strokeWidth="1.05" strokeLinecap="round" opacity={activated ? 0.72 : 0.38} />
-        </g>
-
-        <circle cx="37" cy="38" r="24" fill="url(#echo_metal)" stroke="#071717" strokeWidth="2" filter="url(#echo_soft_glow)" />
-        <circle cx="37" cy="38" r="22" fill="url(#echo_glass)" opacity="0.62" />
-        <path d="M27 17 C34 12 45 13 51 20" fill="none" stroke="#fecaca" strokeWidth="1.4" strokeLinecap="round" opacity="0.24" />
-        <path d="M23 28 L28 26 M20 35 L24 34 M48 24 L52 26 M50 55 L54 53 M25 53 L21 51" stroke="#fecaca" strokeWidth="0.8" strokeLinecap="round" opacity="0.22" />
-
-        <circle cx="37" cy="39" r="16.8" fill="#071113" stroke="#0f2f2b" strokeWidth="2" />
-        <circle cx="37" cy="39" r="13.1" fill="#050b0d" stroke="#172124" strokeWidth="1.2" />
-        <circle cx="37" cy="39" r="10.4" fill="#081014" />
-        <circle cx="37" cy="39" r="8.2" fill="#22d3ee" opacity="0.94" filter="url(#echo_lens_glow)">
-          <animate attributeName="opacity" values="0.78;1;0.78" dur="1.2s" repeatCount="indefinite" />
-        </circle>
-        <circle cx="37" cy="39" r="4.9" fill="#031115" opacity="0.96" />
-        <path d="M30 34 C34 30 42 30 46 35" stroke="#ecfeff" strokeWidth="1.2" strokeLinecap="round" opacity="0.32" />
-        <circle cx="33" cy="31" r="2.1" fill="#ffffff" opacity="0.75" />
-        <circle cx="37" cy="20" r="3.9" fill="#ffffff" opacity="0.95" filter="url(#echo_lens_glow)" />
-        <path d="M28 28 C35 23 45 24 50 32" stroke="#d1fae5" strokeWidth="1.4" strokeLinecap="round" opacity="0.42" />
-
-        <g transform={`translate(37 77) rotate(${footRotation}) translate(-37 -77)`}>
-          <path d="M37 86 L28 72 H46 Z" fill="#fef08a" stroke="#fff7c2" strokeWidth="1.5" opacity="0.96" />
-          <path d="M37 72 V66" stroke="#fef08a" strokeWidth="4" strokeLinecap="round" opacity="0.96" />
-        </g>
-      </svg>
-    </motion.div>
-  )
-}
-
-const ECHO_IDENTIFY_DIRECTIONS = ['south', 'east', 'north', 'west']
-const ECHO_IDENTIFY_TURN_MS = 520
-
-function EchoQuestionMarks({ tileSize = 88 }) {
-  return (
-    <>
-      {[
-        { left: 0.47, top: -0.08, size: 0.26, delay: 0, opacity: [0.78, 1, 0.78], rotate: [-4, 3, -4] },
-        { left: 0.6, top: 0, size: 0.2, delay: 0.22, opacity: [0.55, 0.88, 0.55], rotate: [5, -2, 5] },
-        { left: 0.34, top: 0, size: 0.2, delay: 0.12, opacity: [0.55, 0.88, 0.55], rotate: [-5, 2, -5] },
-      ].map((mark, index) => (
-        <motion.div
-          key={index}
-          animate={{ y: [0, -4, 0], rotate: mark.rotate, opacity: mark.opacity }}
-          transition={{ duration: index === 0 ? 1.8 : 2.1, repeat: Infinity, ease: 'easeInOut', delay: mark.delay }}
-          style={{
-            position: 'absolute',
-            top: tileSize * mark.top,
-            left: tileSize * mark.left,
-            color: index === 0 ? '#fee2e2' : '#fecaca',
-            fontSize: tileSize * mark.size,
-            fontWeight: 900,
-            textShadow: '0 0 8px rgba(248,113,113,0.58)',
-            pointerEvents: 'none',
-            zIndex: 8,
-          }}
-        >
-          ?
-        </motion.div>
-      ))}
-    </>
-  )
-}
-
-function EchoDirectionalProbe({ facing = 'east', activated = false, confused = false, identifying = false, revealFacing = true }) {
-  const [activeFacing, setActiveFacing] = useState(ECHO_IDENTIFY_DIRECTIONS[0])
-
-  useEffect(() => {
-    if (!confused && !identifying) return undefined
-
-    let index = 0
-    const interval = window.setInterval(() => {
-      index = (index + 1) % ECHO_IDENTIFY_DIRECTIONS.length
-      setActiveFacing(ECHO_IDENTIFY_DIRECTIONS[index])
-    }, ECHO_IDENTIFY_TURN_MS)
-
-    return () => window.clearInterval(interval)
-  }, [confused, identifying])
-
-  const displayFacing = confused || identifying ? activeFacing : facing
-  const side = displayFacing === 'east' || displayFacing === 'west'
-  const rear = displayFacing === 'north'
-  const sideSign = displayFacing === 'west' ? -1 : 1
-  const glow = identifying ? '#fca5a5' : activated ? '#f87171' : '#67e8f9'
-  const sideEyeCx = 37 + sideSign * 15
-  const footRotation = { south: 0, west: 90, north: 180, east: -90 }[displayFacing] ?? 0
-  const footAnchorX = side ? 37 + sideSign * 9 : 37
-  const footAnchorY = side ? 72 : displayFacing === 'north' ? 73 : 77
-  const sideFanTransform = sideSign === 1
-    ? 'translate(16 0) scale(1 1)'
-    : 'translate(58 0) scale(-1 1)'
-
-  return (
-    <motion.div
-      animate={{
-        y: identifying ? [0, -3, 0, 2, 0] : activated ? [-4, -9, -4] : [-3, -7, -3],
-        scale: identifying ? [1, 1.04, 1] : activated ? [1, 1.06, 1] : [1, 1.025, 1],
-        filter: [`drop-shadow(0 0 10px ${glow})`, `drop-shadow(0 0 22px ${glow})`, `drop-shadow(0 0 10px ${glow})`],
-      }}
-      transition={{
-        duration: identifying ? ECHO_IDENTIFY_TURN_MS / 1000 : activated ? 1.05 : 2.2,
-        repeat: Infinity,
-        ease: 'easeInOut',
-      }}
-      style={{ position: 'relative', width: 88, height: 88, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }}
-    >
-      {(confused || identifying) && <EchoQuestionMarks tileSize={88} />}
-      <svg width={88} height={88} viewBox="-14 -18 102 112" fill="none" style={{ overflow: 'visible' }}>
-        <defs>
-          <radialGradient id={`echo_dir_metal_${displayFacing}`} cx="40%" cy="30%" r="72%">
-            <stop offset="0%" stopColor="#ffb3a8" />
-            <stop offset="35%" stopColor="#dc2626" />
-            <stop offset="72%" stopColor="#8f141d" />
-            <stop offset="100%" stopColor="#35070b" />
-          </radialGradient>
-          <radialGradient id={`echo_dir_lens_${displayFacing}`} cx="42%" cy="38%" r="58%">
-            <stop offset="0%" stopColor="#ecfeff" />
-            <stop offset="36%" stopColor="#22d3ee" />
-            <stop offset="70%" stopColor="#0891b2" />
-            <stop offset="100%" stopColor="#06131a" />
-          </radialGradient>
-          <linearGradient id={`echo_dir_rotor_${displayFacing}`} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#ef7a72" />
-            <stop offset="48%" stopColor="#a51d26" />
-            <stop offset="100%" stopColor="#35070b" />
-          </linearGradient>
-          <filter id={`echo_dir_glow_${displayFacing}`} x="-60%" y="-60%" width="220%" height="220%">
-            <feGaussianBlur stdDeviation="3.4" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-        </defs>
-        <ellipse cx="37" cy="67" rx={side ? 18 : 25} ry="5" fill="#020617" opacity="0.34" />
-        <ellipse cx="37" cy="64" rx={side ? 12 : 18} ry="4" fill="#67e8f9" opacity={activated || identifying ? 0.26 : 0.13} />
-
-        {!side && (
-          <g opacity="0.98">
-            <path d="M19 25 H31 M43 25 H55" stroke="#5f1017" strokeWidth="5.5" strokeLinecap="round" opacity="0.84" />
-            <path d="M-1 22 C-1 14 6 10 15 11 C24 12 28 17 27 24 C26 31 20 34 11 33 C3 32 -2 28 -1 22 Z"
-              fill={`url(#echo_dir_rotor_${displayFacing})`} stroke="#120307" strokeWidth="2.2" />
-            <path d="M75 22 C75 14 68 10 59 11 C50 12 46 17 47 24 C48 31 54 34 63 33 C71 32 76 28 75 22 Z"
-              fill={`url(#echo_dir_rotor_${displayFacing})`} stroke="#120307" strokeWidth="2.2" />
-            <ellipse cx="13" cy="23" rx="11.3" ry="6.6" fill="#06070a" stroke="#ef4444" strokeWidth="1.3" />
-            <ellipse cx="61" cy="23" rx="11.3" ry="6.6" fill="#06070a" stroke="#ef4444" strokeWidth="1.3" />
-            <path d="M5 23 H21 M13 16 V30 M7 18 L19 28 M7 28 L19 18 M53 23 H69 M61 16 V30 M55 18 L67 28 M55 28 L67 18"
-              stroke="#4b5563" strokeWidth="1.25" strokeLinecap="round" opacity="0.85" />
-          </g>
-        )}
-
-        <g transform={side ? `translate(${sideSign * 5} 0)` : undefined}>
-          <ellipse cx="37" cy="38" rx={side ? 18 : 24} ry={side ? 24 : 24} fill={`url(#echo_dir_metal_${displayFacing})`} stroke="#071717" strokeWidth="2" filter={`url(#echo_dir_glow_${displayFacing})`} />
-          <path d={side
-            ? `M${sideSign === 1 ? 30 : 44} 18 C${sideSign === 1 ? 40 : 34} 15 ${sideSign === 1 ? 49 : 25} 22 ${sideSign === 1 ? 50 : 24} 37 C${sideSign === 1 ? 49 : 25} 52 ${sideSign === 1 ? 40 : 34} 60 ${sideSign === 1 ? 30 : 44} 58`
-            : 'M27 17 C34 12 45 13 51 20'}
-            fill="none" stroke="#fecaca" strokeWidth="1.4" strokeLinecap="round" opacity="0.24" />
-          {!rear && (
-            <>
-              <ellipse
-                cx={side ? sideEyeCx - sideSign * 5 : 37}
-                cy="39"
-                rx={side ? 4.8 : 16.8}
-                ry={side ? 13.8 : 16.8}
-                fill="#071113"
-                stroke="#0f2f2b"
-                strokeWidth="2"
-              />
-              <ellipse
-                cx={side ? sideEyeCx - sideSign * 3.5 : 37}
-                cy="39"
-                rx={side ? 2.4 : 8.2}
-                ry={side ? 9.4 : 8.2}
-                fill={`url(#echo_dir_lens_${displayFacing})`}
-                opacity="0.94"
-                filter={`url(#echo_dir_glow_${displayFacing})`}
-              />
-              <ellipse cx={side ? sideEyeCx - sideSign * 2.5 : 33} cy="31" rx={side ? 1.1 : 2.1} ry="2.1" fill="#ffffff" opacity="0.75" />
-            </>
-          )}
-          {rear && (
-            <>
-              <path d="M27 34 C34 40 42 40 48 34 M29 45 C34 49 41 49 45 45" stroke="#22d3ee" strokeWidth="1.3" strokeLinecap="round" opacity="0.45" />
-            </>
-          )}
-        </g>
-
-        {side && (
-          <g transform={sideFanTransform} opacity="0.98">
-            <path d="M31 22 C31 15 25 11 17 11 C9 11 5 16 6 24 C7 31 13 34 21 33 C27 32 31 28 31 22 Z"
-              fill={`url(#echo_dir_rotor_${displayFacing})`} stroke="#120307" strokeWidth="2.2" />
-            <path d="M20 12 C13 15 10 19 10 24 C10 29 14 32 21 33 C14 33 7 31 6 24 C5 17 10 12 20 12 Z"
-              fill="#3b070c" opacity="0.5" />
-            <ellipse cx="19" cy="23" rx="8.8" ry="6.4" fill="#06070a" stroke="#ef4444" strokeWidth="1.3" />
-            <path d="M13 23 H25 M19 16 V30 M15 18 L23 28 M15 28 L23 18"
-              stroke="#4b5563" strokeWidth="1.2" strokeLinecap="round" opacity="0.85" />
-          </g>
-        )}
-
-        {revealFacing && (
-          <g transform={`translate(${footAnchorX} ${footAnchorY}) rotate(${footRotation}) translate(-37 -77)`}>
-            <path d="M37 86 L28 72 H46 Z" fill="#fef08a" stroke="#fff7c2" strokeWidth="1.5" opacity="0.96" filter={`url(#echo_dir_glow_${displayFacing})`} />
-            <path d="M37 72 V66" stroke="#fef08a" strokeWidth="4" strokeLinecap="round" opacity="0.96" />
-          </g>
-        )}
-      </svg>
-    </motion.div>
-  )
-}
-
-function EchoSignalCloud({ tileSize, selectable = false, selected = false, result = null }) {
-  const ringColor = result === 'success' ? '#22c55e' : result === 'retry' ? '#fb7185' : '#f87171'
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.88 }}
-      animate={{
-        opacity: 1,
-        scale: 1,
-      }}
-      exit={{ opacity: 0, scale: 1.03, filter: 'blur(3px)' }}
-      transition={{ duration: 0.06, ease: 'easeOut' }}
-      style={{
-        position: 'absolute',
-        inset: 3,
-        zIndex: 6,
-        pointerEvents: 'none',
-        borderRadius: 12,
-        overflow: 'visible',
-        background: 'transparent',
-        border: 'none',
-      }}
-    >
-      <svg width="100%" height="100%" viewBox="0 0 100 100" style={{ position: 'absolute', inset: 0, overflow: 'visible' }}>
-        <defs>
-          <filter id={`echo-cloud-soft-${result ?? 'idle'}`} x="-35%" y="-35%" width="170%" height="170%">
-            <feGaussianBlur stdDeviation="1.8" />
-          </filter>
-          <linearGradient id={`echo-cloud-fill-${result ?? 'idle'}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.98" />
-            <stop offset="55%" stopColor="#e5e7eb" stopOpacity="0.96" />
-            <stop offset="100%" stopColor="#cbd5e1" stopOpacity="0.93" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M15 66 C5 62 6 47 17 44 C16 34 26 27 36 31 C41 19 58 18 64 31 C76 29 88 38 86 52 C96 57 91 71 79 72 C71 80 56 78 49 72 C39 80 21 76 15 66 Z"
-          fill={`url(#echo-cloud-fill-${result ?? 'idle'})`}
-          stroke={selectable ? ringColor : '#f8fafc'}
-          strokeWidth={selectable ? 2.8 : 1.2}
-          strokeLinejoin="round"
-          filter={`url(#echo-cloud-soft-${result ?? 'idle'})`}
-        />
-        <path
-          d="M21 59 C27 53 36 52 43 57 M49 43 C56 35 70 37 75 49 M17 49 C23 43 31 42 38 47 M61 63 C68 60 76 61 81 66"
-          fill="none"
-          stroke="#ffffff"
-          strokeWidth="3.2"
-          strokeLinecap="round"
-          opacity="0.68"
-        />
-      </svg>
-      {selectable && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.78 }}
-          animate={selected
-            ? {
-                opacity: 1,
-                scale: [1, 1.08, 1],
-                rotate: result === 'success' ? [0, -1.5, 1.5, 0] : [0, 1.4, -1.4, 0],
-              }
-            : { opacity: [0.76, 1, 0.76], scale: [1, 1.04, 1] }}
-          transition={selected
-            ? { duration: 0.46, ease: 'easeOut' }
-            : { duration: 1.3, repeat: Infinity, ease: 'easeInOut' }}
-          style={{
-            position: 'absolute',
-            inset: -1,
-            zIndex: 4,
-            border: `4px solid ${selected ? ringColor : '#f87171'}`,
-            borderRadius: 8,
-            background: selected ? `${ringColor}1f` : 'rgba(254,226,226,0.22)',
-            boxSizing: 'border-box',
-            boxShadow: selected
-              ? `0 0 26px ${ringColor}99, inset 0 0 22px ${ringColor}33`
-              : '0 0 18px rgba(248,113,113,0.46), inset 0 0 16px rgba(255,255,255,0.2)',
-          }}
-        >
-          {selected && (
-            <motion.div
-              initial={{ scale: 0.2, opacity: 0 }}
-              animate={{ scale: [0.2, 1.1, 1], opacity: [0, 1, 1] }}
-              transition={{ duration: 0.22, ease: 'easeOut' }}
-              style={{
-                position: 'absolute',
-                right: 6,
-                top: 6,
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                background: ringColor,
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 15,
-                fontWeight: 900,
-                boxShadow: `0 0 14px ${ringColor}aa`,
-              }}
-            >
-              {result === 'success' ? '✓' : '!'}
-            </motion.div>
-          )}
-        </motion.div>
-      )}
-      {[0, 1, 2, 3, 4].map((index) => (
-        <motion.span
-          key={index}
-          animate={{
-            x: [0, tileSize * (index % 2 === 0 ? 0.04 : -0.04), 0],
-            y: [0, tileSize * (index === 1 ? 0.035 : -0.025), 0],
-            opacity: [0.72, 0.98, 0.72],
-          }}
-          transition={{ duration: 2 + index * 0.2, repeat: Infinity, ease: 'easeInOut' }}
-          style={{
-            position: 'absolute',
-            left: `${2 + index * 16}%`,
-            top: `${28 + (index % 2) * 14}%`,
-            width: tileSize * (index === 2 ? 0.5 : 0.36),
-            height: tileSize * (index === 2 ? 0.28 : 0.24),
-            borderRadius: '50%',
-            background: index % 2 === 0 ? 'rgba(255,255,255,0.9)' : 'rgba(226,232,240,0.86)',
-            filter: 'blur(5px)',
-          }}
-        />
-      ))}
-      {[0, 1, 2, 3].map((index) => (
-        <motion.span
-          key={`spark-${index}`}
-          animate={{ opacity: [0.15, 0.65, 0.15], scale: [0.75, 1.1, 0.75] }}
-          transition={{ duration: 1.1 + index * 0.12, repeat: Infinity, ease: 'easeInOut' }}
-          style={{
-            position: 'absolute',
-            left: `${18 + index * 18}%`,
-            top: `${28 + ((index * 17) % 38)}%`,
-            width: 4,
-            height: 4,
-            borderRadius: '50%',
-            background: '#ffffff',
-            boxShadow: '0 0 8px #ffffff',
-          }}
-        />
-      ))}
-    </motion.div>
-  )
-}
-
 export default function GameGrid({
   levelConfig, luma, visorActive, onVisorClose,
   sptCorrect, collectedParts = new Set(), gridPx,
   predictionModeActive = false,
   predictionTile = null,
   predictionResult = null,
-  checkpointChoiceActive = false,
-  checkpointChoiceTiles = [],
-  checkpointChoiceSelection = null,
-  onCheckpointTileClick,
   collectionEffects = [],
   activeIfPathSignal = null,
-  echoActivated = false,
-  echoCloudsRevealed = false,
-  echoIdentifyActive = false,
-  echoIdentifyCorrect = false,
-  echoSelectionActive = false,
-  echoSelectedCloud = null,
-  onEchoCloudTileClick,
   traceModeActive = false,
   traceSelection = null,
   traceEliminatedTiles = [],
@@ -2371,7 +1936,6 @@ export default function GameGrid({
     predictionResult === 'correct' ? '#4ade80' :
     predictionResult === 'wrong'   ? '#fb7185' :
     '#38bdf8'
-  const checkpointTiles = checkpointChoiceActive ? checkpointChoiceTiles : []
   const activeLumaCollection = collectionEffects.findLast
     ? collectionEffects.findLast((effect) => effect.x === luma.x && effect.y === luma.y)
     : [...collectionEffects].reverse().find((effect) => effect.x === luma.x && effect.y === luma.y)
@@ -2385,10 +1949,6 @@ export default function GameGrid({
   const firstObstacle = walls[0] ?? objects.find(objectItem => objectItem.type === 'rock') ?? null
   const shipParts = objects.filter(objectItem => objectItem.type === 'ship_part')
   const firstShipFragment = shipParts.find((part, index) => !collectedParts.has(index)) ?? null
-  const echoProbe = activeLevel.echoProbe ?? null
-  const echoClouds = activeLevel.echoClouds ?? []
-  const isEchoClouded = (col, row) =>
-    !echoCloudsRevealed && echoClouds.some(cloud => cloud.x === col && cloud.y === row)
   const isForestTrail = activeLevel.world === 'forest-trail'
   const isRepairSite = activeLevel.world === 'repair-site'
   const isLaunchSite = activeLevel.world === 'launch-site'
@@ -2431,7 +1991,7 @@ export default function GameGrid({
         position:'relative', width: gridWidth, height: gridHeight,
         borderRadius: 12, overflow: 'hidden',
         boxShadow: gridBoxShadow,
-        cursor: traceModeActive ? 'crosshair' : predictionModeActive ? 'crosshair' : checkpointChoiceActive || echoSelectionActive ? 'pointer' : 'default',
+        cursor: traceModeActive ? 'crosshair' : predictionModeActive ? 'crosshair' : 'default',
       }}>
         <BackgroundComponent width={gridWidth} height={gridHeight} cols={cols} rows={rows} />
 
@@ -2440,42 +2000,17 @@ export default function GameGrid({
             const isWall  = walls.some(w => w.x === col && w.y === row)
             const isGoal  = goalVisible && goal && goal.x === col && goal.y === row
             const obj     = objects.find(o => o.x === col && o.y === row)
-            const isEchoProbe = echoProbe && echoProbe.x === col && echoProbe.y === row
-            const echoOverlapsLuma = isEchoProbe && luma.x === col && luma.y === row
-            const cloudedByEcho = isEchoClouded(col, row)
-            const isEchoSelectableCloud = echoSelectionActive && cloudedByEcho
-            const isEchoSelectedCloud =
-              echoSelectedCloud &&
-              echoSelectedCloud.x === col &&
-              echoSelectedCloud.y === row
             const isPredicted = predictionTile && predictionTile.x === col && predictionTile.y === row
-            const isCheckpointChoice = checkpointTiles.some(tile => tile.x === col && tile.y === row)
-            const isCheckpointSelected =
-              checkpointChoiceSelection &&
-              checkpointChoiceSelection.x === col &&
-              checkpointChoiceSelection.y === row
             const isTraceSelected =
               traceSelection &&
               traceSelection.x === col &&
               traceSelection.y === row
             const isTraceEliminated = traceEliminatedTiles.includes(`${col},${row}`)
             const isTraceSelectable = traceModeActive && !isWall && !isTraceEliminated
-            const checkpointSelectedColor = checkpointChoiceSelection?.result === 'success'
-              ? '#22c55e'
-              : '#ef4444'
             return (
               <div
                 key={`${col}-${row}`}
                 onClick={() => {
-                  if (isEchoSelectableCloud && onEchoCloudTileClick) {
-                    onEchoCloudTileClick({ x: col, y: row })
-                    return
-                  }
-
-                  if (checkpointChoiceActive && isCheckpointChoice && onCheckpointTileClick) {
-                    onCheckpointTileClick(col, row)
-                    return
-                  }
 
                   if (isTraceSelectable && onTraceCellClick) {
                     onTraceCellClick({ x: col, y: row })
@@ -2485,8 +2020,7 @@ export default function GameGrid({
                   if (predictionModeActive && onTileClick) onTileClick(col, row)
                 }}
                 data-tutorial-id={
-                  isEchoProbe ? 'echo-marker'
-                  : luma.x === col && luma.y === row ? 'luma-marker'
+                  luma.x === col && luma.y === row ? 'luma-marker'
                   : isGoal ? (isLaunchSite ? 'launch-pad-goal' : 'goal-marker')
                   : firstObstacle && firstObstacle.x === col && firstObstacle.y === row ? ((isRepairSite || isLaunchSite) ? 'box-tile' : isForestTrail ? 'tree-tile' : 'rock-tile')
                   : firstShipFragment && firstShipFragment.x === col && firstShipFragment.y === row ? 'ship-fragment-tile'
@@ -2494,9 +2028,9 @@ export default function GameGrid({
                 }
                 style={{
                   position:'absolute', left: col * TILE_SIZE, top: row * TILE_SIZE,
-                  width: TILE_SIZE, height: TILE_SIZE, zIndex: echoOverlapsLuma ? 10 : 2,
+                  width: TILE_SIZE, height: TILE_SIZE, zIndex: 2,
                   display:'flex', alignItems:'center', justifyContent:'center',
-                  cursor: isTraceSelectable || isEchoSelectableCloud ? 'pointer' : undefined,
+                  cursor: isTraceSelectable ? 'pointer' : undefined,
                 }}
               >
                 {isTraceSelectable && !isTraceSelected && (
@@ -2624,80 +2158,10 @@ export default function GameGrid({
                   }}/>
                 )}
 
-                {isCheckpointChoice && (
-                  <motion.div
-                    initial={{ opacity:0, scale:0.78 }}
-                    animate={isCheckpointSelected
-                      ? {
-                          opacity: 1,
-                          scale: [1, 1.08, 1],
-                          rotate: checkpointChoiceSelection.result === 'success' ? [0, -1.5, 1.5, 0] : [0, 1.4, -1.4, 0],
-                        }
-                      : { opacity:[0.76,1,0.76], scale:[1,1.04,1] }}
-                    transition={isCheckpointSelected
-                      ? { duration:0.46, ease:'easeOut' }
-                      : { duration:1.3, repeat:Infinity, ease:'easeInOut' }}
-                    style={{
-                      position:'absolute', inset:0,
-                      border:`4px solid ${isCheckpointSelected ? checkpointSelectedColor : '#f59e0b'}`,
-                      borderRadius:8,
-                      background:isCheckpointSelected
-                        ? `${checkpointSelectedColor}1f`
-                        : 'rgba(245,158,11,0.12)',
-                      zIndex:5,
-                      pointerEvents:'none',
-                      boxSizing:'border-box',
-                      boxShadow:isCheckpointSelected
-                        ? `0 0 26px ${checkpointSelectedColor}99, inset 0 0 22px ${checkpointSelectedColor}33`
-                        : '0 0 18px rgba(245,158,11,0.48), inset 0 0 16px rgba(255,255,255,0.2)',
-                    }}
-                  >
-                    {isCheckpointSelected && (
-                      <motion.div
-                        initial={{ scale: 0.2, opacity: 0 }}
-                        animate={{ scale: [0.2, 1.1, 1], opacity: [0, 1, 1] }}
-                        transition={{ duration: 0.34, ease: 'easeOut' }}
-                        style={{
-                          position:'absolute',
-                          right:6,
-                          top:6,
-                          width:24,
-                          height:24,
-                          borderRadius:'50%',
-                          background:checkpointSelectedColor,
-                          color:'#ffffff',
-                          display:'flex',
-                          alignItems:'center',
-                          justifyContent:'center',
-                          fontSize:15,
-                          fontWeight:900,
-                          boxShadow:`0 0 14px ${checkpointSelectedColor}aa`,
-                        }}
-                      >
-                        {checkpointChoiceSelection.result === 'success' ? '✓' : '!'}
-                      </motion.div>
-                    )}
-                  </motion.div>
-                )}
 
-                {isWall && !cloudedByEcho && <div style={{ filter:'drop-shadow(0 4px 8px rgba(0,0,0,0.8))' }}><ObstacleVisual /></div>}
-                {isGoal && !isWall && !cloudedByEcho && (isLaunchSite ? <LaunchPadGoal /> : <GoalBeacon />)}
-                {isEchoProbe && (
-                  <div data-tutorial-id="echo-probe" style={{ zIndex: echoOverlapsLuma ? 11 : 4 }}>
-                    {echoProbe.startsConfused ? (
-                      <EchoDirectionalProbe
-                        facing={echoProbe.facing}
-                        activated={echoActivated}
-                        confused={!echoIdentifyCorrect}
-                        identifying={echoIdentifyActive && !echoIdentifyCorrect}
-                        revealFacing
-                      />
-                    ) : (
-                      <EchoProbe facing={echoProbe.facing} activated={echoActivated} />
-                    )}
-                  </div>
-                )}
-                {obj?.type === 'ship_part' && !isWall && !isGoal && !cloudedByEcho && (() => {
+                {isWall && <div style={{ filter:'drop-shadow(0 4px 8px rgba(0,0,0,0.8))' }}><ObstacleVisual /></div>}
+                {isGoal && !isWall && (isLaunchSite ? <LaunchPadGoal /> : <GoalBeacon />)}
+                {obj?.type === 'ship_part' && !isWall && !isGoal && (() => {
                   const partIndex = objects.filter(o => o.type === 'ship_part').findIndex(p => p.x === col && p.y === row)
                   const isCollected = collectedParts.has(partIndex)
                   if (isCollected) return null
@@ -2709,20 +2173,9 @@ export default function GameGrid({
                     ><ShipPart /></motion.div>
                   )
                 })()}
-                {obj?.type === 'rock' && !isWall && !isGoal && !cloudedByEcho && (
+                {obj?.type === 'rock' && !isWall && !isGoal && (
                   <div style={{ filter:'drop-shadow(0 4px 8px rgba(0,0,0,0.7))' }}><ObstacleVisual /></div>
                 )}
-                <AnimatePresence>
-                  {cloudedByEcho && (
-                    <EchoSignalCloud
-                      key={`echo-cloud-${col}-${row}`}
-                      tileSize={TILE_SIZE}
-                      selectable={isEchoSelectableCloud}
-                      selected={Boolean(isEchoSelectedCloud)}
-                      result={isEchoSelectedCloud ? echoSelectedCloud.result : null}
-                    />
-                  )}
-                </AnimatePresence>
               </div>
             )
           })

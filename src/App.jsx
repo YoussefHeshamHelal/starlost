@@ -25,7 +25,7 @@ const GRID_PX  = 520   // 5 tiles × 104 px
 const PANEL_W  = 810
 const GAP      = 24
 const EARLY_MAP_SCALE = 1.1
-const PLAYABLE_LEVELS = 22
+const PLAYABLE_LEVELS = 21
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
 const SPEED_STORAGE_KEY = 'starlost:anim-speed'
 const PARTICIPANT_STORAGE_KEY = 'starlost:participantId'
@@ -186,38 +186,28 @@ function ThemeToggle({ theme, onToggle }) {
 }
 
 // ── Helmet Radio ──────────────────────────────────────────────────────────────
-const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain, radioMode = 'luma' }) {
+const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain }) {
   const theme = useTheme()
   const t = THEMES[theme]
-  const isEchoRadio = radioMode === 'echo'
-  const echoAccent = theme === 'light' ? '#ef4444' : '#f87171'
-  const panelBg = isEchoRadio
-    ? (theme === 'light'
-      ? 'linear-gradient(135deg, rgba(254,226,226,0.98), rgba(255,241,242,0.96) 58%, rgba(255,255,255,0.94))'
-      : 'linear-gradient(135deg, rgba(34,9,12,0.98), rgba(69,18,24,0.94) 64%, rgba(7,13,26,0.96))')
-    : radioIsUncertain ? t.radioUncBg : t.radioBg
-  const panelBorder = isEchoRadio ? (theme === 'light' ? '#ef4444' : '#f87171') : radioIsUncertain ? t.radioUncBorder : t.radioBorder
-  const titleColor = isEchoRadio ? (theme === 'light' ? '#b91c1c' : '#fca5a5') : radioIsUncertain ? '#f59e0b' : (theme === 'light' ? '#1579ac' : '#2dd4bf')
-  const textColor = isEchoRadio ? (theme === 'light' ? '#7f1d1d' : '#fee2e2') : radioIsUncertain ? t.radioUncText : t.radioText
-  const signalColor = isEchoRadio ? echoAccent : '#f59e0b'
+  const panelBg = radioIsUncertain ? t.radioUncBg : t.radioBg
+  const panelBorder = radioIsUncertain ? t.radioUncBorder : t.radioBorder
+  const titleColor = radioIsUncertain ? '#f59e0b' : (theme === 'light' ? '#1579ac' : '#2dd4bf')
+  const textColor = radioIsUncertain ? t.radioUncText : t.radioText
+  const signalColor = '#f59e0b'
   return (
     <div data-tutorial-id="radio-panel" style={{
       background: panelBg,
       border: `1.5px solid ${panelBorder}`,
       borderRadius: 10,
-      padding: isEchoRadio ? '7px 18px' : '10px 20px',
+      padding: '10px 20px',
       width: '100%',
       flexShrink: 0,
       boxSizing: 'border-box',
       position: 'relative',
       transition: 'border-color 0.4s, background 0.4s, box-shadow 0.4s',
       boxShadow: theme === 'light'
-        ? isEchoRadio
-          ? '0 16px 32px rgba(239,68,68,0.14), 0 8px 22px rgba(248,113,113,0.16)'
-          : '0 14px 28px rgba(55,117,182,0.10), 0 6px 18px rgba(69,214,226,0.14)'
-        : isEchoRadio
-          ? '0 4px 24px rgba(0,0,0,0.46), 0 0 24px rgba(248,113,113,0.20)'
-          : '0 2px 16px rgba(0,0,0,0.4)',
+        ? '0 14px 28px rgba(55,117,182,0.10), 0 6px 18px rgba(69,214,226,0.14)'
+        : '0 2px 16px rgba(0,0,0,0.4)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
         <p style={{
@@ -226,13 +216,10 @@ const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain, radioM
           fontFamily: 'monospace', letterSpacing: 3, margin: 0,
           fontWeight: 800,
         }}>
-          {isEchoRadio ? 'ECHO RADIO' : 'LUMA HELMET RADIO'}
-          <span aria-hidden="true" style={{ display: 'none' }}>
-          📡  LUMA HELMET RADIO
-          </span>
+          LUMA HELMET RADIO
         </p>
 
-        {(radioIsUncertain || isEchoRadio) && (
+        {radioIsUncertain && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
               {[0, 1, 2].map(i => (
@@ -249,7 +236,7 @@ const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain, radioM
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 11, color: signalColor, fontWeight: 900, fontFamily: 'monospace',
               animation: 'pulse-shadow 2s ease-in-out infinite',
-            }}>{isEchoRadio ? 'E' : '?'}</div>
+            }}>?</div>
           </div>
         )}
       </div>
@@ -257,13 +244,13 @@ const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain, radioM
       <p style={{
         fontSize: 13,
         color: textColor,
-        fontFamily: 'monospace', lineHeight: isEchoRadio ? 1.35 : 1.55, fontStyle: 'italic', margin: 0,
+        fontFamily: 'monospace', lineHeight: 1.55, fontStyle: 'italic', margin: 0,
         fontWeight: 600,
       }}>
         "{report}"
       </p>
 
-      {(radioIsUncertain || isEchoRadio) && (
+      {radioIsUncertain && (
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0, height: 2,
           borderRadius: '0 0 10px 10px',
@@ -275,7 +262,6 @@ const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain, radioM
   )
 })
 
-// ── Visor Flip button ─────────────────────────────────────────────────────────
 const VisorFlipButton = memo(function VisorFlipButton({ visorFlipCount, onVisorFlip, highlighted }) {
   const theme = useTheme()
   const t = THEMES[theme]
@@ -490,189 +476,6 @@ const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, s
 })
 
 // ── Prediction Prompt ─────────────────────────────────────────────────────────
-const EchoQuestion = memo(function EchoQuestion({ echoProbe, echoFeedback }) {
-  const theme = useTheme()
-  const t = THEMES[theme]
-  const echoAccent = theme === 'light' ? '#ef4444' : '#f87171'
-  const echoAccentSoft = theme === 'light' ? 'rgba(254,226,226,0.96)' : 'rgba(69,18,24,0.94)'
-
-  if (!echoProbe) return null
-
-  return (
-    <motion.div
-      key="echo-question"
-      initial={{ opacity: 0, y: -10, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -8, scale: 0.97 }}
-      data-tutorial-id="echo-question"
-      style={{
-        flexShrink: 0,
-        padding: '10px 14px',
-        borderRadius: 14,
-        border: `2px solid ${echoFeedback?.type === 'success' ? '#22c55e' : echoFeedback?.type === 'retry' ? '#fb7185' : echoAccent}`,
-        background: theme === 'light'
-          ? `linear-gradient(135deg, rgba(255,255,255,0.98), ${echoAccentSoft} 52%, rgba(255,241,242,0.94))`
-          : `linear-gradient(135deg, rgba(24,10,18,0.98), ${echoAccentSoft} 58%, rgba(8,18,34,0.95))`,
-        boxShadow: theme === 'light'
-          ? '0 12px 24px rgba(239,68,68,0.14), 0 0 0 4px rgba(248,113,113,0.10), inset 0 1px 0 rgba(255,255,255,0.78)'
-          : '0 10px 24px rgba(0,0,0,0.38), 0 0 24px rgba(248,113,113,0.18), inset 0 1px 0 rgba(255,255,255,0.08)',
-        overflow: 'hidden',
-      }}
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            background: echoFeedback?.type === 'success' ? '#22c55e' : echoFeedback?.type === 'retry' ? '#fb7185' : echoAccent,
-            boxShadow: `0 0 12px ${echoFeedback?.type === 'success' ? '#22c55e' : echoFeedback?.type === 'retry' ? '#fb7185' : echoAccent}`,
-            flexShrink: 0,
-          }} />
-          <p style={{
-            margin: 0,
-            fontSize: 11,
-            letterSpacing: 2.4,
-            fontFamily: 'monospace',
-            color: theme === 'light' ? '#b91c1c' : '#fca5a5',
-            fontWeight: 900,
-            textShadow: theme === 'light' ? '0 1px 0 rgba(255,255,255,0.8)' : '0 0 10px rgba(248,113,113,0.34)',
-          }}>
-            ECHO RELAY
-          </p>
-        </div>
-        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.3, color: t.textPrimary, fontWeight: 900 }}>
-          Tap the cloud where you think the hidden fragment is.
-        </p>
-        {echoFeedback && (
-          <motion.p
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            style={{
-              margin: 0,
-              fontSize: 11,
-              lineHeight: 1.3,
-              color: echoFeedback.type === 'success' ? '#16a34a' : '#e11d48',
-              fontWeight: 800,
-            }}
-          >
-            {echoFeedback.text}
-          </motion.p>
-        )}
-      </div>
-    </motion.div>
-  )
-}) 
-
-const EchoIdentifyQuestion = memo(function EchoIdentifyQuestion({
-  echoProbe,
-  echoIdentifyAnswer,
-  echoIdentifyCorrect,
-  onAnswer,
-}) {
-  const theme = useTheme()
-  const t = THEMES[theme]
-  const echoAccent = theme === 'light' ? '#ef4444' : '#f87171'
-
-  if (!echoProbe) return null
-
-  const question = {
-    prompt: 'Which direction is ECHO facing?',
-    options: ['↑ Up', '→ Right', '↓ Down', '← Left'],
-  }
-
-  return (
-    <motion.div
-      key="echo-identify"
-      initial={{ opacity: 0, y: -10, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -8, scale: 0.97 }}
-      data-tutorial-id="echo-identify-panel"
-      style={{
-        width: '100%',
-        boxSizing: 'border-box',
-        padding: '20px 24px 24px',
-        borderRadius: 14,
-        border: `2px solid ${echoIdentifyCorrect ? '#22c55e' : echoAccent}`,
-        background: theme === 'light'
-          ? 'linear-gradient(135deg, rgba(255,255,255,0.98), rgba(254,226,226,0.96) 58%, rgba(255,241,242,0.94))'
-          : 'linear-gradient(135deg, rgba(24,10,18,0.98), rgba(69,18,24,0.94) 58%, rgba(8,18,34,0.94))',
-        boxShadow: theme === 'light'
-          ? '0 12px 24px rgba(239,68,68,0.14), 0 0 0 4px rgba(248,113,113,0.10)'
-          : '0 10px 24px rgba(0,0,0,0.42), 0 0 24px rgba(248,113,113,0.18)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 16,
-      }}
-    >
-      <p style={{
-        margin: 0,
-        fontSize: 10,
-        letterSpacing: 2.4,
-        fontFamily: 'monospace',
-        color: theme === 'light' ? '#b91c1c' : '#fca5a5',
-        fontWeight: 900,
-      }}>
-        ECHO IDENTIFY
-      </p>
-      <p style={{ margin: 0, fontSize: 14, color: t.textPrimary, lineHeight: 1.45, fontWeight: 700 }}>
-        {question.prompt}
-      </p>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '90px 90px 90px',
-        gridTemplateRows: '90px 90px 90px',
-        gridTemplateAreas: COMPASS_AREAS,
-        placeItems: 'center',
-        width: 270,
-        height: 270,
-        alignSelf: 'center',
-        overflow: 'hidden',
-      }}>
-        <div style={{
-          gridArea: 'center',
-          width: 22,
-          height: 22,
-          borderRadius: '50%',
-          border: `1.5px solid ${theme === 'light' ? '#ef444466' : '#fca5a555'}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <div style={{ width: 5, height: 5, borderRadius: '50%', background: theme === 'light' ? '#ef444466' : '#fca5a566' }}/>
-        </div>
-        {question.options.map(option => {
-          const normalizedOption = normalizeDirectionOption(option)
-          const isSelected = normalizeDirectionOption(echoIdentifyAnswer) === normalizedOption
-          const isCorrect = isSelected && echoIdentifyCorrect
-          const isWrong = isSelected && !echoIdentifyCorrect
-          return (
-            <DiamondButton
-              key={normalizedOption}
-              option={normalizedOption}
-              isSelected={isSelected}
-              isCorrect={isCorrect}
-              isWrong={isWrong}
-              disabled={echoIdentifyCorrect}
-              onClick={() => onAnswer(normalizedOption)}
-            />
-          )
-        })}
-      </div>
-      {echoIdentifyAnswer && !echoIdentifyCorrect && (
-        <p style={{ margin: 0, color: '#fb7185', fontSize: 12, fontFamily: 'monospace', textAlign: 'center', fontWeight: 800 }}>
-          Not quite. Use ECHO's radio clue.
-        </p>
-      )}
-      {echoIdentifyCorrect && (
-        <p style={{ margin: 0, color: '#10b981', fontSize: 12, fontFamily: 'monospace', textAlign: 'center', letterSpacing: 1, fontWeight: 800 }}>
-          Correct. Now use ECHO's view.
-        </p>
-      )}
-    </motion.div>
-  )
-})
-
 const PredictionBanner = memo(function PredictionBanner({ predictionTile, predictionResult }) {
   const theme = useTheme()
   const t = THEMES[theme]
@@ -1310,21 +1113,12 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     sequence, setSequence, isRunning, isMirrored,
     addCommand, removeLastCommand, clearSequence, runSequence,
     collectedParts, collectionEffects, activeIfPathSignal,
-    echoActivated, echoCloudsRevealed, echoAnswer, echoFeedback, answerEchoQuestion,
-    echoIdentifyActive, echoIdentifyAnswer, echoIdentifyCorrect, answerEchoIdentify,
     missedFragments, dismissMissedFragments,
     needsReset, resetLuma,
     predictionTile, setPrediction, predictionResult,
     traceSelection, traceEliminatedTiles, traceGoalRevealed, answerTraceCell,
     effectiveLevel, getGBISnapshot,
   } = useGameState(levelConfig, animSpeed)
-  const echoQuestionActive =
-    Boolean(effectiveLevel.echoProbe) &&
-    echoActivated &&
-    !echoIdentifyActive &&
-    (!effectiveLevel.echoProbe?.startsConfused || echoIdentifyCorrect) &&
-    !echoCloudsRevealed &&
-    phase === 'develop'
 
   const tutorialContext = useMemo(() => ({
     phase,
@@ -1338,10 +1132,6 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     collectedPartsCount: collectedParts.size,
     predictionTile,
     predictionResult,
-    echoActivated,
-    echoIdentifyActive,
-    echoIdentifyCorrect,
-    echoCloudsRevealed,
     traceSelection,
     traceGoalRevealed,
     levelConfig,
@@ -1355,10 +1145,6 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     phase,
     predictionResult,
     predictionTile,
-    echoActivated,
-    echoIdentifyActive,
-    echoIdentifyCorrect,
-    echoCloudsRevealed,
     traceSelection,
     traceGoalRevealed,
     sequence,
@@ -1548,8 +1334,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     (levelConfig.id !== 17 || phase === 'develop') &&
     (levelConfig.id !== 18 || phase === 'develop') &&
     (levelConfig.id !== 19 || phase === 'develop') &&
-    (levelConfig.id !== 21 || phase === 'develop') &&
-    (levelConfig.id !== 22 || phase === 'develop')
+    (levelConfig.id !== 21 || phase === 'develop')
   const handleReplayTutorial = useCallback(() => {
     if (!canReplayTutorial) return
 
@@ -1601,10 +1386,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   const runBlocked =
     (levelConfig.predictionPrompt && predictionTile === null && predictionResult === null) ||
     ifElseBlocked
-  const effectiveDefaultIfPathCondition =
-    levelConfig.id === 21
-        ? (echoCloudsRevealed ? 'left' : 'right')
-      : (levelConfig.defaultIfPathCondition ?? 'ahead')
+  const effectiveDefaultIfPathCondition = levelConfig.defaultIfPathCondition ?? 'ahead'
 
   const panelW = PANEL_W
   const usesEarlyMapOnlyLayout = levelConfig.id === 1 || levelConfig.id === 2
@@ -1685,10 +1467,10 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
 
       {/* ── Main play area ── */}
       <div style={{
-        flex: phase === 'identify' || echoIdentifyActive ? '0 0 auto' : 1, width: '100%',
-        display: 'flex', gap: GAP, alignItems: phase === 'identify' || echoIdentifyActive ? 'flex-start' : 'stretch',
-        minHeight: phase === 'identify' || echoIdentifyActive ? 'auto' : 0,
-        overflow: phase === 'identify' || echoIdentifyActive || levelConfig.id === 13 || usesEarlyMapOnlyLayout ? 'visible' : 'hidden',
+        flex: phase === 'identify' ? '0 0 auto' : 1, width: '100%',
+        display: 'flex', gap: GAP, alignItems: phase === 'identify' ? 'flex-start' : 'stretch',
+        minHeight: phase === 'identify' ? 'auto' : 0,
+        overflow: phase === 'identify' || levelConfig.id === 13 || usesEarlyMapOnlyLayout ? 'visible' : 'hidden',
       }}>
         <div style={{
           flex: '0 0 auto', width: mapFootprintW,
@@ -1702,7 +1484,6 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
               <HelmetRadio
                 report={helmetReport}
                 radioIsUncertain={radioIsUncertain}
-                radioMode={echoActivated ? 'echo' : 'luma'}
               />
             </div>
           )}
@@ -1726,13 +1507,6 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
               onTileClick={handleTileClick}
               collectionEffects={collectionEffects}
               activeIfPathSignal={activeIfPathSignal}
-              echoActivated={echoActivated}
-              echoCloudsRevealed={echoCloudsRevealed}
-              echoIdentifyActive={echoIdentifyActive}
-              echoIdentifyCorrect={echoIdentifyCorrect}
-              echoSelectionActive={echoQuestionActive}
-              echoSelectedCloud={echoAnswer}
-              onEchoCloudTileClick={answerEchoQuestion}
               traceModeActive={traceModeActive}
               traceSelection={traceSelection}
               traceEliminatedTiles={traceEliminatedTiles}
@@ -1745,9 +1519,9 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
         {/* Right panel */}
         <div style={{
           flex: '1 1 0', maxWidth: panelW,
-          height: phase === 'develop' && !echoIdentifyActive ? '100%' : GRID_PX,
+          height: phase === 'develop' ? '100%' : GRID_PX,
           display: 'flex', flexDirection: 'column',
-          justifyContent: phase === 'identify' || echoIdentifyActive ? 'center' : 'flex-start',
+          justifyContent: phase === 'identify' ? 'center' : 'flex-start',
           minHeight: 0, overflow: 'hidden',
         }}>
           <AnimatePresence mode="wait">
@@ -1773,25 +1547,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
               </motion.div>
             )}
 
-            {phase === 'develop' && echoIdentifyActive && (
-              <motion.div
-                key="echo-identify-full"
-                initial={panelInitial}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={panelTransition}
-                style={{ width: '100%' }}
-              >
-                <EchoIdentifyQuestion
-                  echoProbe={effectiveLevel.echoProbe}
-                  echoIdentifyAnswer={echoIdentifyAnswer}
-                  echoIdentifyCorrect={echoIdentifyCorrect}
-                  onAnswer={answerEchoIdentify}
-                />
-              </motion.div>
-            )}
-
-            {phase === 'develop' && !echoIdentifyActive && (
+            {phase === 'develop' && (
               <motion.div
                 key="builder"
                 initial={panelInitial}
@@ -1809,19 +1565,9 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
                     />
                   </div>
                 )}
-                <AnimatePresence>
-                  {echoQuestionActive && (
-                    <EchoQuestion
-                      echoProbe={effectiveLevel.echoProbe}
-                      echoFeedback={echoFeedback}
-                    />
-                  )}
-                </AnimatePresence>
                 <div style={{
                   minHeight: 0,
                   height: '100%',
-                  pointerEvents: echoQuestionActive || echoIdentifyActive ? 'none' : 'auto',
-                  opacity: echoQuestionActive || echoIdentifyActive ? 0.56 : 1,
                 }}>
                   <CommandBuilder
                     key={`command-builder-${levelConfig.id}`}

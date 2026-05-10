@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion'
 import { useTheme, THEMES } from '../context/theme'
 
-const PLAYABLE_LEVELS = 22
+const PLAYABLE_LEVELS = 21
 const HOME_MAPS = [
   { id: 'crash-site', title: 'Crash Site', levels: [1, 2, 3, 4, 5], accent: 'teal' },
   { id: 'forest-trail', title: 'Forest Trail', levels: [6, 7, 8, 9, 10, 11, 12, 13, 14], accent: 'amber' },
-  { id: 'repair-site', title: 'Repair Site', levels: [15, 16, 17, 18, 19, 20, 21], accent: 'violet' },
-  { id: 'launch-site', title: 'Launch Site', levels: [22], accent: 'cyan' },
+  { id: 'repair-site', title: 'Repair Site', levels: [15, 16, 17, 18, 19, 20], accent: 'violet' },
+  { id: 'launch-site', title: 'Launch Site', levels: [21], accent: 'cyan' },
 ]
 
 export default function HomePage({ headerHeight, onSelectLevel }) {
@@ -173,7 +173,7 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                 LIVE NOW
               </p>
               <p style={{ margin: 0, fontSize: 13, color: t.textSecondary, fontWeight: 700 }}>
-                Levels 1-22 ready to play
+                Levels 1-21 ready to play
               </p>
             </div>
           </motion.div>
