@@ -109,48 +109,68 @@ export function expandSequence(sequence = []) {
   return expanded
 }
 
-const CODE_INDENT = '  '
+const CODE_INDENT = '    '
 
 function getPathCheckName(condition = 'ahead') {
-  if (condition === 'left') return 'isPathLeft'
-  if (condition === 'right') return 'isPathRight'
-  return 'isPathForward'
+  if (condition === 'left') return 'is_path_left'
+  if (condition === 'right') return 'is_path_right'
+  return 'is_path_forward'
 }
 
-function commandsToJavaScriptLines(commands = [], depth = 0) {
-  if (!commands.length) return [`${CODE_INDENT.repeat(depth)}// no blocks`]
+function countRepeatBlocks(sequence = []) {
+  return sequence.reduce((total, command) => {
+    if (isRepeatCommand(command)) {
+      return total + 1 + countRepeatBlocks(command.commands ?? [])
+    }
+
+    if (isIfPathCommand(command)) {
+      return total +
+        countRepeatBlocks(command.commands ?? []) +
+        countRepeatBlocks(command.elseCommands ?? [])
+    }
+
+    return total
+  }, 0)
+}
+
+function commandsToPythonLines(commands = [], depth = 0, counterState = { next: 1, totalRepeats: 0 }) {
+  if (!commands.length) return [`${CODE_INDENT.repeat(depth)}pass`]
 
   return commands.flatMap((command) => {
     const indent = CODE_INDENT.repeat(depth)
 
-    if (command === 'F') return [`${indent}moveForward();`]
-    if (command === 'TR') return [`${indent}turnRight();`]
-    if (command === 'TL') return [`${indent}turnLeft();`]
-    if (command === 'C') return [`${indent}collect();`]
+    if (command === 'F') return [`${indent}move_forward()`]
+    if (command === 'TR') return [`${indent}turn_right()`]
+    if (command === 'TL') return [`${indent}turn_left()`]
+    if (command === 'C') return [`${indent}collect()`]
 
     if (isRepeatCommand(command)) {
+      const counterName = counterState.totalRepeats === 1
+        ? 'repeat_count'
+        : `repeat_count_${counterState.next}`
+      counterState.next += 1
+
       return [
-        `${indent}for (let i = 0; i < ${clampRepeatTimes(command.times)}; i++) {`,
-        ...commandsToJavaScriptLines(command.commands ?? [], depth + 1),
-        `${indent}}`,
+        `${indent}${counterName} = 0`,
+        `${indent}while ${counterName} < ${clampRepeatTimes(command.times)}:`,
+        ...commandsToPythonLines(command.commands ?? [], depth + 1, counterState),
+        `${CODE_INDENT.repeat(depth + 1)}${counterName} += 1`,
       ]
     }
 
     if (isIfPathCommand(command)) {
       const condition = `${getPathCheckName(command.condition)}()`
       const ifLines = [
-        `${indent}if (${condition}) {`,
-        ...commandsToJavaScriptLines(command.commands ?? [], depth + 1),
-        `${indent}}`,
+        `${indent}if ${condition}:`,
+        ...commandsToPythonLines(command.commands ?? [], depth + 1, counterState),
       ]
 
       if ((command.elseCommands?.length ?? 0) === 0) return ifLines
 
       return [
-        ...ifLines.slice(0, -1),
-        `${indent}} else {`,
-        ...commandsToJavaScriptLines(command.elseCommands ?? [], depth + 1),
-        `${indent}}`,
+        ...ifLines,
+        `${indent}else:`,
+        ...commandsToPythonLines(command.elseCommands ?? [], depth + 1, counterState),
       ]
     }
 
@@ -158,9 +178,9 @@ function commandsToJavaScriptLines(commands = [], depth = 0) {
   })
 }
 
-export function programToJavaScript(sequence = []) {
-  if (!sequence.length) return '// Add blocks to the Program box to see JavaScript here.'
-  return commandsToJavaScriptLines(sequence).join('\n')
+export function programToPython(sequence = []) {
+  if (!sequence.length) return '# Add blocks to the Program box to see Python here.'
+  return commandsToPythonLines(sequence, 0, { next: 1, totalRepeats: countRepeatBlocks(sequence) }).join('\n')
 }
 
 export function formatSequenceCommand(command) {

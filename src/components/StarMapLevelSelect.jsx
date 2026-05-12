@@ -7,7 +7,8 @@ import './menuScreens.css'
 const COPY = {
   starMap: 'STAR MAP',
   crashSite: 'Crash Site',
-  forestTrail: 'Forest Trail',
+  forestEntrance: 'Forest Entrance',
+  deepForest: 'Deep Forest',
   repairSite: 'Repair Site',
   launchSite: 'Launch Site',
   back: 'Back',
@@ -21,28 +22,36 @@ const ZONES = [
     title: COPY.crashSite,
     path: [1, 2, 3, 4, 5],
     positions: {
-      1: { left: 18, top: 66 },
-      2: { left: 34, top: 54 },
-      3: { left: 52, top: 44 },
-      4: { left: 69, top: 56 },
-      5: { left: 84, top: 68 },
+      1: { left: 14, top: 59 },
+      2: { left: 30, top: 47 },
+      3: { left: 48, top: 37 },
+      4: { left: 65, top: 49 },
+      5: { left: 80, top: 61 },
     },
   },
   {
     id: 'forest',
     className: 'star-zone--forest',
-    title: COPY.forestTrail,
-    path: [6, 7, 8, 9, 10, 11, 12, 13, 14],
+    title: COPY.forestEntrance,
+    path: [6, 7, 8, 9],
     positions: {
-      6: { left: 18, top: 48 },
-      7: { left: 34, top: 39 },
-      8: { left: 50, top: 38 },
-      9: { left: 66, top: 40 },
-      10: { left: 82, top: 53 },
-      11: { left: 77, top: 72 },
-      12: { left: 60, top: 72 },
-      13: { left: 42, top: 72 },
-      14: { left: 24, top: 70 },
+      6: { left: 22, top: 59 },
+      7: { left: 43, top: 46 },
+      8: { left: 65, top: 46 },
+      9: { left: 86, top: 59 },
+    },
+  },
+  {
+    id: 'deep-forest',
+    className: 'star-zone--deep-forest',
+    title: COPY.deepForest,
+    path: [10, 11, 12, 13, 14],
+    positions: {
+      10: { left: 15, top: 67 },
+      11: { left: 31, top: 51 },
+      12: { left: 50, top: 45 },
+      13: { left: 69, top: 51 },
+      14: { left: 85, top: 67 },
     },
   },
   {
@@ -51,12 +60,12 @@ const ZONES = [
     title: COPY.repairSite,
     path: [15, 16, 17, 18, 19, 20],
     positions: {
-      15: { left: 22, top: 46 },
-      16: { left: 40, top: 36 },
-      17: { left: 59, top: 37 },
-      18: { left: 77, top: 35 },
-      19: { left: 80, top: 71 },
-      20: { left: 58, top: 74 },
+      15: { left: 15, top: 77 },
+      16: { left: 27, top: 58 },
+      17: { left: 40, top: 41 },
+      18: { left: 56, top: 41 },
+      19: { left: 69, top: 58 },
+      20: { left: 81, top: 77 },
     },
   },
   {
@@ -65,9 +74,9 @@ const ZONES = [
     title: COPY.launchSite,
     path: [21, 22, 23],
     positions: {
-      21: { left: 28, top: 62 },
-      22: { left: 51, top: 48 },
-      23: { left: 74, top: 62 },
+      21: { left: 26, top: 62 },
+      22: { left: 49, top: 48 },
+      23: { left: 72, top: 62 },
     },
   },
 ]
@@ -96,7 +105,7 @@ function LevelNode({ level, position, completedLevels, onSelectLevel }) {
       style={{ left: `${position.left}%`, top: `${position.top}%` }}
       onClick={() => onSelectLevel(level)}
     >
-      {level}
+      <span className="star-node__number">{level}</span>
     </button>
   )
 }
@@ -154,6 +163,9 @@ export default function StarMapLevelSelect({
     () => [...new Set(completedLevels)].filter(level => level >= 1 && level <= TOTAL_LEVELS),
     [completedLevels]
   )
+  const progressPercent = TOTAL_LEVELS > 0
+    ? Math.min(100, Math.max(0, (normalizedCompletedLevels.length / TOTAL_LEVELS) * 100))
+    : 0
 
   const toggleMuted = () => {
     setMuted(prev => {
@@ -212,11 +224,17 @@ export default function StarMapLevelSelect({
         </motion.button>
 
         <div className="star-progress" aria-live="polite">
-          <ProgressStarIcon />
-          <span className="star-progress__label">{COPY.progress}</span>
-          <span className="star-progress__count">
-            {loading ? '...' : `${normalizedCompletedLevels.length} / ${TOTAL_LEVELS}`}
-          </span>
+          <div className="star-progress__readout">
+            <ProgressStarIcon />
+            <span className="star-progress__label">{COPY.progress}</span>
+            <span className="star-progress__count">
+              {loading ? '...' : `${normalizedCompletedLevels.length} / ${TOTAL_LEVELS}`}
+            </span>
+          </div>
+          <div className="star-progress__bar" aria-hidden="true">
+            <span className="star-progress__bar-fill" style={{ width: `${progressPercent}%` }} />
+            <span className="star-progress__bar-segments" />
+          </div>
         </div>
       </div>
     </motion.main>

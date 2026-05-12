@@ -58,6 +58,11 @@ const MAP_LEVEL_VARIANTS = {
   animate: { opacity: 1, y: 0, scale: 1 },
   exit: { opacity: 1, y: 0, scale: 1 },
 }
+const DISPLAY_WORLD_NAMES = {
+  'crash-site': 'Crash Site',
+  'repair-site': 'Repair Site',
+  'launch-site': 'Launch Site',
+}
 const PAGE_SHELL_STYLE = {
   position: 'absolute',
   inset: 0,
@@ -75,6 +80,17 @@ const HEADER_TRANSITION = {
 }
 const INSTANT_TRANSITION = {
   duration: 0,
+}
+
+function getDisplayWorldName(levelConfig) {
+  if (!levelConfig) return ''
+  if (levelConfig.mapTitle || levelConfig.displayWorldName) {
+    return levelConfig.mapTitle ?? levelConfig.displayWorldName
+  }
+  if (levelConfig.world === 'forest-trail') {
+    return levelConfig.id >= 10 ? 'Deep Forest' : 'Forest Entrance'
+  }
+  return DISPLAY_WORLD_NAMES[levelConfig.world] ?? levelConfig.world ?? ''
 }
 
 function readStoredAnimSpeed() {
@@ -1438,7 +1454,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
             fontFamily: 'monospace', letterSpacing: 3, margin: 0,
             fontWeight: 800,
           }}>
-            LEVEL {levelConfig.id} — {levelConfig.world?.toUpperCase()}
+            LEVEL {levelConfig.id} — {getDisplayWorldName(levelConfig).toUpperCase()}
           </p>
         </div>
         {!levelConfig.skipIdentify && (

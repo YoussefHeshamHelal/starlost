@@ -9,7 +9,7 @@ import {
   isIfPathCommand,
   isNestedBlockCommand,
   isRepeatCommand,
-  programToJavaScript,
+  programToPython,
 } from '../utils/commands'
 
 const THUMB_R = 8
@@ -1456,7 +1456,7 @@ function ShowCodeModal({ code, theme, onClose }) {
           >
             Berkeley
           </a>
-          {'). But behind the scenes, the blocks you have assembled can also be shown in JavaScript, the world\'s most widely used coding language:'}
+          {'). But behind the scenes, the blocks you have assembled can also be shown in Python, one of the world\'s most widely used programming languages:'}
         </p>
 
         <pre
@@ -1624,7 +1624,7 @@ export default function CommandBuilder({
   }, [defaultIfPathCondition])
 
   const totalBlocks = countProgramBlocks(sequence)
-  const programCode = programToJavaScript(sequence)
+  const programCode = programToPython(sequence)
   const isDisabled = isRunning || sequence.length === 0 || needsReset || runBlocked
   const wrapperBg = theme === 'light' ? 'rgba(255,255,255,0.18)' : 'rgba(6,11,20,0.16)'
   const subPanelStyle = {

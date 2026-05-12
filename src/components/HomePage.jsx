@@ -4,7 +4,8 @@ import { useTheme, THEMES } from '../context/theme'
 const PLAYABLE_LEVELS = 23
 const HOME_MAPS = [
   { id: 'crash-site', title: 'Crash Site', levels: [1, 2, 3, 4, 5], accent: 'teal' },
-  { id: 'forest-trail', title: 'Forest Trail', levels: [6, 7, 8, 9, 10, 11, 12, 13, 14], accent: 'amber' },
+  { id: 'forest-entrance', title: 'Forest Entrance', levels: [6, 7, 8, 9], accent: 'amber' },
+  { id: 'deep-forest', title: 'Deep Forest', levels: [10, 11, 12, 13, 14], accent: 'emerald' },
   { id: 'repair-site', title: 'Repair Site', levels: [15, 16, 17, 18, 19, 20], accent: 'violet' },
   { id: 'launch-site', title: 'Launch Site', levels: [21, 22, 23], accent: 'cyan' },
 ]
@@ -146,7 +147,7 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                 color: t.textSecondary,
                 maxWidth: 620,
               }}>
-                Crash Site, Forest Trail, Repair Site, and the final Launch Site mission are live now.
+                Crash Site, Forest Entrance, Deep Forest, Repair Site, and the final Launch Site mission are live now.
               </p>
             </div>
 
@@ -180,7 +181,7 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+            gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
             gap: 18,
             flex: 1,
             minHeight: 0,
@@ -191,6 +192,8 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                 ? (theme === 'light' ? '#5fd7eb' : '#2dd4bf')
                 : mapConfig.accent === 'amber'
                   ? (theme === 'light' ? '#f5b24d' : '#f59e0b')
+                  : mapConfig.accent === 'emerald'
+                    ? (theme === 'light' ? '#4ade80' : '#22c55e')
                   : mapConfig.accent === 'violet'
                     ? (theme === 'light' ? '#b78cff' : '#8b5cf6')
                     : (theme === 'light' ? '#22d3ee' : '#67e8f9')
@@ -236,6 +239,10 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                           ? (theme === 'light'
                             ? 'radial-gradient(circle at 85% 15%, rgba(251,191,36,0.18), rgba(251,191,36,0))'
                             : 'radial-gradient(circle at 85% 15%, rgba(245,158,11,0.10), rgba(245,158,11,0))')
+                          : mapConfig.accent === 'emerald'
+                            ? (theme === 'light'
+                              ? 'radial-gradient(circle at 85% 15%, rgba(74,222,128,0.18), rgba(74,222,128,0))'
+                              : 'radial-gradient(circle at 85% 15%, rgba(34,197,94,0.10), rgba(34,197,94,0))')
                           : mapConfig.accent === 'violet'
                             ? (theme === 'light'
                               ? 'radial-gradient(circle at 85% 15%, rgba(139,92,246,0.16), rgba(139,92,246,0))'
@@ -275,8 +282,10 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                       {isLiveMap
                         ? mapConfig.id === 'crash-site'
                           ? 'Explore the crash site and learn how to guide LUMA.'
-                          : mapConfig.id === 'forest-trail'
-                            ? 'Follow the glowing forest trail and start using repeat, visor help, and fragment routes.'
+                          : mapConfig.id === 'forest-entrance'
+                            ? 'Follow the glowing forest entrance and start using repeat routes.'
+                            : mapConfig.id === 'deep-forest'
+                              ? 'Push deeper through forest paths with visor help and fragment routes.'
                             : mapConfig.id === 'repair-site'
                               ? 'Reach the repair bay, learn IF PATH, and collect every fragment.'
                               : 'Trace the final launch code and help LUMA lift off for home.'
