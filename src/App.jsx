@@ -13,6 +13,7 @@ import CommandBuilder from './components/CommandBuilder'
 import StartPage from './components/StartPage'
 import MissionSetup from './components/MissionSetup'
 import StarMapLevelSelect from './components/StarMapLevelSelect'
+import MenuSoundIcon from './components/MenuSoundIcon'
 import TutorialOverlay from './components/TutorialOverlay'
 import { logGBI } from './logGBI'
 import { ThemeContext, useTheme, THEMES } from './context/theme'
@@ -172,6 +173,18 @@ const ANIM_STYLES = `
     0%, 100% { opacity: 0.25; transform: scale(0.9); }
     50% { opacity: 0.9; transform: scale(1.15); }
   }
+  .level-sound-button .menu-sound-icon {
+    width: 22px;
+    height: 22px;
+    color: currentColor;
+    filter: drop-shadow(0 0 5px currentColor);
+  }
+  .level-sound-button--muted .menu-sound-icon__wave {
+    opacity: 0;
+  }
+  .level-sound-button--muted .menu-sound-icon__mute {
+    opacity: 1;
+  }
 `
 
 
@@ -213,7 +226,43 @@ function ThemeToggle({ theme, onToggle }) {
   )
 }
 
-// ── Helmet Radio ──────────────────────────────────────────────────────────────
+// Level sound button
+function LevelSoundButton({ theme, muted, onToggleMuted }) {
+  const t = THEMES[theme]
+  return (
+    <motion.button
+      type="button"
+      aria-label={muted ? 'Unmute background music' : 'Mute background music'}
+      title={muted ? 'Unmute music' : 'Mute music'}
+      onClick={onToggleMuted}
+      whileTap={{ scale: 0.92 }}
+      whileHover={{ scale: 1.06 }}
+      className={`level-sound-button ${muted ? 'level-sound-button--muted menu-icon-button--muted' : ''}`}
+      style={{
+        width: 40,
+        height: 40,
+        padding: 0,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        background: t.toggleBg,
+        border: `1.5px solid ${t.toggleBorder}`,
+        borderRadius: 14,
+        color: t.toggleText,
+        cursor: 'pointer',
+        transition: 'background 0.3s, border-color 0.3s, color 0.3s, box-shadow 0.3s',
+        boxShadow: theme === 'light'
+          ? '0 10px 22px rgba(54,131,201,0.14), inset 0 1px 0 rgba(255,255,255,0.62)'
+          : '0 2px 12px rgba(45,212,191,0.08)',
+      }}
+    >
+      <MenuSoundIcon />
+    </motion.button>
+  )
+}
+
+// Helmet Radio
 const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain }) {
   const theme = useTheme()
   const t = THEMES[theme]
@@ -2063,8 +2112,15 @@ export default function App() {
             {appPhase === 'playing' ? 'Lost in space. Guided by you.' : 'Help LUMA find the way home.'}
           </p>
 
-          {/* Theme toggle */}
-          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          {/* Header controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <LevelSoundButton
+              theme={theme}
+              muted={muted}
+              onToggleMuted={handleToggleMuted}
+            />
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          </div>
         </motion.header>
           )}
         </AnimatePresence>
