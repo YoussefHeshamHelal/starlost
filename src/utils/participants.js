@@ -1,46 +1,51 @@
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 
-const MISSION_CODE_PATTERN = /^\d{4}$/
+const STAR_CODE_PATTERN = /^[A-Z]{4}\d$/
 
 export function sanitizeParticipantId(rawId) {
-  return String(rawId ?? '').replace(/\D/g, '').slice(0, 4)
+  return String(rawId ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5)
 }
 
 export function isValidParticipantId(id) {
-  return MISSION_CODE_PATTERN.test(String(id ?? ''))
+  return STAR_CODE_PATTERN.test(String(id ?? ''))
 }
 
 export class MissionCodeAlreadyUsedError extends Error {
-  constructor(missionCode) {
-    super('This mission code is already used. Please ask for a new code.')
+  constructor(starCode) {
+    super('This STARLOST code is already used. Please try another code.')
     this.name = 'MissionCodeAlreadyUsedError'
     this.code = 'mission-code/already-used'
-    this.missionCode = missionCode
+    this.missionCode = starCode
+    this.starCode = starCode
   }
 }
 
-export async function createOrUpdateParticipant(missionCode) {
-  const participantRef = doc(db, 'participants', missionCode)
-  const sessionRef = doc(db, 'participants', missionCode, 'sessions', 'session_1')
+export async function createOrUpdateParticipant(starCode) {
+  const participantRef = doc(db, 'participants', starCode)
+  const sessionRef = doc(db, 'participants', starCode, 'sessions', 'session_1')
   const participantSnapshot = await getDoc(participantRef)
 
   if (participantSnapshot.exists()) {
-    throw new MissionCodeAlreadyUsedError(missionCode)
+    throw new MissionCodeAlreadyUsedError(starCode)
   }
 
   await setDoc(participantRef, {
-    participantId: missionCode,
-    missionCode,
+    participantId: starCode,
+    starCode,
+    pseudonymCode: starCode,
+    missionCode: starCode,
     game: 'STARLOST',
-    source: 'mission-setup',
+    source: 'star-code-station',
     createdAt: serverTimestamp(),
     lastActiveAt: serverTimestamp(),
   }, { merge: true })
 
   await setDoc(sessionRef, {
-    participantId: missionCode,
-    missionCode,
+    participantId: starCode,
+    starCode,
+    pseudonymCode: starCode,
+    missionCode: starCode,
     sessionId: 'session_1',
     startedAt: serverTimestamp(),
     lastActiveAt: serverTimestamp(),
@@ -53,20 +58,24 @@ export async function createOrUpdateParticipant(missionCode) {
   }, { merge: true })
 }
 
-export async function touchParticipantSession(missionCode) {
-  const participantRef = doc(db, 'participants', missionCode)
-  const sessionRef = doc(db, 'participants', missionCode, 'sessions', 'session_1')
+export async function touchParticipantSession(starCode) {
+  const participantRef = doc(db, 'participants', starCode)
+  const sessionRef = doc(db, 'participants', starCode, 'sessions', 'session_1')
 
   await setDoc(participantRef, {
-    participantId: missionCode,
-    missionCode,
+    participantId: starCode,
+    starCode,
+    pseudonymCode: starCode,
+    missionCode: starCode,
     game: 'STARLOST',
     lastActiveAt: serverTimestamp(),
   }, { merge: true })
 
   await setDoc(sessionRef, {
-    participantId: missionCode,
-    missionCode,
+    participantId: starCode,
+    starCode,
+    pseudonymCode: starCode,
+    missionCode: starCode,
     sessionId: 'session_1',
     lastActiveAt: serverTimestamp(),
   }, { merge: true })

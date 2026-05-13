@@ -33,7 +33,7 @@ const OUTER_PHASES = new Set(['start', 'mission-setup', 'home'])
 const OUTER_PAGE_BG = '#020617'
 const OUTER_BG_ASSETS = [
   '/assets/ui/start-page-bg.png',
-  '/assets/ui/mission-control-bg.png',
+  '/assets/ui/star-code-station-bg.png',
   '/assets/ui/star-map-bg.png',
 ]
 const PAGE_TRANSITION = {
