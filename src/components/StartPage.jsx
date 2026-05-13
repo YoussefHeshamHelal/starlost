@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { isValidParticipantId } from '../utils/participants'
+import { MEDAL_RANKS, TOTAL_LEVELS } from '../utils/progress'
 import MenuSoundIcon from './MenuSoundIcon'
 import './menuScreens.css'
 
@@ -11,20 +12,77 @@ const COPY = {
   achievements: 'Achievements',
   language: 'Language',
   aboutTitle: 'About STARLOST',
-  aboutBody: 'STARLOST is a child-friendly space adventure where you help LUMA collect missing ship fragments, repair her ship, and get home.',
-  aboutThesis: 'Made for a bachelor thesis project about spatial perspective-taking and computational thinking.',
-  achievementsTitle: 'Achievements',
-  achievementsBody: 'Badges are coming soon.',
+  aboutBody: 'STARLOST is a child-friendly educational space adventure where players help LUMA find her way home by solving grid-world puzzle levels.',
+  aboutThesis: 'The game is designed to support and assess children’s spatial perspective-taking and computational thinking through movement blocks, path planning, perspective clues, and problem-solving challenges.',
+  aboutCredit: 'STARLOST was created as part of a bachelor thesis project by Youssef Hesham Helal.',
+  achievementsTitle: 'ACHIEVEMENTS',
   languageTitle: 'Language',
   close: 'Close',
   english: 'English',
   arabic: 'Arabic',
 }
 
-function readMuted() {
-  if (typeof window === 'undefined') return false
-  return window.localStorage?.getItem('starlost:muted') === 'true'
-}
+const ACHIEVEMENT_ROWS = [
+  {
+    id: 'first-mission',
+    icon: '\u{1f680}',
+    title: 'First Mission',
+    description: 'Complete a level.',
+    isUnlocked: ({ completedCount }) => completedCount >= 1,
+  },
+  {
+    id: 'gold-explorer',
+    icon: '\u{1f947}',
+    title: 'Gold Explorer',
+    description: 'Earn a gold medal.',
+    isUnlocked: ({ medalValues }) => medalValues.some(medal => medal === 'gold'),
+  },
+  {
+    id: 'rising-star',
+    icon: '\u2728',
+    title: 'Rising Star',
+    description: 'Complete 5 levels.',
+    isUnlocked: ({ completedCount }) => completedCount >= 5,
+  },
+  {
+    id: 'space-navigator',
+    icon: '\u{1f9ed}',
+    title: 'Space Navigator',
+    description: 'Complete 10 levels.',
+    isUnlocked: ({ completedCount }) => completedCount >= 10,
+  },
+  {
+    id: 'deep-explorer',
+    icon: '\u{1fa90}',
+    title: 'Deep Explorer',
+    description: 'Complete 15 levels.',
+    isUnlocked: ({ completedCount }) => completedCount >= 15,
+  },
+  {
+    id: 'bronze-master',
+    icon: '',
+    medal: 'bronze',
+    title: 'Bronze Master',
+    description: 'Earn bronze medals on all levels.',
+    isUnlocked: ({ medalValues }) => medalValues.length >= TOTAL_LEVELS,
+  },
+  {
+    id: 'silver-master',
+    icon: '',
+    medal: 'silver',
+    title: 'Silver Master',
+    description: 'Earn silver medals on all levels.',
+    isUnlocked: ({ medalValues }) => medalValues.length >= TOTAL_LEVELS && medalValues.every(medal => (MEDAL_RANKS[medal] ?? 0) >= MEDAL_RANKS.silver),
+  },
+  {
+    id: 'gold-master',
+    icon: '',
+    medal: 'gold',
+    title: 'Gold Master',
+    description: 'Earn gold medals on all levels.',
+    isUnlocked: ({ medalValues }) => medalValues.length >= TOTAL_LEVELS && medalValues.every(medal => medal === 'gold'),
+  },
+]
 
 function readSavedMissionCode() {
   if (typeof window === 'undefined') return ''
@@ -34,7 +92,7 @@ function readSavedMissionCode() {
   return ''
 }
 
-function MenuModal({ title, children, onClose }) {
+function MenuModal({ title, children, onClose, className = '' }) {
   return (
     <motion.div
       className="menu-modal-backdrop"
@@ -43,7 +101,7 @@ function MenuModal({ title, children, onClose }) {
       exit={{ opacity: 0 }}
     >
       <motion.div
-        className="menu-modal"
+        className={`menu-modal ${className}`.trim()}
         initial={{ y: 18, scale: 0.94 }}
         animate={{ y: 0, scale: 1 }}
         exit={{ y: 12, scale: 0.96 }}
@@ -65,19 +123,24 @@ function MenuModal({ title, children, onClose }) {
   )
 }
 
-export default function StartPage({ onStart, onContinue }) {
+export default function StartPage({
+  muted = false,
+  onToggleMuted,
+  onUnlockAudio,
+  onStart,
+  onContinue,
+  completedLevels = [],
+  medalsByLevel = {},
+  achievementTotals = { gold: 0, silver: 0, bronze: 0 },
+}) {
   const [modal, setModal] = useState(null)
-  const [muted, setMuted] = useState(readMuted)
   const [savedMissionCode] = useState(readSavedMissionCode)
   const canContinue = Boolean(savedMissionCode)
-
-  const toggleMuted = useCallback(() => {
-    setMuted(prev => {
-      const next = !prev
-      window.localStorage?.setItem('starlost:muted', String(next))
-      return next
-    })
-  }, [])
+  const completedCount = Array.isArray(completedLevels) ? completedLevels.length : 0
+  const medalValues = Object.values(medalsByLevel ?? {})
+    .map(value => value?.medal)
+    .filter(medal => MEDAL_RANKS[medal])
+  const achievementContext = { completedCount, medalValues }
 
   return (
     <motion.main
@@ -105,7 +168,7 @@ export default function StartPage({ onStart, onContinue }) {
           type="button"
           className={`menu-icon-button menu-icon-button--right ${muted ? 'menu-icon-button--muted' : ''}`}
           aria-label={muted ? 'Unmute sound' : 'Mute sound'}
-          onClick={toggleMuted}
+          onClick={onToggleMuted}
           whileHover={{ y: -3, scale: 1.04 }}
           whileTap={{ scale: 0.94 }}
         >
@@ -116,7 +179,10 @@ export default function StartPage({ onStart, onContinue }) {
           <motion.button
             type="button"
             className="menu-pill-button"
-            onClick={onStart}
+            onClick={() => {
+              onUnlockAudio?.()
+              onStart?.()
+            }}
             whileHover={{ y: -4, scale: 1.012 }}
             whileTap={{ scale: 0.96 }}
           >
@@ -127,7 +193,10 @@ export default function StartPage({ onStart, onContinue }) {
             <motion.button
               type="button"
               className="menu-pill-button menu-pill-button--continue"
-              onClick={onContinue}
+              onClick={() => {
+                onUnlockAudio?.()
+                onContinue?.()
+              }}
               whileHover={{ y: -4, scale: 1.012 }}
               whileTap={{ scale: 0.96 }}
             >
@@ -162,11 +231,41 @@ export default function StartPage({ onStart, onContinue }) {
             <MenuModal title={COPY.aboutTitle} onClose={() => setModal(null)}>
               <p>{COPY.aboutBody}</p>
               <p>{COPY.aboutThesis}</p>
+              <p>{COPY.aboutCredit}</p>
             </MenuModal>
           )}
           {modal === 'achievements' && (
-            <MenuModal title={COPY.achievementsTitle} onClose={() => setModal(null)}>
-              <p>{COPY.achievementsBody}</p>
+            <MenuModal title={COPY.achievementsTitle} onClose={() => setModal(null)} className="achievements-modal">
+              <div className="achievements-summary" aria-label="Achievement totals">
+                <span>Gold: {achievementTotals.gold ?? 0}</span>
+                <span>Silver: {achievementTotals.silver ?? 0}</span>
+                <span>Bronze: {achievementTotals.bronze ?? 0}</span>
+                <span>Completed: {completedCount} / {TOTAL_LEVELS}</span>
+              </div>
+              <div className="achievements-list">
+                {ACHIEVEMENT_ROWS.map(row => {
+                  const unlocked = row.isUnlocked(achievementContext)
+                  return (
+                    <div
+                      key={row.id}
+                      className={`achievement-row achievement-row--${row.id} ${unlocked ? 'achievement-row--unlocked' : 'achievement-row--locked'}`}
+                    >
+                      <span className={`achievement-row__icon ${row.medal ? `achievement-row__icon--medal achievement-row__icon--${row.medal}` : ''}`} aria-hidden="true">
+                        {row.medal ? (
+                          <span className={`achievement-medal achievement-medal--${row.medal}`}>
+                            <span className="achievement-medal__ribbon" />
+                            <span className="achievement-medal__disc" />
+                          </span>
+                        ) : row.icon}
+                      </span>
+                      <span className="achievement-row__copy">
+                        <strong>{row.title}</strong>
+                        <span>{row.description}</span>
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
             </MenuModal>
           )}
           {modal === 'language' && (

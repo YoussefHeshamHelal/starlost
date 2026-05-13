@@ -22,7 +22,9 @@ const COPY = {
   helper: 'Type only one letter in each box.',
   create: 'Create My Code',
   aboutTitle: 'About STARLOST',
-  aboutBody: 'STARLOST is a child-friendly space adventure where you help LUMA get home.',
+  aboutBody: 'STARLOST is a child-friendly educational space adventure where players help LUMA find her way home by solving grid-world puzzle levels.',
+  aboutThesis: 'The game is designed to support and assess children’s spatial perspective-taking and computational thinking through movement blocks, path planning, perspective clues, and problem-solving challenges.',
+  aboutCredit: 'STARLOST was created as part of a bachelor thesis project by Youssef Hesham Helal.',
   close: 'Close',
 }
 
@@ -93,6 +95,8 @@ function MenuModal({ onClose }) {
       >
         <h2>{COPY.aboutTitle}</h2>
         <p>{COPY.aboutBody}</p>
+        <p>{COPY.aboutThesis}</p>
+        <p>{COPY.aboutCredit}</p>
         <motion.button
           type="button"
           className="menu-pill-button menu-pill-button--secondary"
@@ -108,12 +112,11 @@ function MenuModal({ onClose }) {
   )
 }
 
-export default function MissionSetup({ onBack, onComplete }) {
+export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAudio, onBack, onComplete }) {
   const [letters, setLetters] = useState(['', '', '', ''])
   const [selectedDigit, setSelectedDigit] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [muted, setMuted] = useState(() => window.localStorage?.getItem('starlost:muted') === 'true')
   const [modal, setModal] = useState(null)
   const inputRefs = useRef([])
 
@@ -126,14 +129,6 @@ export default function MissionSetup({ onBack, onComplete }) {
     [letters, selectedDigit]
   )
 
-  const toggleMuted = useCallback(() => {
-    setMuted(prev => {
-      const next = !prev
-      window.localStorage?.setItem('starlost:muted', String(next))
-      return next
-    })
-  }, [])
-
   const focusNextEmpty = useCallback(() => {
     const nextIndex = letters.findIndex(letter => !letter)
     if (nextIndex >= 0) {
@@ -144,6 +139,8 @@ export default function MissionSetup({ onBack, onComplete }) {
   }, [letters])
 
   const submitStarCode = useCallback(async () => {
+    onUnlockAudio?.()
+
     if (!isValidParticipantId(starCode)) {
       setError(COPY.invalid)
       focusNextEmpty()
@@ -167,7 +164,7 @@ export default function MissionSetup({ onBack, onComplete }) {
     } finally {
       setLoading(false)
     }
-  }, [focusNextEmpty, onComplete, starCode])
+  }, [focusNextEmpty, onComplete, onUnlockAudio, starCode])
 
   const updateLetter = useCallback((index, value) => {
     const nextLetter = normalizeLetter(value)
@@ -228,7 +225,7 @@ export default function MissionSetup({ onBack, onComplete }) {
           type="button"
           className={`menu-icon-button menu-icon-button--right ${muted ? 'menu-icon-button--muted' : ''}`}
           aria-label={muted ? 'Unmute sound' : 'Mute sound'}
-          onClick={toggleMuted}
+          onClick={onToggleMuted}
           whileHover={{ y: -3, scale: 1.04 }}
           whileTap={{ scale: 0.94 }}
         >

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import { useCallback, useMemo, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { isLevelCompleted, TOTAL_LEVELS } from '../utils/progress'
 import MenuSoundIcon from './MenuSoundIcon'
 import './menuScreens.css'
@@ -13,6 +13,11 @@ const COPY = {
   launchSite: 'Launch Site',
   back: 'Back',
   progress: 'PROGRESS',
+  aboutTitle: 'About STARLOST',
+  aboutBody: 'STARLOST is a child-friendly educational space adventure where players help LUMA find her way home by solving grid-world puzzle levels.',
+  aboutThesis: 'The game is designed to support and assess children’s spatial perspective-taking and computational thinking through movement blocks, path planning, perspective clues, and problem-solving challenges.',
+  aboutCredit: 'STARLOST was created as part of a bachelor thesis project by Youssef Hesham Helal.',
+  close: 'Close',
 }
 
 const ZONES = [
@@ -89,8 +94,42 @@ function ProgressStarIcon() {
   )
 }
 
-function LevelNode({ level, position, completedLevels, onSelectLevel }) {
+function MenuModal({ onClose }) {
+  return (
+    <motion.div
+      className="menu-modal-backdrop"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        className="menu-modal"
+        initial={{ y: 18, scale: 0.94 }}
+        animate={{ y: 0, scale: 1 }}
+        exit={{ y: 12, scale: 0.96 }}
+      >
+        <h2>{COPY.aboutTitle}</h2>
+        <p>{COPY.aboutBody}</p>
+        <p>{COPY.aboutThesis}</p>
+        <p>{COPY.aboutCredit}</p>
+        <motion.button
+          type="button"
+          className="menu-pill-button menu-pill-button--secondary"
+          onClick={onClose}
+          whileHover={{ y: -2, scale: 1.02 }}
+          whileTap={{ scale: 0.96 }}
+          style={{ minHeight: 48, fontSize: 18, width: 'min(220px, 100%)', margin: '8px auto 0' }}
+        >
+          {COPY.close}
+        </motion.button>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function LevelNode({ level, position, completedLevels, medalsByLevel, onSelectLevel }) {
   const completed = isLevelCompleted(level, completedLevels)
+  const medal = completed ? medalsByLevel?.[String(level)]?.medal : null
   const className = [
     'star-node',
     completed ? 'star-node--completed' : '',
@@ -101,11 +140,17 @@ function LevelNode({ level, position, completedLevels, onSelectLevel }) {
     <button
       type="button"
       className={className}
-      aria-label={`Level ${level}`}
+      aria-label={`Level ${level}${medal ? `, ${medal} medal` : ''}`}
       style={{ left: `${position.left}%`, top: `${position.top}%` }}
       onClick={() => onSelectLevel(level)}
     >
       <span className="star-node__number">{level}</span>
+      {medal && (
+        <span className={`star-node__medal star-node__medal--${medal}`} aria-hidden="true">
+          <span className="star-node__medal-ribbon" />
+          <span className="star-node__medal-disc" />
+        </span>
+      )}
     </button>
   )
 }
@@ -134,7 +179,7 @@ function ZoneTrail({ zone }) {
   )
 }
 
-function StarZone({ zone, completedLevels, onSelectLevel }) {
+function StarZone({ zone, completedLevels, medalsByLevel, onSelectLevel }) {
   return (
     <section className={`star-zone ${zone.className}`} aria-label={zone.title}>
       <h2 className="star-zone__title">{zone.title}</h2>
@@ -145,6 +190,7 @@ function StarZone({ zone, completedLevels, onSelectLevel }) {
           level={level}
           position={zone.positions[level]}
           completedLevels={completedLevels}
+          medalsByLevel={medalsByLevel}
           onSelectLevel={onSelectLevel}
         />
       ))}
@@ -153,12 +199,16 @@ function StarZone({ zone, completedLevels, onSelectLevel }) {
 }
 
 export default function StarMapLevelSelect({
+  muted = false,
+  onToggleMuted,
+  onUnlockAudio,
   completedLevels = [],
+  medalsByLevel = {},
   loading = false,
   onSelectLevel,
   onBack,
 }) {
-  const [muted, setMuted] = useState(() => window.localStorage?.getItem('starlost:muted') === 'true')
+  const [modal, setModal] = useState(null)
   const normalizedCompletedLevels = useMemo(
     () => [...new Set(completedLevels)].filter(level => level >= 1 && level <= TOTAL_LEVELS),
     [completedLevels]
@@ -167,13 +217,10 @@ export default function StarMapLevelSelect({
     ? Math.min(100, Math.max(0, (normalizedCompletedLevels.length / TOTAL_LEVELS) * 100))
     : 0
 
-  const toggleMuted = () => {
-    setMuted(prev => {
-      const next = !prev
-      window.localStorage?.setItem('starlost:muted', String(next))
-      return next
-    })
-  }
+  const handleSelectLevel = useCallback((level) => {
+    onUnlockAudio?.()
+    onSelectLevel?.(level)
+  }, [onSelectLevel, onUnlockAudio])
 
   return (
     <motion.main
@@ -189,7 +236,8 @@ export default function StarMapLevelSelect({
         <motion.button
           type="button"
           className="menu-icon-button menu-icon-button--left"
-          aria-label="Star map information"
+          aria-label="About STARLOST"
+          onClick={() => setModal('about')}
           whileHover={{ y: -3, scale: 1.04 }}
           whileTap={{ scale: 0.94 }}
         >
@@ -199,7 +247,7 @@ export default function StarMapLevelSelect({
           type="button"
           className={`menu-icon-button menu-icon-button--right ${muted ? 'menu-icon-button--muted' : ''}`}
           aria-label={muted ? 'Unmute sound' : 'Mute sound'}
-          onClick={toggleMuted}
+          onClick={onToggleMuted}
         >
           <MenuSoundIcon />
         </button>
@@ -209,7 +257,8 @@ export default function StarMapLevelSelect({
             key={zone.id}
             zone={zone}
             completedLevels={normalizedCompletedLevels}
-            onSelectLevel={onSelectLevel}
+            medalsByLevel={medalsByLevel}
+            onSelectLevel={handleSelectLevel}
           />
         ))}
 
@@ -236,6 +285,10 @@ export default function StarMapLevelSelect({
             <span className="star-progress__bar-segments" />
           </div>
         </div>
+
+        <AnimatePresence>
+          {modal === 'about' && <MenuModal onClose={() => setModal(null)} />}
+        </AnimatePresence>
       </div>
     </motion.main>
   )

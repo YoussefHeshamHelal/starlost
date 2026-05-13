@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LEVELS } from './data/levels'
-import { hasEmptyRequiredElse } from './utils/commands'
+import { countProgramBlocks, hasEmptyRequiredElse } from './utils/commands'
 import {
   getFeatureTutorialSteps,
   getLevelTutorialSteps,
@@ -17,7 +17,7 @@ import TutorialOverlay from './components/TutorialOverlay'
 import { logGBI } from './logGBI'
 import { ThemeContext, useTheme, THEMES } from './context/theme'
 import { isValidParticipantId, touchParticipantSession } from './utils/participants'
-import { fetchSessionProgress, updateSessionProgress } from './utils/progress'
+import { calculateMedal, fetchSessionProgress, updateSessionProgress } from './utils/progress'
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 const HEADER_H = 56
@@ -29,6 +29,9 @@ const PLAYABLE_LEVELS = 23
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
 const SPEED_STORAGE_KEY = 'starlost:anim-speed'
 const PARTICIPANT_STORAGE_KEY = 'starlost:participantId'
+const MUTED_STORAGE_KEY = 'starlost:muted'
+const BG_MUSIC_SRC = '/assets/audio/starlost-bg-music.mp3'
+const BG_MUSIC_VOLUME = 0.22
 const OUTER_PHASES = new Set(['start', 'mission-setup', 'home'])
 const OUTER_PAGE_BG = '#020617'
 const OUTER_BG_ASSETS = [
@@ -114,6 +117,15 @@ function readStoredParticipantId() {
     return ''
   } catch {
     return ''
+  }
+}
+
+function readStoredMuted() {
+  if (typeof window === 'undefined') return false
+  try {
+    return window.localStorage?.getItem(MUTED_STORAGE_KEY) === 'true'
+  } catch {
+    return false
   }
 }
 
@@ -1400,13 +1412,30 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   const mapFootprintW = usesEarlyMapOnlyLayout ? GRID_PX * EARLY_MAP_SCALE : GRID_PX
 
   const handleSuccessNext = () => {
+    const blockCount = countProgramBlocks(sequence)
+    const targetBlocks = Number(levelConfig.targetCommands)
+    const medal = calculateMedal(blockCount, targetBlocks)
+    const achievementInfo = medal
+      ? {
+          medal,
+          blockCount,
+          targetBlocks,
+          extraBlocks: Math.max(0, blockCount - targetBlocks),
+        }
+      : null
     const snapshot = getGBISnapshot()
-    logGBI(participantId, levelConfig.id, snapshot)
+    logGBI(participantId, levelConfig.id, {
+      ...snapshot,
+      achievementMedal: achievementInfo?.medal,
+      achievementBlockCount: achievementInfo?.blockCount,
+      achievementTargetBlocks: achievementInfo?.targetBlocks,
+      achievementExtraBlocks: achievementInfo?.extraBlocks,
+    })
     if (levelConfig.strategyCardAfter) {
-      onStrategyCard(levelConfig.id)
+      onStrategyCard(levelConfig.id, achievementInfo)
       return
     }
-    onComplete(levelConfig.id)
+    onComplete(levelConfig.id, achievementInfo)
   }
   const phaseBadgeText =
     phase === 'identify'
@@ -1643,6 +1672,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
 
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function App() {
+  const bgMusicRef = useRef(null)
+  const musicUnlockedRef = useRef(false)
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0)
   const [levelSessionKey, setLevelSessionKey] = useState(0)
   const [appPhaseState, setAppPhaseState] = useState({
@@ -1651,10 +1682,71 @@ export default function App() {
   })
   const [participantId, setParticipantId] = useState(readStoredParticipantId)
   const [completedLevels, setCompletedLevels] = useState([])
+  const [medalsByLevel, setMedalsByLevel] = useState({})
+  const [achievementTotals, setAchievementTotals] = useState({ gold: 0, silver: 0, bronze: 0 })
   const [strategyCardLevelId, setStrategyCardLevelId] = useState(null)
   const [theme, setTheme] = useState('light')
   const [levelHeaderControls, setLevelHeaderControls] = useState(null)
   const [animSpeed, setAnimSpeed] = useState(readStoredAnimSpeed)
+  const [muted, setMuted] = useState(readStoredMuted)
+
+  const playBgMusic = useCallback((audio = bgMusicRef.current) => {
+    if (!audio) return
+    const playPromise = audio.play()
+    if (playPromise?.catch) playPromise.catch(() => {})
+  }, [])
+
+  const unlockAndPlayMusic = useCallback(() => {
+    musicUnlockedRef.current = true
+    const audio = bgMusicRef.current
+    if (!audio || muted) return
+    audio.muted = false
+    playBgMusic(audio)
+  }, [muted, playBgMusic])
+
+  const handleToggleMuted = useCallback(() => {
+    musicUnlockedRef.current = true
+    setMuted(prevMuted => {
+      const nextMuted = !prevMuted
+      try {
+        window.localStorage?.setItem(MUTED_STORAGE_KEY, String(nextMuted))
+      } catch {
+        // Keep mute persistence best-effort when storage is unavailable.
+      }
+
+      const audio = bgMusicRef.current
+      if (audio) {
+        audio.muted = nextMuted
+        if (!nextMuted) playBgMusic(audio)
+      }
+
+      return nextMuted
+    })
+  }, [playBgMusic])
+
+  useEffect(() => {
+    if (typeof Audio === 'undefined') return undefined
+
+    const audio = new Audio(BG_MUSIC_SRC)
+    audio.loop = true
+    audio.volume = BG_MUSIC_VOLUME
+    audio.preload = 'none'
+    audio.muted = muted
+    bgMusicRef.current = audio
+
+    return () => {
+      audio.pause()
+      audio.src = ''
+      bgMusicRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    const audio = bgMusicRef.current
+    if (!audio) return
+    audio.muted = muted
+    if (!muted && musicUnlockedRef.current) playBgMusic(audio)
+  }, [muted, playBgMusic])
 
   const toggleTheme = useCallback(() => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light')
@@ -1712,21 +1804,30 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!['home', 'playing', 'strategy-card'].includes(appPhase)) return
+    if (!['start', 'home', 'playing', 'strategy-card'].includes(appPhase)) return
     if (!participantId) {
+      if (appPhase === 'start') return
+
       const redirectTimer = window.setTimeout(() => setAppPhase('mission-setup'), 0)
       return () => window.clearTimeout(redirectTimer)
     }
-    if (appPhase !== 'home') return
 
     let cancelled = false
     fetchSessionProgress(participantId)
       .then(progress => {
-        if (!cancelled) setCompletedLevels(progress.completedLevels)
+        if (!cancelled) {
+          setCompletedLevels(progress.completedLevels)
+          setMedalsByLevel(progress.medalsByLevel)
+          setAchievementTotals(progress.achievementTotals)
+        }
       })
       .catch(err => {
         console.error('[Progress] Failed to load session progress:', err)
-        if (!cancelled) setCompletedLevels([])
+        if (!cancelled) {
+          setCompletedLevels([])
+          setMedalsByLevel({})
+          setAchievementTotals({ gold: 0, silver: 0, bronze: 0 })
+        }
       })
 
     return () => {
@@ -1737,6 +1838,8 @@ export default function App() {
   const handleMissionComplete = useCallback((nextParticipantId) => {
     setParticipantId(nextParticipantId)
     setCompletedLevels([])
+    setMedalsByLevel({})
+    setAchievementTotals({ gold: 0, silver: 0, bronze: 0 })
     setAppPhase('home')
   }, [setAppPhase])
 
@@ -1793,18 +1896,20 @@ export default function App() {
     ))
   }, [level?.id, levelSessionKey])
 
-  const completeLevelProgress = useCallback(async (completedLevelId) => {
+  const completeLevelProgress = useCallback(async (completedLevelId, achievementInfo = null) => {
     if (!participantId) return
     try {
-      const progress = await updateSessionProgress(participantId, completedLevelId, completedLevels)
+      const progress = await updateSessionProgress(participantId, completedLevelId, completedLevels, achievementInfo)
       setCompletedLevels(progress.completedLevels)
+      setMedalsByLevel(progress.medalsByLevel)
+      setAchievementTotals(progress.achievementTotals)
     } catch (err) {
       console.error('[Progress] Failed to update session progress:', err)
     }
   }, [completedLevels, participantId])
 
-  const handleLevelComplete = useCallback((completedLevelId) => {
-    completeLevelProgress(completedLevelId)
+  const handleLevelComplete = useCallback((completedLevelId, achievementInfo = null) => {
+    completeLevelProgress(completedLevelId, achievementInfo)
     setLevelHeaderControls(null)
     if (completedLevelId < PLAYABLE_LEVELS) {
       setCurrentLevelIndex(completedLevelId)
@@ -1817,8 +1922,8 @@ export default function App() {
     setAppPhase('home')
   }, [completeLevelProgress, setAppPhase])
 
-  const handleShowStrategyCard = useCallback((completedLevelId) => {
-    completeLevelProgress(completedLevelId)
+  const handleShowStrategyCard = useCallback((completedLevelId, achievementInfo = null) => {
+    completeLevelProgress(completedLevelId, achievementInfo)
     setStrategyCardLevelId(completedLevelId)
     setLevelHeaderControls(null)
     setAppPhase('strategy-card')
@@ -1977,8 +2082,17 @@ export default function App() {
               style={ACTIVE_PAGE_SHELL_STYLE}
             >
               <StartPage
-                onStart={() => setAppPhase('mission-setup')}
+                muted={muted}
+                onToggleMuted={handleToggleMuted}
+                onUnlockAudio={unlockAndPlayMusic}
+                onStart={() => {
+                  unlockAndPlayMusic()
+                  setAppPhase('mission-setup')
+                }}
                 onContinue={handleContinueMission}
+                completedLevels={participantId ? completedLevels : []}
+                medalsByLevel={participantId ? medalsByLevel : {}}
+                achievementTotals={participantId ? achievementTotals : { gold: 0, silver: 0, bronze: 0 }}
               />
             </motion.div>
           )}
@@ -1994,6 +2108,9 @@ export default function App() {
               style={ACTIVE_PAGE_SHELL_STYLE}
             >
               <MissionSetup
+                muted={muted}
+                onToggleMuted={handleToggleMuted}
+                onUnlockAudio={unlockAndPlayMusic}
                 onBack={() => setAppPhase('start')}
                 onComplete={handleMissionComplete}
               />
@@ -2011,7 +2128,12 @@ export default function App() {
               style={ACTIVE_PAGE_SHELL_STYLE}
             >
               <StarMapLevelSelect
+                muted={muted}
+                onToggleMuted={handleToggleMuted}
+                onUnlockAudio={unlockAndPlayMusic}
                 completedLevels={completedLevels}
+                medalsByLevel={medalsByLevel}
+                achievementTotals={achievementTotals}
                 onSelectLevel={handleSelectLevel}
                 onBack={() => setAppPhase('start')}
               />
