@@ -344,32 +344,30 @@ const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain }) {
   )
 })
 
-const VisorFlipButton = memo(function VisorFlipButton({ visorFlipCount, onVisorFlip, highlighted }) {
+const VisorFlipButton = memo(function VisorFlipButton({ onVisorFlip, highlighted }) {
   const theme = useTheme()
   const t = THEMES[theme]
-  const exhausted = visorFlipCount >= 3
   return (
     <button
       data-tutorial-id="visor-flip-button"
       onClick={onVisorFlip}
-      disabled={exhausted}
       style={{
         width: '100%',
         padding: '11px 16px',
-        background: exhausted ? t.visorExhBg : t.visorBg,
-        border: `1.5px solid ${exhausted ? t.visorExhBorder : t.visorBorder}`,
+        background: t.visorBg,
+        border: `1.5px solid ${t.visorBorder}`,
         borderRadius: 10,
-        color: exhausted ? t.visorExhText : t.visorText,
-        cursor: exhausted ? 'not-allowed' : 'pointer',
+        color: t.visorText,
+        cursor: 'pointer',
         fontFamily: 'monospace', fontSize: 12, letterSpacing: 1.5,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         transition: 'all 0.2s', boxSizing: 'border-box',
-        animation: highlighted && !exhausted ? 'pulse-visor 1.8s ease-in-out infinite' : 'none',
+        animation: highlighted ? 'pulse-visor 1.8s ease-in-out infinite' : 'none',
         fontWeight: 700,
       }}
     >
       <span>{'\u{1F441}'} VISOR FLIP</span>
-      {highlighted && !exhausted && (
+      {highlighted && (
         <span style={{
           fontSize: 10, color: '#f59e0b', fontFamily: 'monospace', marginRight: 4,
           animation: 'blink-try 1.2s ease-in-out infinite', fontWeight: 700,
@@ -377,14 +375,6 @@ const VisorFlipButton = memo(function VisorFlipButton({ visorFlipCount, onVisorF
           Try it!
         </span>
       )}
-      <span style={{
-        background: exhausted ? 'transparent' : 'rgba(167,139,250,0.18)',
-        border: `1px solid ${exhausted ? t.visorExhBorder : '#a78bfa66'}`,
-        borderRadius: 20, padding: '2px 10px', fontSize: 10,
-        fontWeight: 700,
-      }}>
-        {3 - visorFlipCount} left
-      </span>
     </button>
   )
 })
@@ -1237,8 +1227,14 @@ function getRenderableTutorialSteps(plan, tutorialContext) {
 }
 
 function getTutorialTargetElement(targetId) {
-  if (!targetId) return null
+  if (!targetId || typeof document === 'undefined') return null
   return document.querySelector(`[data-tutorial-id="${targetId}"]`)
+}
+
+function hasReadyTutorialTarget(step) {
+  if (!step?.targetId) return false
+  if (typeof document === 'undefined') return true
+  return Boolean(getTutorialTargetElement(step.targetId))
 }
 
 function isStableRect(currentRect, previousRect) {
@@ -1387,6 +1383,15 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     () => getRenderableTutorialSteps(currentLevelTutorialPlan, tutorialContext),
     [currentLevelTutorialPlan, tutorialContext]
   )
+  const firstReplayableTutorialStep = replayableTutorialSteps[0] ?? null
+  const [hasReplayableTutorialTarget, setHasReplayableTutorialTarget] = useState(false)
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setHasReplayableTutorialTarget(hasReadyTutorialTarget(firstReplayableTutorialStep))
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [firstReplayableTutorialStep, phase, sequence.length, needsReset, visorActive])
 
   const currentTutorialStep = tutorialSteps[tutorialIndex] ?? null
 
@@ -1537,6 +1542,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   }, [resetLuma])
   const canReplayTutorial =
     replayableTutorialSteps.length > 0 &&
+    hasReplayableTutorialTarget &&
     levelConfig.id !== 14 &&
     levelConfig.id !== 4 &&
     levelConfig.id !== 12 &&
@@ -1552,8 +1558,8 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   const handleReplayTutorial = useCallback(() => {
     if (!canReplayTutorial) return
 
-    launchTutorialWhenReady(currentLevelTutorialPlan, { persist: false })
-  }, [canReplayTutorial, currentLevelTutorialPlan, launchTutorialWhenReady])
+    launchTutorialWhenReady(replayableTutorialSteps, { persist: false })
+  }, [canReplayTutorial, launchTutorialWhenReady, replayableTutorialSteps])
 
   useEffect(() => {
     if (!onHeaderControls) return undefined

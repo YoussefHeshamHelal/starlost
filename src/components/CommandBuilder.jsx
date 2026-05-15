@@ -15,9 +15,62 @@ import {
 const THUMB_R = 8
 const CHIP_HEIGHT = 34
 const ITEM_GAP = 4
+const AUTO_SCROLLERS = new WeakMap()
 
 function getDropPreviewHeight(depth = 0) {
   return Math.max(26, getDepthLayout(depth).chipHeight)
+}
+
+function autoScrollContainerNearEdge(container, pointerY) {
+  if (!container) return
+
+  const rect = container.getBoundingClientRect()
+  const edgeSize = 56
+  const maxSpeed = 18
+
+  const distanceFromTop = pointerY - rect.top
+  const distanceFromBottom = rect.bottom - pointerY
+  let scrollDelta = 0
+
+  if (distanceFromTop < edgeSize) {
+    const intensity = Math.max(0, (edgeSize - distanceFromTop) / edgeSize)
+    scrollDelta = -Math.ceil(maxSpeed * intensity)
+  } else if (distanceFromBottom < edgeSize) {
+    const intensity = Math.max(0, (edgeSize - distanceFromBottom) / edgeSize)
+    scrollDelta = Math.ceil(maxSpeed * intensity)
+  }
+
+  let state = AUTO_SCROLLERS.get(container)
+  if (scrollDelta === 0) {
+    if (state?.frame !== null) cancelAnimationFrame(state.frame)
+    AUTO_SCROLLERS.delete(container)
+    return
+  }
+
+  if (!state) {
+    state = { frame: null, scrollDelta }
+    AUTO_SCROLLERS.set(container, state)
+  }
+  state.scrollDelta = scrollDelta
+
+  if (state.frame !== null) return
+
+  const tick = () => {
+    const activeState = AUTO_SCROLLERS.get(container)
+    if (!activeState) return
+    container.scrollTop += activeState.scrollDelta
+    activeState.frame = requestAnimationFrame(tick)
+  }
+
+  container.scrollTop += scrollDelta
+  state.frame = requestAnimationFrame(tick)
+}
+
+function stopAutoScrollContainer(container) {
+  if (!container) return
+  const state = AUTO_SCROLLERS.get(container)
+  if (state?.frame !== null) cancelAnimationFrame(state.frame)
+  AUTO_SCROLLERS.delete(container)
 }
 
 function isSameDropPath(activeDropPath, pathKey) {
@@ -169,6 +222,14 @@ function getPathStepIndex(step) {
 
 function getPathStepBranch(step) {
   return typeof step === 'object' ? (step.branch ?? 'commands') : 'commands'
+}
+
+function isPaletteControlTarget(target) {
+  return Boolean(
+    target?.closest?.(
+      '[data-palette-control="true"], input, select, button, textarea'
+    )
+  )
 }
 
 function withPathBranch(path, branch) {
@@ -398,6 +459,9 @@ function SpeedBar({ speed, onSpeedChange, theme }) {
 }
 
 function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathCondition, onIfPathConditionChange, repeatTimes = 2, onRepeatTimesChange, showIfElse = false }) {
+  const pointerStartRef = useRef(null)
+  const didDragRef = useRef(false)
+  const addedByPointerRef = useRef(false)
   const meta = getMeta(createCommandFromCode(code, ifPathCondition, repeatTimes), theme)
   const isIfPath = code === 'IF_PATH'
   const isRepeatPalette = code === 'REPEAT'
@@ -432,6 +496,34 @@ function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathConditi
   const addPaletteCommand = () => {
     if (!disabled) onAdd(createCommandFromCode(code, ifPathCondition, repeatTimes))
   }
+  const handlePalettePointerDown = (event) => {
+    if (disabled || isPaletteControlTarget(event.target)) return
+    pointerStartRef.current = { x: event.clientX, y: event.clientY }
+    didDragRef.current = false
+  }
+  const handlePalettePointerMove = (event) => {
+    if (!pointerStartRef.current) return
+    const dx = Math.abs(event.clientX - pointerStartRef.current.x)
+    const dy = Math.abs(event.clientY - pointerStartRef.current.y)
+    if (dx > 6 || dy > 6) didDragRef.current = true
+  }
+  const handlePalettePointerUp = (event) => {
+    if (disabled || isPaletteControlTarget(event.target)) return
+    const start = pointerStartRef.current
+    pointerStartRef.current = null
+    if (!start || didDragRef.current) return
+    event.preventDefault()
+    event.stopPropagation()
+    addedByPointerRef.current = true
+    addPaletteCommand()
+    setTimeout(() => {
+      addedByPointerRef.current = false
+    }, 0)
+  }
+  const handlePaletteClick = (event) => {
+    if (disabled || addedByPointerRef.current || didDragRef.current || isPaletteControlTarget(event.target)) return
+    addPaletteCommand()
+  }
   const handlePaletteKeyDown = (event) => {
     if (disabled || (event.key !== 'Enter' && event.key !== ' ')) return
     event.preventDefault()
@@ -444,7 +536,10 @@ function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathConditi
       tabIndex={disabled ? -1 : 0}
       aria-disabled={disabled}
       whileTap={{ scale: 0.985 }}
-      onClick={addPaletteCommand}
+      onPointerDown={handlePalettePointerDown}
+      onPointerMove={handlePalettePointerMove}
+      onPointerUp={handlePalettePointerUp}
+      onClick={handlePaletteClick}
       onKeyDown={handlePaletteKeyDown}
       draggable={!disabled}
       onDragStart={(event) => {
@@ -470,6 +565,7 @@ function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathConditi
           >
             <span style={{ color: ifElsePreviewColor, fontSize: 10, lineHeight: 1, fontWeight: 800, letterSpacing: 0.8, whiteSpace: 'nowrap' }}>IF PATH</span>
             <select
+              data-palette-control="true"
               value={ifPathCondition}
               disabled={disabled}
               onPointerDown={(event) => event.stopPropagation()}
@@ -510,6 +606,7 @@ function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathConditi
             showLabel={false}
             disabled={disabled}
             tutorialId={null}
+            stopEvents={false}
           />
         </>
       ) : (
@@ -519,7 +616,17 @@ function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathConditi
   )
 }
 
-function RepeatCounter({ command, color, onChange, depth = 0, compact = false, showLabel = !compact, disabled = false, tutorialId = 'repeat-block-counter' }) {
+function RepeatCounter({
+  command,
+  color,
+  onChange,
+  depth = 0,
+  compact = false,
+  showLabel = !compact,
+  disabled = false,
+  tutorialId = 'repeat-block-counter',
+  stopEvents = true,
+}) {
   const [inputValue, setInputValue] = useState(String(command.times))
   const layout = getDepthLayout(depth)
   const buttonSize = compact ? Math.max(14, 16 - Math.min(depth, 3)) : Math.max(16, 18 - Math.min(depth, 3))
@@ -546,17 +653,21 @@ function RepeatCounter({ command, color, onChange, depth = 0, compact = false, s
     onChange({ ...command, times: nextTimes })
   }
 
-  const stopControlClick = (event) => {
-    event.stopPropagation()
+  const maybeStopControlPointer = (event) => {
+    if (stopEvents) event.stopPropagation()
+  }
+
+  const maybeStopControlClick = (event) => {
+    if (stopEvents) event.stopPropagation()
   }
 
   return (
-    <div data-tutorial-id={tutorialId} onPointerDown={(event) => event.stopPropagation()} onClick={stopControlClick} style={{ display: 'flex', alignItems: 'center', gap: compact ? 3 : Math.max(3, 5 - Math.min(depth, 2)), padding: 0, background: 'transparent', border: 'none', borderRadius: 0, flex: compact ? '1 1 auto' : '0 0 auto', minWidth: 0, maxWidth: '100%' }}>
+    <div data-tutorial-id={tutorialId} onPointerDown={maybeStopControlPointer} onClick={maybeStopControlClick} style={{ display: 'flex', alignItems: 'center', gap: compact ? 3 : Math.max(3, 5 - Math.min(depth, 2)), padding: 0, background: 'transparent', border: 'none', borderRadius: 0, flex: compact ? '1 1 auto' : '0 0 auto', minWidth: 0, maxWidth: '100%' }}>
       {showLabel && <span style={labelStyle}>REPEAT</span>}
       <div style={{ display: 'flex', alignItems: 'center', gap: compact ? 1 : 2, padding: compact ? '1px' : '2px', border: `1px solid ${color}33`, borderRadius: 7, background: `${color}10`, flexShrink: 0 }}>
-        <button type="button" disabled={disabled} style={buttonStyle} onClick={() => updateTimes(command.times - 1)}>-</button>
-        <input type="text" inputMode="numeric" disabled={disabled} value={inputValue} onChange={handleInputChange} onBlur={() => inputValue === '' && setInputValue(String(command.times))} style={{ width: compact ? Math.max(20, 24 - Math.min(depth, 3) * 2) : Math.max(28, 34 - Math.min(depth, 3) * 2), padding: compact ? '1px 3px' : '2px 4px', borderRadius: 6, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.82)', color, fontFamily: 'monospace', fontSize: compact ? Math.max(8, 10 - Math.min(depth, 2)) : Math.max(9, 11 - Math.min(depth, 2)), fontWeight: 800, textAlign: 'center', boxSizing: 'border-box' }} />
-        <button type="button" disabled={disabled} style={buttonStyle} onClick={() => updateTimes(command.times + 1)}>+</button>
+        <button type="button" data-palette-control="true" disabled={disabled} style={buttonStyle} onClick={() => updateTimes(command.times - 1)}>-</button>
+        <input data-palette-control="true" type="text" inputMode="numeric" disabled={disabled} value={inputValue} onChange={handleInputChange} onBlur={() => inputValue === '' && setInputValue(String(command.times))} style={{ width: compact ? Math.max(20, 24 - Math.min(depth, 3) * 2) : Math.max(28, 34 - Math.min(depth, 3) * 2), padding: compact ? '1px 3px' : '2px 4px', borderRadius: 6, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.82)', color, fontFamily: 'monospace', fontSize: compact ? Math.max(8, 10 - Math.min(depth, 2)) : Math.max(9, 11 - Math.min(depth, 2)), fontWeight: 800, textAlign: 'center', boxSizing: 'border-box' }} />
+        <button type="button" data-palette-control="true" disabled={disabled} style={buttonStyle} onClick={() => updateTimes(command.times + 1)}>+</button>
       </div>
       <span style={labelStyle}>TIMES</span>
     </div>
@@ -600,7 +711,7 @@ function CommandChip({ command, index, depth, path, theme, isRunning, onDelete }
   )
 }
 
-function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDelete, onUpdateBlock, onDropIntoBlock, onNestedPaletteHoverChange, activeNestedDropPath, showIfElse = false, elseChildren, children }) {
+function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDelete, onUpdateBlock, onDropIntoBlock, onNestedPaletteHoverChange, activeNestedDropPath, showIfElse = false, elseChildren, children, scrollContainerRef }) {
   const meta = getMeta(command, theme)
   const childCount = command.commands?.length ?? 0
   const elseCount = command.elseCommands?.length ?? 0
@@ -706,6 +817,7 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
               onDragOver={(event) => {
                 event.preventDefault()
                 event.stopPropagation()
+                autoScrollContainerNearEdge(scrollContainerRef?.current, event.clientY)
                 onNestedPaletteHoverChange?.({ pathKey, path, insertAt: childCount })
                 event.dataTransfer.dropEffect = 'copy'
               }}
@@ -713,12 +825,14 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
                 event.stopPropagation()
                 const rect = event.currentTarget.getBoundingClientRect()
                 if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
+                  stopAutoScrollContainer(scrollContainerRef?.current)
                   onNestedPaletteHoverChange?.(null)
                 }
               }}
               onDrop={(event) => {
                 event.preventDefault()
                 event.stopPropagation()
+                stopAutoScrollContainer(scrollContainerRef?.current)
                 onNestedPaletteHoverChange?.(null)
                 const raw = event.dataTransfer.getData('cmd')
                 if (!raw) return
@@ -743,6 +857,7 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
                   onDragOver={(event) => {
                     event.preventDefault()
                     event.stopPropagation()
+                    autoScrollContainerNearEdge(scrollContainerRef?.current, event.clientY)
                     onNestedPaletteHoverChange?.({ pathKey: elsePathKey, path: elsePath, insertAt: elseCount })
                     event.dataTransfer.dropEffect = 'copy'
                   }}
@@ -750,12 +865,14 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
                     event.stopPropagation()
                     const rect = event.currentTarget.getBoundingClientRect()
                     if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
+                      stopAutoScrollContainer(scrollContainerRef?.current)
                       onNestedPaletteHoverChange?.(null)
                     }
                   }}
                   onDrop={(event) => {
                     event.preventDefault()
                     event.stopPropagation()
+                    stopAutoScrollContainer(scrollContainerRef?.current)
                     onNestedPaletteHoverChange?.(null)
                     const raw = event.dataTransfer.getData('cmd')
                     if (!raw) return
@@ -779,7 +896,7 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
   )
 }
 
-function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning, onReorderCommands, onMoveCommand, onDelete, onUpdateBlock, onDropIntoBlock, onNestedPaletteHoverChange, activeNestedDropPath, showIfElse = false }) {
+function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning, onReorderCommands, onMoveCommand, onDelete, onUpdateBlock, onDropIntoBlock, onNestedPaletteHoverChange, activeNestedDropPath, showIfElse = false, scrollContainerRef }) {
   const [dragIndex, setDragIndex] = useState(null)
   const [ghostY, setGhostY] = useState(0)
   const [insertAt, setInsertAt] = useState(null)
@@ -856,31 +973,35 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
     event.preventDefault()
     event.stopPropagation()
     if (!stripRef.current) return
+    autoScrollContainerNearEdge(scrollContainerRef?.current, event.clientY)
     const rect = stripRef.current.getBoundingClientRect()
     const nextInsertAt = computeInsert(event.clientY - rect.top)
     onNestedPaletteHoverChange?.({ pathKey, path: parentPath, insertAt: nextInsertAt })
     event.dataTransfer.dropEffect = 'copy'
-  }, [computeInsert, onNestedPaletteHoverChange, parentPath, pathKey])
+  }, [computeInsert, onNestedPaletteHoverChange, parentPath, pathKey, scrollContainerRef])
 
   const handleStripDragLeave = useCallback((event) => {
     event.stopPropagation()
     if (!stripRef.current) return
     const rect = stripRef.current.getBoundingClientRect()
     if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
+      stopAutoScrollContainer(scrollContainerRef?.current)
       onNestedPaletteHoverChange?.(null)
     }
-  }, [onNestedPaletteHoverChange])
+  }, [onNestedPaletteHoverChange, scrollContainerRef])
 
   const handleStripDrop = useCallback((event) => {
     event.preventDefault()
     event.stopPropagation()
     const raw = event.dataTransfer.getData('cmd')
     if (raw && stripRef.current) {
+      autoScrollContainerNearEdge(scrollContainerRef?.current, event.clientY)
       const rect = stripRef.current.getBoundingClientRect()
       onDropIntoBlock(parentPath, raw, computeInsert(event.clientY - rect.top), event.dataTransfer.getData('ifPathCondition') || 'ahead', event.dataTransfer.getData('repeatTimes') || 2)
     }
+    stopAutoScrollContainer(scrollContainerRef?.current)
     onNestedPaletteHoverChange?.(null)
-  }, [computeInsert, onDropIntoBlock, onNestedPaletteHoverChange, parentPath])
+  }, [computeInsert, onDropIntoBlock, onNestedPaletteHoverChange, parentPath, scrollContainerRef])
 
   const handlePointerDown = useCallback((event, index) => {
     if (isRunning) return
@@ -900,6 +1021,7 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
     if (dragIndex !== index || !stripRef.current) return
     event.preventDefault()
     event.stopPropagation()
+    autoScrollContainerNearEdge(scrollContainerRef?.current, event.clientY)
     const rect = stripRef.current.getBoundingClientRect()
     const pointerYInStrip = event.clientY - rect.top
     const draggedHeight = heightsRef.current[index] ?? CHIP_HEIGHT
@@ -922,12 +1044,13 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
       onNestedPaletteHoverChange?.(null)
     }
     setInsertAt(computeInsert(pointerYInStrip))
-  }, [computeInsert, dragIndex, layout.totalHeight, onNestedPaletteHoverChange, parentPath, sequence])
+  }, [computeInsert, dragIndex, layout.totalHeight, onNestedPaletteHoverChange, parentPath, scrollContainerRef, sequence])
 
   const handlePointerUp = useCallback((event, index) => {
     if (dragIndex !== index) return
     event.preventDefault()
     event.stopPropagation()
+    stopAutoScrollContainer(scrollContainerRef?.current)
     const dropInfo = getNestedDropInfoFromPoint(event.clientX, event.clientY) ?? activeNestedDropPath
     const moved = sequence[dragIndex]
 
@@ -947,7 +1070,7 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
     }
     onNestedPaletteHoverChange?.(null)
     endDrag()
-  }, [activeNestedDropPath, dragIndex, endDrag, insertAt, onMoveCommand, onNestedPaletteHoverChange, onReorderCommands, parentPath, sequence])
+  }, [activeNestedDropPath, dragIndex, endDrag, insertAt, onMoveCommand, onNestedPaletteHoverChange, onReorderCommands, parentPath, scrollContainerRef, sequence])
 
   const tops = layout.tops
   const totalHeight = layout.totalHeight
@@ -1040,6 +1163,7 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
                 onNestedPaletteHoverChange={onNestedPaletteHoverChange}
                 activeNestedDropPath={activeNestedDropPath}
                 showIfElse={showIfElse}
+                scrollContainerRef={scrollContainerRef}
                 elseChildren={isIfPathCommand(command) && showIfElse ? (
                   <DraggableNestedSequence
                     sequence={command.elseCommands ?? []}
@@ -1055,6 +1179,7 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
                     onNestedPaletteHoverChange={onNestedPaletteHoverChange}
                     activeNestedDropPath={activeNestedDropPath}
                     showIfElse={showIfElse}
+                    scrollContainerRef={scrollContainerRef}
                   />
                 ) : null}
               >
@@ -1072,6 +1197,7 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
                   onNestedPaletteHoverChange={onNestedPaletteHoverChange}
                   activeNestedDropPath={activeNestedDropPath}
                   showIfElse={showIfElse}
+                  scrollContainerRef={scrollContainerRef}
                 />
               </NestedBlockCard>
             ) : (
@@ -1088,7 +1214,7 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
   )
 }
 
-function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete, onUpdateBlock, onDropIntoBlock, theme, setDragOver, showIfElse = false }) {
+function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete, onUpdateBlock, onDropIntoBlock, theme, setDragOver, showIfElse = false, scrollContainerRef }) {
   const [dragIndex, setDragIndex] = useState(null)
   const [ghostY, setGhostY] = useState(0)
   const [insertAt, setInsertAt] = useState(null)
@@ -1170,6 +1296,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
 
   const handlePointerMove = useCallback((event, index) => {
     if (dragIndex !== index || !stripRef.current) return
+    autoScrollContainerNearEdge(scrollContainerRef?.current, event.clientY)
     const rect = stripRef.current.getBoundingClientRect()
     const pointerYInStrip = event.clientY - rect.top
     const draggedHeight = heightsRef.current[index] ?? CHIP_HEIGHT
@@ -1187,10 +1314,11 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
       setActiveNestedDropPath(null)
     }
     setInsertAt(computeInsert(pointerYInStrip))
-  }, [computeInsert, dragIndex, layout.totalHeight, sequence])
+  }, [computeInsert, dragIndex, layout.totalHeight, scrollContainerRef, sequence])
 
   const handlePointerUp = useCallback((event, index) => {
     if (dragIndex !== index) return
+    stopAutoScrollContainer(scrollContainerRef?.current)
     const dropInfo = getNestedDropInfoFromPoint(event.clientX, event.clientY) ?? activeNestedDropPath
 
     if (dropInfo && canMoveCommandToPath(sequence[dragIndex], [dragIndex], dropInfo.path)) {
@@ -1210,12 +1338,13 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
     setDragIndex(null)
     setInsertAt(null)
     setActiveNestedDropPath(null)
-  }, [activeNestedDropPath, dragIndex, insertAt, onReorder, sequence])
+  }, [activeNestedDropPath, dragIndex, insertAt, onReorder, scrollContainerRef, sequence])
 
   const handleStripDragOver = useCallback((event) => {
     event.preventDefault()
     event.dataTransfer.dropEffect = 'copy'
     setDragOver(true)
+    autoScrollContainerNearEdge(scrollContainerRef?.current, event.clientY)
     const nestedDropInfo = getNestedDropInfoFromPoint(event.clientX, event.clientY)
     if (nestedDropInfo) {
       setActiveNestedDropPath(nestedDropInfo)
@@ -1226,30 +1355,33 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
     const rect = stripRef.current.getBoundingClientRect()
     setActiveNestedDropPath(null)
     setPaletteInsertAt(computeInsert(event.clientY - rect.top))
-  }, [computeInsert, setDragOver])
+  }, [computeInsert, scrollContainerRef, setDragOver])
 
   const handleStripDragLeave = useCallback((event) => {
     if (!stripRef.current) return
     const rect = stripRef.current.getBoundingClientRect()
     if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
+      stopAutoScrollContainer(scrollContainerRef?.current)
       setPaletteInsertAt(null)
       setActiveNestedDropPath(null)
       setDragOver(false)
     }
-  }, [setDragOver])
+  }, [scrollContainerRef, setDragOver])
 
   const handleStripDrop = useCallback((event) => {
     event.preventDefault()
     event.stopPropagation()
     const cmd = event.dataTransfer.getData('cmd')
     if (cmd && stripRef.current) {
+      autoScrollContainerNearEdge(scrollContainerRef?.current, event.clientY)
       const rect = stripRef.current.getBoundingClientRect()
       onInsertAt(cmd, computeInsert(event.clientY - rect.top), event.dataTransfer.getData('ifPathCondition') || 'ahead', event.dataTransfer.getData('repeatTimes') || 2)
     }
+    stopAutoScrollContainer(scrollContainerRef?.current)
     setPaletteInsertAt(null)
     setActiveNestedDropPath(null)
     setDragOver(false)
-  }, [computeInsert, onInsertAt, setDragOver])
+  }, [computeInsert, onInsertAt, scrollContainerRef, setDragOver])
 
   const handleNestedPaletteHoverChange = useCallback((dropInfo) => {
     setActiveNestedDropPath(dropInfo)
@@ -1315,6 +1447,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
                 onNestedPaletteHoverChange={handleNestedPaletteHoverChange}
                 activeNestedDropPath={activeNestedDropPath}
                 showIfElse={showIfElse}
+                scrollContainerRef={scrollContainerRef}
                 elseChildren={isIfPathCommand(command) && showIfElse ? (
                   <DraggableNestedSequence
                     sequence={command.elseCommands ?? []}
@@ -1330,6 +1463,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
                     onNestedPaletteHoverChange={handleNestedPaletteHoverChange}
                     activeNestedDropPath={activeNestedDropPath}
                     showIfElse={showIfElse}
+                    scrollContainerRef={scrollContainerRef}
                   />
                 ) : null}
               >
@@ -1347,6 +1481,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
                   onNestedPaletteHoverChange={handleNestedPaletteHoverChange}
                   activeNestedDropPath={activeNestedDropPath}
                   showIfElse={showIfElse}
+                  scrollContainerRef={scrollContainerRef}
                 />
               </NestedBlockCard>
             ) : (
@@ -1595,7 +1730,6 @@ export default function CommandBuilder({
   onRemove,
   onClear,
   onRun,
-  visorFlipCount,
   onVisorFlip,
   phase,
   onReorder,
@@ -1621,6 +1755,7 @@ export default function CommandBuilder({
   const [ifPathPaletteCondition, setIfPathPaletteCondition] = useState(defaultIfPathCondition)
   const [repeatPaletteTimes, setRepeatPaletteTimes] = useState(2)
   const [showCodeModal, setShowCodeModal] = useState(false)
+  const sequenceAreaRef = useRef(null)
 
   useEffect(() => {
     setIfPathPaletteCondition(defaultIfPathCondition)
@@ -1722,9 +1857,8 @@ export default function CommandBuilder({
             <SpeedBar speed={speed} onSpeedChange={onSpeedChange} theme={theme} />
           </div>
           {showVisorFlip && (
-            <motion.button whileTap={{ scale: 0.96 }} onClick={onVisorFlip} disabled={visorFlipCount >= 3} data-tutorial-id="visor-flip-button" style={{ width: '100%', minHeight: 62, padding: '9px 12px', background: visorFlipCount >= 3 ? t.visorExhBg : t.visorBg, border: `1.5px solid ${visorFlipCount >= 3 ? t.visorExhBd : t.visorBorder}`, borderRadius: 8, color: visorFlipCount >= 3 ? t.visorExhTx : t.visorText, cursor: visorFlipCount >= 3 ? 'not-allowed' : 'pointer', fontFamily: 'monospace', fontSize: 11, letterSpacing: 1.2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, fontWeight: 800 }}>
+            <motion.button whileTap={{ scale: 0.96 }} onClick={onVisorFlip} data-tutorial-id="visor-flip-button" style={{ width: '100%', minHeight: 62, padding: '9px 12px', background: t.visorBg, border: `1.5px solid ${t.visorBorder}`, borderRadius: 8, color: t.visorText, cursor: 'pointer', fontFamily: 'monospace', fontSize: 11, letterSpacing: 1.2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, fontWeight: 800 }}>
               <span>{'\u{1F441}'} VISOR FLIP</span>
-              <span style={{ fontSize: 10 }}>{3 - visorFlipCount} left</span>
             </motion.button>
           )}
         </div>
@@ -1776,9 +1910,8 @@ export default function CommandBuilder({
     <div data-tutorial-id="command-builder" style={{ display: 'flex', gap: 16, width: '100%', height: '100%', flex: 1, minHeight: 0, background: wrapperBg, padding: 0, boxSizing: 'border-box' }}>
       <div style={{ flex: '0 0 280px', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {showVisorFlip && (
-          <motion.button whileTap={{ scale: 0.96 }} onClick={onVisorFlip} disabled={visorFlipCount >= 3} data-tutorial-id="visor-flip-button" style={{ width: '100%', padding: '9px 12px', background: visorFlipCount >= 3 ? t.visorExhBg : t.visorBg, border: `1.5px solid ${visorFlipCount >= 3 ? t.visorExhBd : t.visorBorder}`, borderRadius: 8, color: visorFlipCount >= 3 ? t.visorExhTx : t.visorText, cursor: visorFlipCount >= 3 ? 'not-allowed' : 'pointer', fontFamily: 'monospace', fontSize: 11, letterSpacing: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 700 }}>
+          <motion.button whileTap={{ scale: 0.96 }} onClick={onVisorFlip} data-tutorial-id="visor-flip-button" style={{ width: '100%', padding: '9px 12px', background: t.visorBg, border: `1.5px solid ${t.visorBorder}`, borderRadius: 8, color: t.visorText, cursor: 'pointer', fontFamily: 'monospace', fontSize: 11, letterSpacing: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 700 }}>
             <span>{'\u{1F441}'} VISOR FLIP</span>
-            <span style={{ fontSize: 10, fontWeight: 800 }}>{3 - visorFlipCount} left</span>
           </motion.button>
         )}
 
@@ -1837,20 +1970,24 @@ export default function CommandBuilder({
           </div>
 
           <div
+            ref={sequenceAreaRef}
             data-tutorial-id="sequence-area"
             onDragOver={(event) => {
               event.preventDefault()
+              autoScrollContainerNearEdge(event.currentTarget, event.clientY)
               setDragOver(true)
             }}
             onDragLeave={(event) => {
               const rect = event.currentTarget.getBoundingClientRect()
               if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
+                stopAutoScrollContainer(event.currentTarget)
                 setDragOver(false)
               }
             }}
             onDrop={(event) => {
               if (sequence.length > 0) return
               event.preventDefault()
+              stopAutoScrollContainer(event.currentTarget)
               setDragOver(false)
               const rawCommand = event.dataTransfer.getData('cmd')
               if (!rawCommand) return
@@ -1860,7 +1997,7 @@ export default function CommandBuilder({
                 event.dataTransfer.getData('repeatTimes') || 2,
               )))
             }}
-            style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'auto', background: dragOver ? (theme === 'light' ? 'linear-gradient(180deg, rgba(210,248,255,0.98), rgba(239,240,255,0.96))' : 'rgba(45,212,191,0.04)') : t.scrollBg, border: `1.5px ${dragOver ? `dashed ${theme === 'light' ? '#2fc9df88' : '#2dd4bf55'}` : `solid ${t.scrollBorder}`}`, borderRadius: 8, padding: 10, boxSizing: 'border-box' }}
+            style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', background: dragOver ? (theme === 'light' ? 'linear-gradient(180deg, rgba(210,248,255,0.98), rgba(239,240,255,0.96))' : 'rgba(45,212,191,0.04)') : t.scrollBg, border: `1.5px ${dragOver ? `dashed ${theme === 'light' ? '#2fc9df88' : '#2dd4bf55'}` : `solid ${t.scrollBorder}`}`, borderRadius: 8, padding: 10, boxSizing: 'border-box' }}
           >
             {sequence.length === 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100%', gap: 6 }}>
@@ -1879,6 +2016,7 @@ export default function CommandBuilder({
                 theme={theme}
                 setDragOver={setDragOver}
                 showIfElse={showIfElse}
+                scrollContainerRef={sequenceAreaRef}
               />
             )}
           </div>

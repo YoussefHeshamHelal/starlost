@@ -19,7 +19,7 @@ const COPY = {
   languageTitle: 'Language',
   close: 'Close',
   english: 'English',
-  arabic: 'Arabic',
+  arabic: 'German',
 }
 
 const ACHIEVEMENT_ROWS = [
@@ -55,8 +55,8 @@ const ACHIEVEMENT_ROWS = [
     id: 'deep-explorer',
     icon: '\u{1fa90}',
     title: 'Deep Explorer',
-    description: 'Complete 15 levels.',
-    isUnlocked: ({ completedCount }) => completedCount >= 15,
+    description: 'Complete all 23 levels.',
+    isUnlocked: ({ completedCount }) => completedCount >= TOTAL_LEVELS,
   },
   {
     id: 'bronze-master',

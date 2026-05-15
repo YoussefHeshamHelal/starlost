@@ -611,7 +611,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
 
   // ── VISOR FLIP ───────────────────────────────────────────────────────────
   const openVisor = useCallback(() => {
-    if (visorActive || visorFlipCount >= 3) return
+    if (visorActive) return
     setVisorActive(true)
     setVisorFlipCount(c => c + 1)
     if (visorFlipTiming === null) {
@@ -623,7 +623,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
       setVisorFlippedThisLevel(true)
       setVisorFlipReaction(levelConfig.id === 13 ? null : getRandomFrom(VISOR_FLIP_REACTIONS))
     }
-  }, [visorActive, visorFlipCount, visorFlipTiming, hadErrorBefore, levelConfig.id, levelConfig.uncertainRadio, visorFlippedThisLevel])
+  }, [visorActive, visorFlipTiming, hadErrorBefore, levelConfig.id, levelConfig.uncertainRadio, visorFlippedThisLevel])
 
   const closeVisor = useCallback(() => {
     setVisorActive(false)

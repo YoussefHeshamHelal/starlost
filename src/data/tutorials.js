@@ -109,6 +109,14 @@ export const LEVEL_TUTORIALS = {
       waitForTarget: true,
       nextLabel: 'Got it',
     }),
+    levelStep('level-7-blocks-inside-repeat', {
+      targetId: 'command-repeat',
+      placement: 'top',
+      title: 'Blocks go inside Repeat',
+      body: 'The blocks you want to repeat are added inside the Repeat block.',
+      waitForTarget: true,
+      nextLabel: 'Got it',
+    }),
   ],
   8: [
     levelStep('level-8-repeat-then-turn', {

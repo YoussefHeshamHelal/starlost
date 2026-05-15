@@ -1948,9 +1948,6 @@ export default function GameGrid({
     ? collectionEffects.findLast((effect) => effect.x === luma.x && effect.y === luma.y)
     : [...collectionEffects].reverse().find((effect) => effect.x === luma.x && effect.y === luma.y)
 
-  // Theme-specific label colors
-  const scanLabelColor  = isLight ? '#0d9488' : '#2dd4bf'
-  const coordLabelColor = isLight ? '#0d6e66' : '#64748b'
   const gridBoxShadow   = isLight
     ? '0 4px 32px rgba(20,184,166,0.18), 0 0 0 2px #14b8a644'
     : '0 0 60px rgba(45,212,191,0.08), 0 0 0 1.5px #1e2a42'
@@ -1963,21 +1960,10 @@ export default function GameGrid({
   const goalIsLaunchPad = isLaunchPadGoal(activeLevel)
   const ObstacleVisual = isLaunchSite ? CargoCrateObstacle : isRepairSite ? CargoCrateObstacle : isForestTrail ? ForestTreeObstacle : RockObstacle
   const BackgroundComponent = isLaunchSite ? LaunchSiteBackground : isRepairSite ? RepairSiteBackground : isForestTrail ? ForestTrailBackground : CrashSiteBackground
-  const scanLabel = isLaunchSite
-    ? 'ORBITAL SCAN - LAUNCH SITE W4'
-    : isRepairSite
-    ? 'ORBITAL SCAN - REPAIR SITE W3'
-    : isForestTrail
-      ? 'ORBITAL SCAN - FOREST TRAIL W2'
-      : 'ORBITAL SCAN - CRASH SITE W1'
   const goalVisible = !activeLevel.hideGoalUntilTraceCorrect || traceGoalRevealed
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
-      <div data-tutorial-id="grid-label" style={{ fontSize:9, color: scanLabelColor, fontFamily:'monospace', letterSpacing:3, opacity: isLight ? 0.9 : 0.5, fontWeight: isLight ? 700 : 400 }}>
-        {scanLabel}
-      </div>
-
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
       <AnimatePresence>
         {predictionModeActive && !predictionTile && (
           <motion.div
@@ -2249,9 +2235,6 @@ export default function GameGrid({
         </AnimatePresence>
       </div>
 
-      <div data-tutorial-id="luma-coords" style={{ fontSize:9, color: coordLabelColor, fontFamily:'monospace', letterSpacing:2, fontWeight: isLight ? 600 : 400 }}>
-        LUMA [{luma.x},{luma.y}] · {luma.facing.toUpperCase()}
-      </div>
     </div>
   )
 }
