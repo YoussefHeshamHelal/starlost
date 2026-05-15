@@ -74,6 +74,38 @@ function BubbleArrow({ placement, color, style }) {
   )
 }
 
+function getTutorialActionAccent(targetId, theme, t) {
+  const isDark = theme === 'dark'
+  const accents = {
+    'command-forward': isDark ? '#2dd4bf' : '#14b8d4',
+    'command-turn': '#f59e0b',
+    'command-collect': '#38bdf8',
+    'command-repeat': '#f59e0b',
+    'command-if-path': isDark ? '#4ade80' : '#22c55e',
+    'command-if-else-path': isDark ? '#4ade80' : '#22c55e',
+    'visor-flip-button': isDark ? '#a78bfa' : '#8b5cf6',
+    'run-button': isDark ? '#2dd4bf' : '#2fc9df',
+    'reset-button': '#fb7185',
+  }
+  const accent = accents[targetId]
+
+  if (!accent) {
+    return {
+      background: t.tutorialActionBg,
+      border: t.tutorialActionBorder,
+      text: t.tutorialActionText,
+      arrow: undefined,
+    }
+  }
+
+  return {
+    background: `${accent}1f`,
+    border: accent,
+    text: isDark ? '#f8feff' : accent,
+    arrow: accent,
+  }
+}
+
 export default function TutorialOverlay({
   step,
   stepIndex,
@@ -88,6 +120,7 @@ export default function TutorialOverlay({
   const bubbleRef = useRef(null)
   const [targetRect, setTargetRect] = useState(null)
   const [bubbleRect, setBubbleRect] = useState(null)
+  const actionAccent = getTutorialActionAccent(step?.targetId, theme, t)
 
   useLayoutEffect(() => {
     if (!step) return undefined
@@ -286,19 +319,19 @@ export default function TutorialOverlay({
                 marginTop: 14,
                 padding: '10px 12px',
                 borderRadius: 14,
-                background: t.tutorialActionBg,
-                border: `1px solid ${t.tutorialActionBorder}`,
+                background: actionAccent.background,
+                border: `1px solid ${actionAccent.border}`,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
               }}
             >
-              <span style={{ fontSize: 18 }}>👉</span>
+              <span style={{ fontSize: 18, color: actionAccent.arrow ?? actionAccent.text }}>👉</span>
               <span
                 style={{
                   fontSize: 13,
                   lineHeight: 1.35,
-                  color: t.tutorialActionText,
+                  color: actionAccent.text,
                   fontWeight: 800,
                 }}
               >

@@ -563,8 +563,11 @@ function RepeatCounter({ command, color, onChange, depth = 0, compact = false, s
   )
 }
 
-function RowDelete({ color, isRunning, onDelete, theme, depth = 0, positioned = true }) {
+function RowDelete({ isRunning, onDelete, theme, depth = 0, positioned = true }) {
   const layout = getDepthLayout(depth)
+  const deleteColor = theme === 'light' ? '#dc2626' : '#fb7185'
+  const deleteBorder = theme === 'light' ? 'rgba(220,38,38,0.45)' : 'rgba(251,113,133,0.55)'
+  const deleteBg = theme === 'light' ? 'rgba(254,242,242,0.9)' : 'rgba(127,29,29,0.32)'
   const positionStyle = positioned === 'corner'
     ? { position: 'absolute', top: 7, right: 7 }
     : positioned
@@ -578,7 +581,7 @@ function RowDelete({ color, isRunning, onDelete, theme, depth = 0, positioned = 
       onPointerDown={(event) => event.stopPropagation()}
       onClick={onDelete}
       disabled={isRunning}
-      style={{ ...positionStyle, width: layout.deleteSize, height: layout.deleteSize, borderRadius: '50%', border: `1px solid ${color}55`, background: theme === 'light' ? 'rgba(255,255,255,0.72)' : 'rgba(0,0,0,0.6)', color: `${color}cc`, cursor: isRunning ? 'not-allowed' : 'pointer', fontSize: Math.max(8, 10 - Math.min(depth, 2)), lineHeight: 1, zIndex: 5, padding: 0 }}
+      style={{ ...positionStyle, width: layout.deleteSize, height: layout.deleteSize, borderRadius: '50%', border: `1px solid ${deleteBorder}`, background: deleteBg, color: deleteColor, cursor: isRunning ? 'not-allowed' : 'pointer', fontSize: Math.max(8, 10 - Math.min(depth, 2)), lineHeight: 1, zIndex: 5, padding: 0 }}
     >
       ×
     </button>

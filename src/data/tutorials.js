@@ -27,7 +27,7 @@ export const LEVEL_TUTORIALS = {
       targetId: 'grid-panel',
       placement: 'right',
       title: 'This is the map',
-      body: 'The scan shows where LUMA can move.',
+      body: 'The map shows where LUMA can move.',
     }),
     levelStep('level-1-luma', {
       targetId: 'luma-marker',
@@ -50,10 +50,10 @@ export const LEVEL_TUTORIALS = {
     levelStep('level-1-forward', {
       targetId: 'command-forward',
       placement: 'bottom',
-      title: 'FORWARD means move ahead',
-      body: 'Tap FORWARD to add one step.',
+      title: 'MOVE FORWARD',
+      body: 'This block makes LUMA move forward one step in the direction she is facing.',
       requiresAction: true,
-      actionLabel: 'Tap FORWARD',
+      actionLabel: 'Tap MOVE FORWARD',
       completeWhen: ({ sequence }) => sequence.filter(cmd => cmd === 'F').length >= 1,
     }),
     levelStep('level-1-sequence', {
@@ -65,10 +65,10 @@ export const LEVEL_TUTORIALS = {
     levelStep('level-1-build-three', {
       targetId: 'command-forward',
       placement: 'bottom',
-      title: 'Add three FORWARD blocks',
+      title: 'Add three MOVE FORWARD blocks',
       body: 'This level needs three tiny moves.',
       requiresAction: true,
-      actionLabel: 'Add 3 FORWARD blocks',
+      actionLabel: 'Add 3 MOVE FORWARD blocks',
       completeWhen: ({ sequence }) => sequence.length >= 3,
     }),
     levelStep('level-1-run', {
@@ -374,7 +374,7 @@ export const FEATURE_TUTORIALS = {
       targetId: 'command-palette',
       placement: 'left',
       title: 'Now you may need a turn',
-      body: 'FORWARD is not enough anymore. Use left or right turns too.',
+      body: 'MOVE FORWARD is not enough anymore. Use left or right turns too.',
       waitForTarget: true,
       nextLabel: 'Try yourself',
     }),
