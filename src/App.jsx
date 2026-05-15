@@ -15,6 +15,7 @@ import MissionSetup from './components/MissionSetup'
 import StarMapLevelSelect from './components/StarMapLevelSelect'
 import MenuSoundIcon from './components/MenuSoundIcon'
 import TutorialOverlay from './components/TutorialOverlay'
+import LumaSprite from './components/LumaSprite'
 import { logGBI } from './logGBI'
 import { ThemeContext, useTheme, THEMES } from './context/theme'
 import { isValidParticipantId, touchParticipantSession } from './utils/participants'
@@ -184,6 +185,10 @@ const ANIM_STYLES = `
   }
   .level-sound-button--muted .menu-sound-icon__mute {
     opacity: 1;
+  }
+  .identify-luma-choice-sprite > div > div {
+    background: none !important;
+    filter: none !important;
   }
 `
 
@@ -401,6 +406,61 @@ function normalizeDirectionOption(option) {
   return option
 }
 
+function getFacingFromDirectionOption(option) {
+  const normalized = normalizeDirectionOption(option)
+  if (normalized === '↑ Up') return 'north'
+  if (normalized === '→ Right') return 'east'
+  if (normalized === '↓ Down') return 'south'
+  if (normalized === '← Left') return 'west'
+  return 'south'
+}
+
+function getArrowFromDirectionOption(option) {
+  const normalized = normalizeDirectionOption(option)
+  if (normalized === '↑ Up') return '↑'
+  if (normalized === '→ Right') return '→'
+  if (normalized === '↓ Down') return '↓'
+  if (normalized === '← Left') return '←'
+  return '•'
+}
+
+function getIdentifyArrowPosition(option) {
+  const normalized = normalizeDirectionOption(option)
+  if (normalized === '↑ Up') {
+    return {
+      top: -32,
+      left: '50%',
+      transform: 'translateX(-50%)',
+    }
+  }
+  if (normalized === '→ Right') {
+    return {
+      right: -20,
+      top: '50%',
+      transform: 'translateY(-50%)',
+    }
+  }
+  if (normalized === '← Left') {
+    return {
+      left: -20,
+      top: '50%',
+      transform: 'translateY(-50%)',
+    }
+  }
+  if (normalized === '↓ Down') {
+    return {
+      bottom: -24,
+      left: '50%',
+      transform: 'translateX(-50%)',
+    }
+  }
+  return {
+    right: -20,
+    top: '50%',
+    transform: 'translateY(-50%)',
+  }
+}
+
 const COMPASS_AREAS = `
   ".     top    ."
   "left  center right"
@@ -409,40 +469,125 @@ const COMPASS_AREAS = `
 
 function DiamondButton({ option, isSelected, isCorrect, isWrong, disabled, onClick }) {
   const meta = ARROW_META[option] ?? { symbol: option, label: option, gridArea: 'center' }
+  const facing = getFacingFromDirectionOption(option)
+  const arrow = getArrowFromDirectionOption(option)
   const theme = useTheme()
-  const t = THEMES[theme]
-  const borderColor = isCorrect ? '#4ade80' : isWrong ? '#fb7185' : isSelected ? '#14b8a6' : t.mcqBorderIdle
-  const bgColor     = isCorrect ? 'rgba(74,222,128,0.18)' : isWrong ? 'rgba(251,113,133,0.14)' : isSelected ? 'rgba(20,184,166,0.14)' : t.mcqBg
-  const textColor   = isCorrect ? '#4ade80' : isWrong ? '#fb7185' : isSelected ? (theme === 'light' ? '#0a5c55' : '#2dd4bf') : t.mcqTextIdle
+  const accentColor = isCorrect
+    ? '#4ade80'
+    : isWrong
+      ? '#fb7185'
+      : isSelected
+        ? (theme === 'light' ? '#14b8a6' : '#2dd4bf')
+        : (theme === 'light' ? '#38c9dd' : '#2dd4bf')
 
   return (
-    <div style={{ gridArea: meta.gridArea, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 90, height: 90 }}>
-      <button
+    <div style={{ gridArea: meta.gridArea, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 110, height: 110 }}>
+      <motion.button
+        type="button"
+        aria-label={`Choose LUMA facing ${meta.label}`}
         onClick={() => !disabled && onClick(option)}
+        disabled={disabled}
+        whileHover={!disabled ? {
+          scale: 1.12,
+          y: -6,
+        } : undefined}
+        whileTap={!disabled ? { scale: 0.94 } : undefined}
+        animate={{
+          scale: isSelected ? 1.08 : 1,
+          y: isSelected ? -2 : 0,
+        }}
+        transition={{ type: 'spring', stiffness: 260, damping: 18 }}
         style={{
-          width: 62, height: 62,
-          transform: 'rotate(45deg)',
-          background: bgColor, border: `2px solid ${borderColor}`,
-          borderRadius: 8,
+          width: 92,
+          height: 92,
+          border: 0,
+          outline: 'none',
+          background: 'transparent',
+          boxShadow: 'none',
+          borderRadius: 24,
           cursor: disabled ? 'default' : 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'background 0.15s, border-color 0.15s, box-shadow 0.15s',
-          boxShadow: isSelected ? `0 0 16px ${borderColor}66` : 'none',
-          outline: 'none', padding: 0, flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          padding: 0,
+          overflow: 'visible',
+          flexShrink: 0,
         }}
       >
-        <div style={{
-          transform: 'rotate(-45deg)',
-          display: 'flex', flexDirection: 'column',
+        <motion.div
+          animate={isSelected ? { rotate: [0, -3, 3, 0] } : { rotate: 0 }}
+          transition={{ duration: 0.35 }}
+          style={{
+          width: 82,
+          height: 82,
+          position: 'relative',
+          display: 'flex',
           alignItems: 'center', justifyContent: 'center',
-          gap: 2, pointerEvents: 'none', lineHeight: 1,
+          overflow: 'visible',
+          pointerEvents: 'none',
+          lineHeight: 1,
         }}>
-          <span style={{ fontSize: 22, color: textColor, fontWeight: 700, lineHeight: 1 }}>{meta.symbol}</span>
-          <span style={{ fontSize: 9, letterSpacing: 0.8, color: textColor, fontFamily: 'monospace', fontWeight: 700 }}>{meta.label}</span>
-          {isCorrect && <span style={{ fontSize: 9, color: '#4ade80', lineHeight: 1 }}>✓</span>}
-          {isWrong   && <span style={{ fontSize: 9, color: '#fb7185', lineHeight: 1 }}>✗</span>}
-        </div>
-      </button>
+          <div className="identify-luma-choice-sprite" style={{
+            position: 'relative',
+            width: 72,
+            height: 72,
+            overflow: 'visible',
+          }}>
+            <LumaSprite
+              x={0}
+              y={0}
+              facing={facing}
+              tileSize={72}
+              showFacing
+              showDirectionArrow={false}
+            />
+          </div>
+          <span
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              ...getIdentifyArrowPosition(option),
+              fontSize: 28,
+              fontWeight: 1000,
+              lineHeight: 1,
+              color: accentColor,
+              background: 'transparent',
+              border: 0,
+              boxShadow: 'none',
+              textShadow: `0 0 8px ${accentColor}88, 0 2px 4px rgba(0,0,0,0.35)`,
+            }}
+          >
+            {arrow}
+          </span>
+          {isCorrect && (
+            <span aria-hidden="true" style={{
+              position: 'absolute',
+              right: -12,
+              bottom: -5,
+              fontSize: 15,
+              color: '#4ade80',
+              fontWeight: 900,
+              textShadow: '0 0 8px rgba(74,222,128,0.85)',
+            }}>
+              ✓
+            </span>
+          )}
+          {isWrong && (
+            <span aria-hidden="true" style={{
+              position: 'absolute',
+              right: -12,
+              bottom: -5,
+              fontSize: 15,
+              color: '#fb7185',
+              fontWeight: 900,
+              textShadow: '0 0 8px rgba(251,113,133,0.85)',
+            }}>
+              ✗
+            </span>
+          )}
+        </motion.div>
+      </motion.button>
     </div>
   )
 }
@@ -496,13 +641,14 @@ const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, s
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '90px 90px 90px',
-        gridTemplateRows: '90px 90px 90px',
+        gridTemplateColumns: '110px 110px 110px',
+        gridTemplateRows: '110px 110px 110px',
         gridTemplateAreas: COMPASS_AREAS,
         placeItems: 'center',
-        width: 270, height: 270,
+        width: 330, height: 330,
         alignSelf: 'center',
-        overflow: 'hidden',
+        overflow: 'visible',
+        transform: 'translateY(-12px)',
       }}>
         <div style={{
           gridArea: 'center',
