@@ -1534,8 +1534,8 @@ function ShowCodeModal({ code, theme, onClose }) {
         exit={{ opacity: 0, y: 12, scale: 0.98 }}
         transition={{ type: 'spring', stiffness: 280, damping: 24 }}
         style={{
-          width: 'min(980px, calc(100vw - 36px))',
-          maxHeight: 'min(780px, calc(100vh - 36px))',
+          width: 'min(980px, calc(100% - 36px))',
+          maxHeight: 'min(780px, calc(100% - 36px))',
           background: panelBg,
           border: `2px solid ${border}`,
           borderRadius: 16,
@@ -1601,7 +1601,7 @@ function ShowCodeModal({ code, theme, onClose }) {
           style={{
             margin: 0,
             minHeight: 280,
-            maxHeight: 'min(460px, calc(100vh - 260px))',
+            maxHeight: 460,
             overflow: 'auto',
             padding: '22px 24px',
             borderRadius: 12,

@@ -183,17 +183,19 @@ function StarZone({ zone, completedLevels, medalsByLevel, onSelectLevel }) {
   return (
     <section className={`star-zone ${zone.className}`} aria-label={zone.title}>
       <h2 className="star-zone__title">{zone.title}</h2>
-      <ZoneTrail zone={zone} />
-      {zone.path.map(level => (
-        <LevelNode
-          key={level}
-          level={level}
-          position={zone.positions[level]}
-          completedLevels={completedLevels}
-          medalsByLevel={medalsByLevel}
-          onSelectLevel={onSelectLevel}
-        />
-      ))}
+      <div className="star-zone__node-layer">
+        <ZoneTrail zone={zone} />
+        {zone.path.map(level => (
+          <LevelNode
+            key={level}
+            level={level}
+            position={zone.positions[level]}
+            completedLevels={completedLevels}
+            medalsByLevel={medalsByLevel}
+            onSelectLevel={onSelectLevel}
+          />
+        ))}
+      </div>
     </section>
   )
 }
@@ -232,7 +234,18 @@ export default function StarMapLevelSelect({
       aria-label="Star map level select"
     >
       <img className="starlost-menu__bg" src="/assets/ui/star-map-bg.png" alt="" />
-      <div className="starlost-menu__stage">
+      <div className="star-map-art-layer">
+        {ZONES.map(zone => (
+          <StarZone
+            key={zone.id}
+            zone={zone}
+            completedLevels={normalizedCompletedLevels}
+            medalsByLevel={medalsByLevel}
+            onSelectLevel={handleSelectLevel}
+          />
+        ))}
+      </div>
+      <div className="starlost-menu__stage star-map-ui-layer">
         <motion.button
           type="button"
           className="menu-icon-button menu-icon-button--left"
@@ -251,16 +264,6 @@ export default function StarMapLevelSelect({
         >
           <MenuSoundIcon />
         </button>
-
-        {ZONES.map(zone => (
-          <StarZone
-            key={zone.id}
-            zone={zone}
-            completedLevels={normalizedCompletedLevels}
-            medalsByLevel={medalsByLevel}
-            onSelectLevel={handleSelectLevel}
-          />
-        ))}
 
         <motion.button
           type="button"

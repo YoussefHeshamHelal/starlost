@@ -23,6 +23,9 @@ import { calculateMedal, fetchSessionProgress, updateSessionProgress } from './u
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 const HEADER_H = 56
+const DESIGN_WIDTH = 1440
+const MENU_DESIGN_WIDTH = 1600
+const DESIGN_HEIGHT = 900
 const GRID_PX  = 520   // 5 tiles × 104 px
 const PANEL_W  = 810
 const GAP      = 24
@@ -129,6 +132,43 @@ function readStoredMuted() {
   } catch {
     return false
   }
+}
+
+function getViewportSize() {
+  if (typeof window === 'undefined') {
+    return { width: DESIGN_WIDTH, height: DESIGN_HEIGHT }
+  }
+  return {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }
+}
+
+function useScaledStage() {
+  const [viewportSize, setViewportSize] = useState(getViewportSize)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+
+    const handleResize = () => setViewportSize(getViewportSize())
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  return useMemo(() => {
+    const scale = viewportSize.height / DESIGN_HEIGHT
+
+    return {
+      width: viewportSize.width,
+      height: viewportSize.height,
+      scale,
+      left: (viewportSize.width - MENU_DESIGN_WIDTH * scale) / 2,
+      top: 0,
+      designWidth: MENU_DESIGN_WIDTH,
+      designHeight: DESIGN_HEIGHT,
+    }
+  }, [viewportSize])
 }
 
 // ── CSS keyframe animations ───────────────────────────────────────────────────
@@ -1017,7 +1057,7 @@ function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       style={{
-        position: 'fixed',
+        position: 'absolute',
         top: topOffset,
         left: 0,
         right: 0,
@@ -1035,7 +1075,7 @@ function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER
         <motion.div
           key={i}
           initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 0.6, 0], y: ['100vh', '-10vh'], x: [0, (i % 2 === 0 ? 30 : -30)] }}
+          animate={{ opacity: [0, 0.6, 0], y: [DESIGN_HEIGHT, -DESIGN_HEIGHT * 0.1], x: [0, (i % 2 === 0 ? 30 : -30)] }}
           transition={{ duration: 6 + i * 1.2, delay: i * 1.1, repeat: Infinity, repeatDelay: 2, ease: 'easeInOut' }}
           style={{ position: 'absolute', left: `${10 + i * 16}%`, bottom: 0, fontSize: 22 + (i % 3) * 8, pointerEvents: 'none', zIndex: 0 }}
         >
@@ -1650,7 +1690,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
 
   return (
     <div style={{
-      position: 'fixed',
+      position: 'absolute',
       top: topOffset, left: 0, right: 0, bottom: 0,
       display: 'flex', flexDirection: 'column',
       alignItems: 'center',
@@ -1873,6 +1913,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
 
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function App() {
+  const stage = useScaledStage()
   const bgMusicRef = useRef(null)
   const musicUnlockedRef = useRef(false)
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0)
@@ -2143,18 +2184,9 @@ export default function App() {
     setAppPhase('home')
   }
 
-  return (
-    <ThemeContext.Provider value={theme}>
-      <div style={{
-        width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative',
-        background: isOuterPhase ? OUTER_PAGE_BG : t.appBg,
-        transition: isMapGameplayTransition ? 'none' : 'background 0.5s ease',
-      }}>
-        <style>{ANIM_STYLES}</style>
-
-        {/* ── Header ── */}
-        <AnimatePresence>
-          {(appPhase === 'playing' || appPhase === 'strategy-card') && (
+  const gameHeader = (
+    <AnimatePresence>
+      {(appPhase === 'playing' || appPhase === 'strategy-card') && (
         <motion.header
           key="game-header"
           initial={{ opacity: 0, y: -18 }}
@@ -2162,7 +2194,156 @@ export default function App() {
           exit={{ opacity: 0, y: -16 }}
           transition={headerTransition}
           style={{
-            position: 'fixed', top: 0, left: 0, right: 0,
+            position: 'absolute', top: 0, left: 0, right: 0,
+            height: HEADER_H, padding: '0 24px',
+            background: t.headerBg,
+            borderBottom: `1.5px solid ${t.headerBorder}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            zIndex: 50,
+            boxSizing: 'border-box',
+            transition: 'background 0.5s, border-color 0.5s',
+            boxShadow: theme === 'light'
+              ? '0 14px 28px rgba(69,131,199,0.12), inset 0 1px 0 rgba(255,255,255,0.72)'
+              : '0 2px 20px rgba(0,0,0,0.6)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {appPhase === 'playing' ? (
+              <img
+                src={theme === 'light' ? '/assets/ui/starlost-logo.png' : '/assets/ui/starlost-logo-dark.png'}
+                alt="STARLOST"
+                style={{
+                  display: 'block',
+                  width: 'auto',
+                  height: 54,
+                  maxWidth: 230,
+                  objectFit: 'contain',
+                }}
+              />
+            ) : (
+              <>
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                  style={{ fontSize: 22 }}
+                >🚀</motion.div>
+                <h1 style={{
+                  fontSize: 17, fontWeight: 900, color: t.headerTitle,
+                  letterSpacing: 6, fontFamily: 'monospace', margin: 0,
+                  transition: 'color 0.5s',
+                }}>
+                  STARLOST
+                </h1>
+              </>
+            )}
+            {appPhase === 'playing' && levelHeaderControls && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 10 }}>
+                <button
+                  onClick={levelHeaderControls.onGoHome}
+                  style={{
+                    padding: '7px 12px',
+                    borderRadius: 999,
+                    border: `1.5px solid ${theme === 'light' ? '#f3b372' : '#7a4d1c'}`,
+                    background: theme === 'light'
+                      ? 'rgba(255,247,235,0.82)'
+                      : 'rgba(27,17,8,0.72)',
+                    color: theme === 'light' ? '#93510f' : '#ffd59a',
+                    fontSize: 10,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Home
+                </button>
+                <button
+                  onClick={levelHeaderControls.onReplayTutorial}
+                  disabled={!levelHeaderControls.canReplayTutorial}
+                  style={{
+                    padding: '7px 12px',
+                    borderRadius: 999,
+                    border: `1.5px solid ${theme === 'light' ? '#85d9eb' : '#1f4d61'}`,
+                    background: theme === 'light'
+                      ? 'rgba(255,255,255,0.74)'
+                      : 'rgba(6,12,22,0.8)',
+                    color: levelHeaderControls.canReplayTutorial
+                      ? (theme === 'light' ? '#14557f' : '#d8fdfa')
+                      : (theme === 'light' ? '#8ba5ba' : '#6c8598'),
+                    fontSize: 10,
+                    fontWeight: 800,
+                    cursor: levelHeaderControls.canReplayTutorial ? 'pointer' : 'not-allowed',
+                    opacity: levelHeaderControls.canReplayTutorial ? 1 : 0.6,
+                  }}
+                >
+                  Replay Tutorial
+                </button>
+              </div>
+            )}
+          </div>
+
+          <p style={{
+            fontSize: 11, color: t.headerSub,
+            fontFamily: 'monospace', letterSpacing: 2, margin: 0,
+            transition: 'color 0.5s',
+            fontWeight: 700,
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            textAlign: 'center',
+          }}>
+            {appPhase === 'playing' ? 'Lost in space. Guided by you.' : 'Help LUMA find the way home.'}
+          </p>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <LevelSoundButton
+              theme={theme}
+              muted={muted}
+              onToggleMuted={handleToggleMuted}
+            />
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          </div>
+        </motion.header>
+      )}
+    </AnimatePresence>
+  )
+
+  return (
+    <ThemeContext.Provider value={theme}>
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        width: '100vw',
+        height: '100vh',
+        overflow: 'hidden',
+        background: isOuterPhase ? OUTER_PAGE_BG : t.appBg,
+        transition: isMapGameplayTransition ? 'none' : 'background 0.5s ease',
+      }}>
+        <div
+          data-starlost-stage="true"
+          data-starlost-stage-scale={stage.scale}
+          style={{
+          position: 'absolute',
+          left: stage.left,
+          top: stage.top,
+          width: stage.designWidth,
+          height: stage.designHeight,
+          transform: `scale(${stage.scale})`,
+          transformOrigin: 'top left',
+          overflow: 'hidden',
+          display: isOuterPhase ? 'block' : 'none',
+        }}>
+        <style>{ANIM_STYLES}</style>
+
+        {/* ── Header ── */}
+        <AnimatePresence>
+          {isOuterPhase && (appPhase === 'playing' || appPhase === 'strategy-card') && (
+        <motion.header
+          key="game-header"
+          initial={{ opacity: 0, y: -18 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -16 }}
+          transition={headerTransition}
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0,
             height: HEADER_H, padding: '0 24px',
             background: t.headerBg,
             borderBottom: `1.5px solid ${t.headerBorder}`,
@@ -2348,7 +2529,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {appPhase === 'playing' && (
+          {isOuterPhase && appPhase === 'playing' && (
             <motion.div
               key={`level-${level.id}-${levelSessionKey}`}
               variants={gameplayPageVariants}
@@ -2374,7 +2555,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {appPhase === 'strategy-card' && (
+          {isOuterPhase && appPhase === 'strategy-card' && (
             <motion.div
               key="strategy-card"
               variants={PAGE_VARIANTS}
@@ -2393,6 +2574,69 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
+        </div>
+        {!isOuterPhase && (
+          <div
+            data-starlost-stage="true"
+            data-starlost-stage-scale={1}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100vw',
+              height: '100vh',
+              overflow: 'hidden',
+            }}
+          >
+            {gameHeader}
+
+            <AnimatePresence mode={pageTransitionMode}>
+              {appPhase === 'playing' && (
+                <motion.div
+                  key={`level-${level.id}-${levelSessionKey}`}
+                  variants={gameplayPageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={pageTransition}
+                  style={ACTIVE_PAGE_SHELL_STYLE}
+                >
+                  <LevelScreen
+                    key={`${level.id}-${levelSessionKey}`}
+                    levelConfig={level}
+                    participantId={participantId}
+                    onComplete={handleLevelComplete}
+                    onStrategyCard={handleShowStrategyCard}
+                    onGoHome={handleGoHome}
+                    onHeaderControls={handleLevelHeaderControls}
+                    topOffset={gameTopOffset}
+                    animSpeed={animSpeed}
+                    onAnimSpeedChange={handleAnimSpeedChange}
+                    fastEntry={isMapGameplayTransition}
+                  />
+                </motion.div>
+              )}
+
+              {appPhase === 'strategy-card' && (
+                <motion.div
+                  key="strategy-card"
+                  variants={PAGE_VARIANTS}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={pageTransition}
+                  style={ACTIVE_PAGE_SHELL_STYLE}
+                >
+                  <StrategyCardScreen
+                    levelId={strategyCardLevelId ?? level.id}
+                    participantId={participantId}
+                    onDone={handleStrategyCardDone}
+                    topOffset={gameTopOffset}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
       </div>
     </ThemeContext.Provider>
   )

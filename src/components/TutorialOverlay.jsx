@@ -4,6 +4,7 @@ import { THEMES, useTheme } from '../context/theme'
 
 const VIEWPORT_MARGIN = 18
 const FOCUS_PADDING = 10
+const DEFAULT_OVERLAY_RECT = { left: 0, top: 0, width: 1440, height: 900, scaleX: 1, scaleY: 1 }
 
 function getTargetElement(targetId) {
   if (!targetId) return null
@@ -14,15 +15,51 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max)
 }
 
-function getBubblePosition(rect, placement, bubbleRect, offsetX = 0, offsetY = 0) {
+function getOverlayMetrics(overlayRoot) {
+  if (!overlayRoot) {
+    return {
+      left: 0,
+      top: 0,
+      width: window.innerWidth || DEFAULT_OVERLAY_RECT.width,
+      height: window.innerHeight || DEFAULT_OVERLAY_RECT.height,
+      scaleX: 1,
+      scaleY: 1,
+    }
+  }
+  const rect = overlayRoot.getBoundingClientRect()
+  const width = overlayRoot.offsetWidth || rect.width || window.innerWidth || DEFAULT_OVERLAY_RECT.width
+  const height = overlayRoot.offsetHeight || rect.height || window.innerHeight || DEFAULT_OVERLAY_RECT.height
+  return {
+    left: rect.left,
+    top: rect.top,
+    width,
+    height,
+    scaleX: rect.width ? width / rect.width : 1,
+    scaleY: rect.height ? height / rect.height : 1,
+  }
+}
+
+function toOverlayRect(rect, overlay) {
+  if (!rect) return null
+  return {
+    top: (rect.top - overlay.top) * overlay.scaleY,
+    left: (rect.left - overlay.left) * overlay.scaleX,
+    right: (rect.right - overlay.left) * overlay.scaleX,
+    bottom: (rect.bottom - overlay.top) * overlay.scaleY,
+    width: rect.width * overlay.scaleX,
+    height: rect.height * overlay.scaleY,
+  }
+}
+
+function getBubblePosition(rect, placement, bubbleRect, overlayRect, offsetX = 0, offsetY = 0) {
   const bubbleWidth = bubbleRect?.width ?? 320
   const bubbleHeight = bubbleRect?.height ?? 220
   const gap = 22
 
   if (!rect || placement === 'center') {
     return {
-      top: window.innerHeight / 2 - bubbleHeight / 2,
-      left: window.innerWidth / 2 - bubbleWidth / 2,
+      top: overlayRect.height / 2 - bubbleHeight / 2,
+      left: overlayRect.width / 2 - bubbleWidth / 2,
       arrowPlacement: 'center',
     }
   }
@@ -44,8 +81,8 @@ function getBubblePosition(rect, placement, bubbleRect, offsetX = 0, offsetY = 0
   top += offsetY
   left += offsetX
 
-  top = clamp(top, VIEWPORT_MARGIN, window.innerHeight - bubbleHeight - VIEWPORT_MARGIN)
-  left = clamp(left, VIEWPORT_MARGIN, window.innerWidth - bubbleWidth - VIEWPORT_MARGIN)
+  top = clamp(top, VIEWPORT_MARGIN, overlayRect.height - bubbleHeight - VIEWPORT_MARGIN)
+  left = clamp(left, VIEWPORT_MARGIN, overlayRect.width - bubbleWidth - VIEWPORT_MARGIN)
 
   return { top, left, arrowPlacement }
 }
@@ -117,40 +154,55 @@ export default function TutorialOverlay({
 }) {
   const theme = useTheme()
   const t = THEMES[theme]
+  const overlayRef = useRef(null)
   const bubbleRef = useRef(null)
   const [targetRect, setTargetRect] = useState(null)
   const [bubbleRect, setBubbleRect] = useState(null)
+  const [overlayRect, setOverlayRect] = useState(DEFAULT_OVERLAY_RECT)
   const actionAccent = getTutorialActionAccent(step?.targetId, theme, t)
 
   useLayoutEffect(() => {
     if (!step) return undefined
 
     const updateRects = () => {
+      const nextOverlayRect = getOverlayMetrics(overlayRef.current)
       const target = getTargetElement(step.targetId)
-      const nextTargetRect = target ? target.getBoundingClientRect() : null
-      const nextBubbleRect = bubbleRef.current?.getBoundingClientRect() ?? null
+      const nextTargetRect = toOverlayRect(target ? target.getBoundingClientRect() : null, nextOverlayRect)
+      const nextBubbleRect = toOverlayRect(bubbleRef.current?.getBoundingClientRect() ?? null, nextOverlayRect)
+      setOverlayRect(nextOverlayRect)
       setTargetRect(nextTargetRect)
       setBubbleRect(nextBubbleRect)
     }
 
+    let rafId = 0
+    const scheduleUpdate = () => {
+      cancelAnimationFrame(rafId)
+      rafId = requestAnimationFrame(updateRects)
+    }
+
     updateRects()
-    window.addEventListener('resize', updateRects)
-    window.addEventListener('scroll', updateRects, true)
+    scheduleUpdate()
+    window.addEventListener('resize', scheduleUpdate)
+    window.addEventListener('scroll', scheduleUpdate, true)
 
     const target = getTargetElement(step.targetId)
-    const observer = target ? new ResizeObserver(updateRects) : null
-    if (target && observer) observer.observe(target)
+    const observer = new ResizeObserver(scheduleUpdate)
+    if (target) observer.observe(target)
+    if (overlayRef.current) observer.observe(overlayRef.current)
 
     return () => {
-      window.removeEventListener('resize', updateRects)
-      window.removeEventListener('scroll', updateRects, true)
-      observer?.disconnect()
+      cancelAnimationFrame(rafId)
+      window.removeEventListener('resize', scheduleUpdate)
+      window.removeEventListener('scroll', scheduleUpdate, true)
+      observer.disconnect()
     }
   }, [step])
 
   useLayoutEffect(() => {
     if (!bubbleRef.current) return
-    setBubbleRect(bubbleRef.current.getBoundingClientRect())
+    const nextOverlayRect = getOverlayMetrics(overlayRef.current)
+    setOverlayRect(nextOverlayRect)
+    setBubbleRect(toOverlayRect(bubbleRef.current.getBoundingClientRect(), nextOverlayRect))
   }, [step, targetRect])
 
   const bubblePosition = useMemo(
@@ -158,10 +210,11 @@ export default function TutorialOverlay({
       targetRect,
       step?.placement ?? 'center',
       bubbleRect,
+      overlayRect,
       step?.offsetX ?? 0,
       step?.offsetY ?? 0
     ),
-    [bubbleRect, step, targetRect]
+    [bubbleRect, overlayRect, step, targetRect]
   )
 
   if (!step) return null
@@ -180,7 +233,10 @@ export default function TutorialOverlay({
   return (
     <AnimatePresence>
       <motion.div
+        ref={overlayRef}
         key={step.id}
+        data-tutorial-overlay="root"
+        data-tutorial-target-id={step.targetId ?? ''}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -189,6 +245,8 @@ export default function TutorialOverlay({
       >
         {spotlight && (
           <motion.div
+            data-tutorial-overlay="spotlight"
+            data-tutorial-target-id={step.targetId ?? ''}
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: 'spring', stiffness: 260, damping: 24 }}
@@ -220,6 +278,8 @@ export default function TutorialOverlay({
 
         <motion.div
           ref={bubbleRef}
+          data-tutorial-overlay="bubble"
+          data-tutorial-target-id={step.targetId ?? ''}
           initial={{ opacity: 0, y: 14, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 10, scale: 0.97 }}
@@ -228,7 +288,7 @@ export default function TutorialOverlay({
             position: 'fixed',
             top: bubblePosition.top,
             left: bubblePosition.left,
-            width: 'min(360px, calc(100vw - 32px))',
+            width: 360,
             background: t.tutorialBubbleBg,
             border: `2px solid ${t.tutorialBubbleBorder}`,
             borderRadius: 22,
