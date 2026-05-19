@@ -1974,7 +1974,7 @@ export default function CommandBuilder({
 
       <div ref={programPanelRef} style={{ ...subPanelStyle, flex: '1 1 0' }}>
           {/* Program header — switches to 2-row compact layout when panel is narrow */}
-          {programPanelW >= 340 ? (
+          {programPanelW >= 380 ? (
             /* ── Normal single-row header ── */
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexShrink: 0, width: '100%' }}>
               <div style={{ minWidth: 0, flex: '1 1 auto' }}>
@@ -1997,13 +1997,14 @@ export default function CommandBuilder({
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
                 <div style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
                   <p style={{ fontSize: 10, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 0.8, margin: 0, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    PROGRAM <span style={{ color: t.programCount, fontWeight: 600 }}>({totalBlocks})</span>
+                    PROGRAM <span style={{ color: t.programCount, fontWeight: 600 }}>({totalBlocks} {totalBlocks === 1 ? 'block' : 'blocks'})</span>
                   </p>
+                  <p style={{ fontSize: 9, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.6, margin: '2px 0 0 0' }}>Top to bottom order</p>
                 </div>
                 <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
                   <button title="Delete" aria-label="Delete" onClick={onRemove} disabled={isRunning || sequence.length === 0} style={{ ...actionBtn(isRunning || sequence.length === 0), width: 26, height: 24, fontSize: 9 }}>⌫</button>
                   <button title="Clear" aria-label="Clear" onClick={onClear} disabled={isRunning || sequence.length === 0} style={{ ...actionBtn(isRunning || sequence.length === 0), width: 26, height: 24, fontSize: 9 }}>✕</button>
-                  <button type="button" onClick={() => setShowCodeModal(true)} style={{ ...showCodeBtn, padding: '4px 7px', fontSize: 9, letterSpacing: 0.5 }}>{'</>'} Code</button>
+                  <button type="button" onClick={() => setShowCodeModal(true)} style={{ ...showCodeBtn, padding: '4px 7px', fontSize: 9, letterSpacing: 0.5 }}>{'</>'} Show Code</button>
                 </div>
               </div>
               {/* Row 2: shortest path (if present) */}
