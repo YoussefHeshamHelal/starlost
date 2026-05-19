@@ -34,6 +34,8 @@ const EARLY_MAP_SCALE = 1.1
 const PLAYABLE_LEVELS = 23
 const STRATEGY_CARD_LEVELS = new Set([5, 9, 14, 20, 23])
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
+const LEVEL_SCREEN_SAFE_X = 32
+const LEVEL_SCREEN_SAFE_Y = 22
 const SPEED_STORAGE_KEY = 'starlost:anim-speed'
 const PARTICIPANT_STORAGE_KEY = 'starlost:participantId'
 const MUTED_STORAGE_KEY = 'starlost:muted'
@@ -1574,6 +1576,52 @@ function LevelScreen({
   const [radioRetryNonce, setRadioRetryNonce] = useState(0)
   const theme = useTheme()
   const t = THEMES[theme]
+  const levelStageRef = useRef(null)
+  const [levelStageScale, setLevelStageScale] = useState(1)
+
+  const updateLevelStageScale = useCallback(() => {
+    if (typeof window === 'undefined') return
+
+    const stageEl = levelStageRef.current
+    const availableWidth = Math.max(0, window.innerWidth - LEVEL_SCREEN_SAFE_X)
+    const availableHeight = Math.max(0, window.innerHeight - topOffset - LEVEL_SCREEN_SAFE_Y)
+    const stageHeight = stageEl
+      ? Math.max(stageEl.offsetHeight || 0, stageEl.scrollHeight || 0)
+      : GRID_PX + 110
+
+    const widthScale = availableWidth / LEVEL_SCREEN_MAX_W
+    const heightScale = stageHeight > 0 ? availableHeight / stageHeight : 1
+    const nextScale = Math.min(1, widthScale, heightScale)
+
+    setLevelStageScale(previousScale => {
+      if (!Number.isFinite(nextScale) || nextScale <= 0) return previousScale
+      return Math.abs(previousScale - nextScale) < 0.001 ? previousScale : nextScale
+    })
+  }, [topOffset])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+
+    let frame = null
+    const scheduleUpdate = () => {
+      if (frame !== null) window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(updateLevelStageScale)
+    }
+
+    scheduleUpdate()
+    window.addEventListener('resize', scheduleUpdate)
+
+    const observer = typeof ResizeObserver !== 'undefined' && levelStageRef.current
+      ? new ResizeObserver(scheduleUpdate)
+      : null
+    if (observer && levelStageRef.current) observer.observe(levelStageRef.current)
+
+    return () => {
+      if (frame !== null) window.cancelAnimationFrame(frame)
+      window.removeEventListener('resize', scheduleUpdate)
+      observer?.disconnect()
+    }
+  }, [updateLevelStageScale, levelConfig.id])
 
   const {
     luma, phase,
@@ -1594,6 +1642,13 @@ function LevelScreen({
     onLevelSuccess: () => onPlaySfx?.('levelSuccess'),
     onBlockedPath: () => onPlaySfx?.('blockedPath'),
   })
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+
+    const frame = window.requestAnimationFrame(updateLevelStageScale)
+    return () => window.cancelAnimationFrame(frame)
+  }, [updateLevelStageScale, levelConfig.id, phase])
 
   const tutorialContext = useMemo(() => ({
     phase,
@@ -1999,19 +2054,23 @@ function LevelScreen({
       justifyContent: 'flex-start',
       padding: '10px 16px 12px',
       boxSizing: 'border-box',
-      overflow: phase === 'identify' ? 'visible' : 'hidden',
+      overflow: 'hidden',
       background: 'transparent',
     }}>
       {/* ── Title bar ── */}
       <div
+        ref={levelStageRef}
         style={{
-          width: '100%',
+          width: LEVEL_SCREEN_MAX_W,
           maxWidth: LEVEL_SCREEN_MAX_W,
           flex: 1,
           minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
           gap: levelConfig.id === 13 ? 14 : 10,
+          transform: `scale(${levelStageScale})`,
+          transformOrigin: 'top center',
+          willChange: levelStageScale < 1 ? 'transform' : 'auto',
         }}
       >
       <div style={{
@@ -3008,7 +3067,8 @@ export default function App() {
             data-starlost-stage-scale={1}
             style={{
               position: 'absolute',
-              inset: 0,
+              left: 0,
+              top: 0,
               width: '100vw',
               height: '100vh',
               overflow: 'hidden',
