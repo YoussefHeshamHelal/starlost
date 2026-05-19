@@ -2043,6 +2043,16 @@ function LevelScreen({
   const sptPanelInitial = fastEntry ? false : { opacity: 0, x: 20, y: 12 }
   const panelTransition = fastEntry ? { duration: 0 } : undefined
 
+  // Scaled visual height — collapse dead space transform:scale leaves behind
+
+
+  // Scaled offsets used to position the right panel to track the scaled left column
+  const scaledHalfStageW = (LEVEL_SCREEN_MAX_W / 2) * levelStageScale
+  const scaledLeftColW   = (mapFootprintW + GAP) * levelStageScale
+  const scaledTitleH     = (TITLE_BAR_H + STAGE_GAP) * levelStageScale
+  const OUTER_PAD_TOP    = 10
+  const OUTER_PAD_BOT    = 12
+
   return (
     <div style={{
       position: 'absolute',
@@ -2050,119 +2060,131 @@ function LevelScreen({
       overflow: 'hidden',
       background: 'transparent',
     }}>
-      {/* ── Title bar row — unscaled, spans full stage width ── */}
-      <div style={{
-        position: 'absolute',
-        top: 10,
-        left: `calc(50% - ${LEVEL_SCREEN_MAX_W / 2}px)`,
-        width: LEVEL_SCREEN_MAX_W,
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        flexShrink: 0,
-        height: TITLE_BAR_H,
-        boxSizing: 'border-box',
-      }}>
-        <div data-tutorial-id="level-title">
-          <p style={{
-            fontSize: 10,
-            color: t.levelLabel,
-            fontFamily: 'monospace', letterSpacing: 3, margin: 0,
-            fontWeight: 800,
-          }}>
-            LEVEL {levelConfig.id} — {getDisplayWorldName(levelConfig).toUpperCase()}
-          </p>
-        </div>
-        {!levelConfig.skipIdentify && (
-          <div data-tutorial-id="phase-badge" style={{
-            padding: '5px 16px',
-            background: phase === 'identify' ? t.identBadgeBg : t.devBadgeBg,
-            border: `1.5px solid ${phase === 'identify' ? t.identBadgeBd : t.devBadgeBd}`,
-            borderRadius: 20,
-            fontSize: 10, fontFamily: 'monospace', letterSpacing: 2,
-            color: phase === 'identify' ? t.identBadgeTx : t.devBadgeTx,
-            fontWeight: 800,
-          }}>
-            {phaseBadgeText}
-          </div>
-        )}
-      </div>
-
-      {/* ── Left column: map only (scaled) ── */}
+      {/*
+        ── Scaled stage: title bar + left col (map) only ──
+        transform:scale shrinks both visually; transformOrigin:'top center' keeps
+        them centred. The stage width = LEVEL_SCREEN_MAX_W at design scale, so
+        centering with left:50% + marginLeft:-halfW works at any scale.
+      */}
       <div
         ref={levelStageRef}
         style={{
           position: 'absolute',
-          top: 10 + TITLE_BAR_H + STAGE_GAP,
-          left: `calc(50% - ${LEVEL_SCREEN_MAX_W / 2}px)`,
+          top: OUTER_PAD_TOP,
+          left: '50%',
+          marginLeft: -(LEVEL_SCREEN_MAX_W / 2),
+          width: LEVEL_SCREEN_MAX_W,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: STAGE_GAP,
+          transform: `scale(${levelStageScale})`,
+          transformOrigin: 'top left',
+          willChange: levelStageScale < 1 ? 'transform' : 'auto',
+          pointerEvents: 'auto',
+        }}
+      >
+        {/* Title bar */}
+        <div style={{
+          width: '100%',
+          height: TITLE_BAR_H,
+          flexShrink: 0,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <div data-tutorial-id="level-title">
+            <p style={{
+              fontSize: 10,
+              color: t.levelLabel,
+              fontFamily: 'monospace', letterSpacing: 3, margin: 0,
+              fontWeight: 800,
+            }}>
+              LEVEL {levelConfig.id} — {getDisplayWorldName(levelConfig).toUpperCase()}
+            </p>
+          </div>
+          {!levelConfig.skipIdentify && (
+            <div data-tutorial-id="phase-badge" style={{
+              padding: '5px 16px',
+              background: phase === 'identify' ? t.identBadgeBg : t.devBadgeBg,
+              border: `1.5px solid ${phase === 'identify' ? t.identBadgeBd : t.devBadgeBd}`,
+              borderRadius: 20,
+              fontSize: 10, fontFamily: 'monospace', letterSpacing: 2,
+              color: phase === 'identify' ? t.identBadgeTx : t.devBadgeTx,
+              fontWeight: 800,
+            }}>
+              {phaseBadgeText}
+            </div>
+          )}
+        </div>
+
+        {/* Left column — map */}
+        <div style={{
+          flex: '0 0 auto',
           width: mapFootprintW,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'flex-start',
           gap: LEFT_COL_GAP,
-          transform: levelConfig.id === 13 && phase === 'identify'
-            ? `scale(${levelStageScale}) translateY(-8px)`
-            : `scale(${levelStageScale})`,
-          transformOrigin: 'top left',
-          willChange: levelStageScale < 1 ? 'transform' : 'auto',
-          pointerEvents: 'auto',
-        }}
-      >
-        {!levelConfig.noRadio && (
-          <div style={{ width: GRID_PX, flexShrink: 0 }}>
-            <HelmetRadio
-              report={helmetReport}
-              radioIsUncertain={radioIsUncertain}
-              onReplayVoice={handleReplayRadioVoice}
-              voiceSupported={voiceSupported}
-              isSpeaking={isLumaRadioSpeaking}
+          transform: levelConfig.id === 13 && phase === 'identify' ? 'translateY(-8px)' : 'none',
+        }}>
+          {!levelConfig.noRadio && (
+            <div style={{ width: GRID_PX, flexShrink: 0 }}>
+              <HelmetRadio
+                report={helmetReport}
+                radioIsUncertain={radioIsUncertain}
+                onReplayVoice={handleReplayRadioVoice}
+                voiceSupported={voiceSupported}
+                isSpeaking={isLumaRadioSpeaking}
+              />
+            </div>
+          )}
+          <div style={{
+            transform: usesEarlyMapOnlyLayout ? `scale(${EARLY_MAP_SCALE})` : 'none',
+            transformOrigin: 'top center',
+          }}>
+            <GameGrid
+              levelConfig={levelConfig}
+              effectiveLevel={effectiveLevel}
+              luma={luma}
+              visorActive={visorActive}
+              onVisorClose={handleVisorClose}
+              sptCorrect={sptCorrect}
+              collectedParts={collectedParts}
+              gridPx={GRID_PX}
+              predictionModeActive={predictionModeActive}
+              predictionTile={predictionTile}
+              predictionResult={predictionResult}
+              onTileClick={handleTileClick}
+              collectionEffects={collectionEffects}
+              activeIfPathSignal={activeIfPathSignal}
+              traceModeActive={traceModeActive}
+              traceSelection={traceSelection}
+              traceEliminatedTiles={traceEliminatedTiles}
+              traceGoalRevealed={traceGoalRevealed}
+              onTraceCellClick={answerTraceCell}
             />
           </div>
-        )}
-
-        <div style={{
-          transform: usesEarlyMapOnlyLayout ? `scale(${EARLY_MAP_SCALE})` : 'none',
-          transformOrigin: 'top center',
-        }}>
-          <GameGrid
-            levelConfig={levelConfig}
-            effectiveLevel={effectiveLevel}
-            luma={luma}
-            visorActive={visorActive}
-            onVisorClose={handleVisorClose}
-            sptCorrect={sptCorrect}
-            collectedParts={collectedParts}
-            gridPx={GRID_PX}
-            predictionModeActive={predictionModeActive}
-            predictionTile={predictionTile}
-            predictionResult={predictionResult}
-            onTileClick={handleTileClick}
-            collectionEffects={collectionEffects}
-            activeIfPathSignal={activeIfPathSignal}
-            traceModeActive={traceModeActive}
-            traceSelection={traceSelection}
-            traceEliminatedTiles={traceEliminatedTiles}
-            traceGoalRevealed={traceGoalRevealed}
-            onTraceCellClick={answerTraceCell}
-          />
         </div>
       </div>
 
       {/*
-        ── Right panel: NOT scaled — fills full height below the title bar ──
-        Left edge aligns with: centre − halfStageW + (mapW + GAP) × scale
-        Right edge mirrors the stage's left offset.
+        ── Right panel: position:absolute, independent of scaled left col ──
+        top    = OUTER_PAD_TOP + scaledTitleH  (tracks scaled title bar bottom)
+        bottom = OUTER_PAD_BOT                 (fills to viewport bottom)
+        left   = 50% − scaledHalfStageW + scaledLeftColW  (tracks scaled left col right edge)
+        right  = 50% − scaledHalfStageW                   (mirrors stage left edge)
+        This gives maximum height on every screen, identical across all levels.
       */}
       <div style={{
         position: 'absolute',
-        top: 10 + TITLE_BAR_H + STAGE_GAP,
-        bottom: 12,
-        left: `calc(50% - ${LEVEL_SCREEN_MAX_W / 2}px + ${(mapFootprintW + GAP) * levelStageScale}px)`,
-        right: `calc(50% - ${LEVEL_SCREEN_MAX_W / 2}px)`,
+        top: OUTER_PAD_TOP + scaledTitleH,
+        bottom: OUTER_PAD_BOT,
+        left: `calc(50% - ${scaledHalfStageW}px + ${scaledLeftColW}px)`,
+        right: `calc(50% - ${scaledHalfStageW}px)`,
         minWidth: 0,
-        display: 'flex', flexDirection: 'column',
+        display: 'flex',
+        flexDirection: 'column',
         justifyContent: phase === 'identify' ? 'center' : 'flex-start',
-        overflowY: 'hidden',
-        overflowX: 'hidden',
+        overflow: 'hidden',
         boxSizing: 'border-box',
       }}>
         <AnimatePresence mode="wait">
@@ -2241,7 +2263,7 @@ function LevelScreen({
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+          </div>
 
       <AnimatePresence>
         {phase === 'success' && (
