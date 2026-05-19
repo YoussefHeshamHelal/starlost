@@ -31,6 +31,14 @@ const GRID_PX  = 520   // 5 tiles × 104 px
 const PANEL_W  = 810
 const GAP      = 24
 const EARLY_MAP_SCALE = 1.1
+const RADIO_PANEL_H = 62  // fixed height of the HelmetRadio panel
+const TITLE_BAR_H   = 24  // level title row height
+const LEFT_COL_GAP  = 10  // gap between radio and grid in left column
+const STAGE_GAP     = 10  // gap between title bar and play area
+// Total play area height = radio + gap + grid (same for all levels; no-radio levels just have extra space at top of left col)
+const PLAY_AREA_H   = RADIO_PANEL_H + LEFT_COL_GAP + GRID_PX
+// Total stage design height used for scale calculation
+const LEVEL_STAGE_DESIGN_H = TITLE_BAR_H + STAGE_GAP + PLAY_AREA_H
 const PLAYABLE_LEVELS = 23
 const STRATEGY_CARD_LEVELS = new Set([5, 9, 14, 20, 23])
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
@@ -1582,15 +1590,11 @@ function LevelScreen({
   const updateLevelStageScale = useCallback(() => {
     if (typeof window === 'undefined') return
 
-    const stageEl = levelStageRef.current
     const availableWidth = Math.max(0, window.innerWidth - LEVEL_SCREEN_SAFE_X)
     const availableHeight = Math.max(0, window.innerHeight - topOffset - LEVEL_SCREEN_SAFE_Y)
-    const stageHeight = stageEl
-      ? Math.max(stageEl.offsetHeight || 0, stageEl.scrollHeight || 0)
-      : GRID_PX + 110
 
     const widthScale = availableWidth / LEVEL_SCREEN_MAX_W
-    const heightScale = stageHeight > 0 ? availableHeight / stageHeight : 1
+    const heightScale = LEVEL_STAGE_DESIGN_H > 0 ? availableHeight / LEVEL_STAGE_DESIGN_H : 1
     const nextScale = Math.min(1, widthScale, heightScale)
 
     setLevelStageScale(previousScale => {
@@ -1611,15 +1615,9 @@ function LevelScreen({
     scheduleUpdate()
     window.addEventListener('resize', scheduleUpdate)
 
-    const observer = typeof ResizeObserver !== 'undefined' && levelStageRef.current
-      ? new ResizeObserver(scheduleUpdate)
-      : null
-    if (observer && levelStageRef.current) observer.observe(levelStageRef.current)
-
     return () => {
       if (frame !== null) window.cancelAnimationFrame(frame)
       window.removeEventListener('resize', scheduleUpdate)
-      observer?.disconnect()
     }
   }, [updateLevelStageScale, levelConfig.id])
 
@@ -1648,7 +1646,7 @@ function LevelScreen({
 
     const frame = window.requestAnimationFrame(updateLevelStageScale)
     return () => window.cancelAnimationFrame(frame)
-  }, [updateLevelStageScale, levelConfig.id, phase])
+  }, [updateLevelStageScale, levelConfig.id])
 
   const tutorialContext = useMemo(() => ({
     phase,
@@ -2049,34 +2047,19 @@ function LevelScreen({
     <div style={{
       position: 'absolute',
       top: topOffset, left: 0, right: 0, bottom: 0,
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      padding: '10px 16px 12px',
-      boxSizing: 'border-box',
       overflow: 'hidden',
       background: 'transparent',
     }}>
-      {/* ── Title bar ── */}
-      <div
-        ref={levelStageRef}
-        style={{
-          width: LEVEL_SCREEN_MAX_W,
-          maxWidth: LEVEL_SCREEN_MAX_W,
-          flex: 1,
-          minHeight: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: levelConfig.id === 13 ? 14 : 10,
-          transform: `scale(${levelStageScale})`,
-          transformOrigin: 'top center',
-          willChange: levelStageScale < 1 ? 'transform' : 'auto',
-        }}
-      >
+      {/* ── Title bar row — unscaled, spans full stage width ── */}
       <div style={{
-        width: '100%',
+        position: 'absolute',
+        top: 10,
+        left: `calc(50% - ${LEVEL_SCREEN_MAX_W / 2}px)`,
+        width: LEVEL_SCREEN_MAX_W,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         flexShrink: 0,
+        height: TITLE_BAR_H,
+        boxSizing: 'border-box',
       }}>
         <div data-tutorial-id="level-title">
           <p style={{
@@ -2103,153 +2086,161 @@ function LevelScreen({
         )}
       </div>
 
-      {/* ── Main play area ── */}
-      <div style={{
-        flex: phase === 'identify' ? '0 0 auto' : 1, width: '100%',
-        display: 'flex', gap: GAP, alignItems: phase === 'identify' ? 'flex-start' : 'stretch',
-        minHeight: phase === 'identify' ? 'auto' : 0,
-        overflow: phase === 'identify' || levelConfig.id === 13 || usesEarlyMapOnlyLayout ? 'visible' : 'hidden',
-      }}>
-        <div style={{
-          flex: '0 0 auto', width: mapFootprintW,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start',
-          gap: 10,
-          position: 'relative',
-          transform: levelConfig.id === 13 && phase === 'identify' ? 'translateY(-8px)' : 'none',
-        }}>
-          {!levelConfig.noRadio && (
-            <div style={{ width: GRID_PX, flexShrink: 0 }}>
-              <HelmetRadio
-                report={helmetReport}
-                radioIsUncertain={radioIsUncertain}
-                onReplayVoice={handleReplayRadioVoice}
-                voiceSupported={voiceSupported}
-                isSpeaking={isLumaRadioSpeaking}
-              />
-            </div>
-          )}
-
-          <div style={{
-            transform: usesEarlyMapOnlyLayout ? `scale(${EARLY_MAP_SCALE})` : 'none',
-            transformOrigin: 'top center',
-          }}>
-            <GameGrid
-              levelConfig={levelConfig}
-              effectiveLevel={effectiveLevel}
-              luma={luma}
-              visorActive={visorActive}
-              onVisorClose={handleVisorClose}
-              sptCorrect={sptCorrect}
-              collectedParts={collectedParts}
-              gridPx={GRID_PX}
-              predictionModeActive={predictionModeActive}
-              predictionTile={predictionTile}
-              predictionResult={predictionResult}
-              onTileClick={handleTileClick}
-              collectionEffects={collectionEffects}
-              activeIfPathSignal={activeIfPathSignal}
-              traceModeActive={traceModeActive}
-              traceSelection={traceSelection}
-              traceEliminatedTiles={traceEliminatedTiles}
-              traceGoalRevealed={traceGoalRevealed}
-              onTraceCellClick={answerTraceCell}
+      {/* ── Left column: map only (scaled) ── */}
+      <div
+        ref={levelStageRef}
+        style={{
+          position: 'absolute',
+          top: 10 + TITLE_BAR_H + STAGE_GAP,
+          left: `calc(50% - ${LEVEL_SCREEN_MAX_W / 2}px)`,
+          width: mapFootprintW,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'flex-start',
+          gap: LEFT_COL_GAP,
+          transform: levelConfig.id === 13 && phase === 'identify'
+            ? `scale(${levelStageScale}) translateY(-8px)`
+            : `scale(${levelStageScale})`,
+          transformOrigin: 'top left',
+          willChange: levelStageScale < 1 ? 'transform' : 'auto',
+          pointerEvents: 'auto',
+        }}
+      >
+        {!levelConfig.noRadio && (
+          <div style={{ width: GRID_PX, flexShrink: 0 }}>
+            <HelmetRadio
+              report={helmetReport}
+              radioIsUncertain={radioIsUncertain}
+              onReplayVoice={handleReplayRadioVoice}
+              voiceSupported={voiceSupported}
+              isSpeaking={isLumaRadioSpeaking}
             />
           </div>
-        </div>
+        )}
 
-        {/* Right panel */}
         <div style={{
-          flex: '1 1 0', maxWidth: panelW,
-          height: phase === 'identify' ? GRID_PX : phase === 'develop' ? '100%' : 'auto',
-          display: 'flex', flexDirection: 'column',
-          justifyContent: phase === 'identify' ? 'center' : 'flex-start',
-          minHeight: 0,
-          overflowY: phase === 'identify' ? 'visible' : 'hidden',
-          overflowX: 'hidden',
-          paddingBottom: 0,
-          boxSizing: 'border-box',
+          transform: usesEarlyMapOnlyLayout ? `scale(${EARLY_MAP_SCALE})` : 'none',
+          transformOrigin: 'top center',
         }}>
-          <AnimatePresence mode="wait">
-            {phase === 'identify' && levelConfig.sptQuestion && (
-              <motion.div
-                key="spt"
-                initial={sptPanelInitial}
-                animate={{ opacity: 1, x: 0, y: 0 }}
-                exit={{ opacity: 0, x: -20, y: 8 }}
-                transition={panelTransition}
-                style={{ width: '100%', overflow: 'visible' }}
-              >
-                <SPTQuestion
-                  question={levelConfig.sptQuestion}
-                  onAnswer={handleAnswerSPT}
-                  sptAnswer={sptAnswer}
-                  sptCorrect={sptCorrect}
-                  visorFlipCount={visorFlipCount}
-                  onVisorFlip={handleFlipVisor}
-                  radioIsUncertain={radioIsUncertain}
-                  showVisorFlip={!levelConfig.noVisorFlip}
-                />
-              </motion.div>
-            )}
-
-            {phase === 'develop' && (
-              <motion.div
-                key="builder"
-                initial={panelInitial}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={panelTransition}
-                style={{ width: '100%', height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', gap: 8 }}
-              >
-                {levelConfig.predictionPrompt && (
-                  <div data-tutorial-id="prediction-banner" style={{ flexShrink: 0 }}>
-                    <PredictionBanner
-                      predictionTile={predictionTile}
-                      predictionResult={predictionResult}
-                      levelConfig={levelConfig}
-                    />
-                  </div>
-                )}
-                <div style={{
-                  minHeight: 0,
-                  height: '100%',
-                }}>
-                  <CommandBuilder
-                    key={`command-builder-${levelConfig.id}`}
-                    sequence={sequence}
-                    isRunning={isRunning}
-                    isMirrored={isMirrored}
-                    onAdd={handleAddCommand}
-                    onRemove={handleRemoveLastCommand}
-                    onClear={handleClearSequence}
-                    onRun={handleRunSequence}
-                    visorFlipCount={visorFlipCount}
-                    onVisorFlip={handleFlipVisor}
-                    phase={phase}
-                    onReorder={handleReorder}
-                    needsReset={needsReset}
-                    onReset={handleResetLuma}
-                    panelWidth={panelW}
-                    runBlocked={runBlocked}
-                    ifElseBlocked={ifElseBlocked}
-                    speed={animSpeed}
-                    onSpeedChange={onAnimSpeedChange}
-                    showVisorFlip={!levelConfig.noVisorFlip}
-                    targetCommands={levelConfig.targetCommands ?? null}
-                    showRepeat={Boolean(levelConfig.allowRepeat)}
-                    showCollect={levelConfig.allowCollect ?? levelConfig.id >= 5}
-                    showIfPath={Boolean(levelConfig.allowIfPath)}
-                    showIfElse={Boolean(levelConfig.useIfElse) || levelConfig.id >= 18}
-                    defaultIfPathCondition={effectiveDefaultIfPathCondition}
-                    lockedProgram={Boolean(levelConfig.traceMode)}
-                    paletteDisabled={currentTutorialStep?.id === 'level-1-palette'}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <GameGrid
+            levelConfig={levelConfig}
+            effectiveLevel={effectiveLevel}
+            luma={luma}
+            visorActive={visorActive}
+            onVisorClose={handleVisorClose}
+            sptCorrect={sptCorrect}
+            collectedParts={collectedParts}
+            gridPx={GRID_PX}
+            predictionModeActive={predictionModeActive}
+            predictionTile={predictionTile}
+            predictionResult={predictionResult}
+            onTileClick={handleTileClick}
+            collectionEffects={collectionEffects}
+            activeIfPathSignal={activeIfPathSignal}
+            traceModeActive={traceModeActive}
+            traceSelection={traceSelection}
+            traceEliminatedTiles={traceEliminatedTiles}
+            traceGoalRevealed={traceGoalRevealed}
+            onTraceCellClick={answerTraceCell}
+          />
         </div>
       </div>
+
+      {/*
+        ── Right panel: NOT scaled — fills full height below the title bar ──
+        Left edge aligns with: centre − halfStageW + (mapW + GAP) × scale
+        Right edge mirrors the stage's left offset.
+      */}
+      <div style={{
+        position: 'absolute',
+        top: 10 + TITLE_BAR_H + STAGE_GAP,
+        bottom: 12,
+        left: `calc(50% - ${LEVEL_SCREEN_MAX_W / 2}px + ${(mapFootprintW + GAP) * levelStageScale}px)`,
+        right: `calc(50% - ${LEVEL_SCREEN_MAX_W / 2}px)`,
+        minWidth: 0,
+        display: 'flex', flexDirection: 'column',
+        justifyContent: phase === 'identify' ? 'center' : 'flex-start',
+        overflowY: 'hidden',
+        overflowX: 'hidden',
+        boxSizing: 'border-box',
+      }}>
+        <AnimatePresence mode="wait">
+          {phase === 'identify' && levelConfig.sptQuestion && (
+            <motion.div
+              key="spt"
+              initial={sptPanelInitial}
+              animate={{ opacity: 1, x: 0, y: 0 }}
+              exit={{ opacity: 0, x: -20, y: 8 }}
+              transition={panelTransition}
+              style={{ width: '100%', overflow: 'visible' }}
+            >
+              <SPTQuestion
+                question={levelConfig.sptQuestion}
+                onAnswer={handleAnswerSPT}
+                sptAnswer={sptAnswer}
+                sptCorrect={sptCorrect}
+                visorFlipCount={visorFlipCount}
+                onVisorFlip={handleFlipVisor}
+                radioIsUncertain={radioIsUncertain}
+                showVisorFlip={!levelConfig.noVisorFlip}
+              />
+            </motion.div>
+          )}
+
+          {phase === 'develop' && (
+            <motion.div
+              key="builder"
+              initial={panelInitial}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={panelTransition}
+              style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}
+            >
+              {levelConfig.predictionPrompt && (
+                <div data-tutorial-id="prediction-banner" style={{ flexShrink: 0 }}>
+                  <PredictionBanner
+                    predictionTile={predictionTile}
+                    predictionResult={predictionResult}
+                    levelConfig={levelConfig}
+                  />
+                </div>
+              )}
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <CommandBuilder
+                  key={`command-builder-${levelConfig.id}`}
+                  sequence={sequence}
+                  isRunning={isRunning}
+                  isMirrored={isMirrored}
+                  onAdd={handleAddCommand}
+                  onRemove={handleRemoveLastCommand}
+                  onClear={handleClearSequence}
+                  onRun={handleRunSequence}
+                  visorFlipCount={visorFlipCount}
+                  onVisorFlip={handleFlipVisor}
+                  phase={phase}
+                  onReorder={handleReorder}
+                  needsReset={needsReset}
+                  onReset={handleResetLuma}
+                  panelWidth={panelW}
+                  runBlocked={runBlocked}
+                  ifElseBlocked={ifElseBlocked}
+                  speed={animSpeed}
+                  onSpeedChange={onAnimSpeedChange}
+                  showVisorFlip={!levelConfig.noVisorFlip}
+                  targetCommands={levelConfig.targetCommands ?? null}
+                  showRepeat={Boolean(levelConfig.allowRepeat)}
+                  showCollect={levelConfig.allowCollect ?? levelConfig.id >= 5}
+                  showIfPath={Boolean(levelConfig.allowIfPath)}
+                  showIfElse={Boolean(levelConfig.useIfElse) || levelConfig.id >= 18}
+                  defaultIfPathCondition={effectiveDefaultIfPathCondition}
+                  lockedProgram={Boolean(levelConfig.traceMode)}
+                  paletteDisabled={currentTutorialStep?.id === 'level-1-palette'}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <AnimatePresence>
