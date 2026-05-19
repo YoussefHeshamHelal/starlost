@@ -1763,10 +1763,22 @@ export default function CommandBuilder({
   const [repeatPaletteTimes, setRepeatPaletteTimes] = useState(2)
   const [showCodeModal, setShowCodeModal] = useState(false)
   const sequenceAreaRef = useRef(null)
+  const programPanelRef = useRef(null)
+  const [programPanelW, setProgramPanelW] = useState(9999)
 
   useEffect(() => {
     setIfPathPaletteCondition(defaultIfPathCondition)
   }, [defaultIfPathCondition])
+
+  useEffect(() => {
+    const el = programPanelRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      setProgramPanelW(entry.contentRect.width)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   const totalBlocks = countProgramBlocks(sequence)
   const programCode = programToPython(sequence)
@@ -1960,21 +1972,48 @@ export default function CommandBuilder({
         )}
       </div>
 
-      <div style={{ ...subPanelStyle, flex: '1 1 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexShrink: 0, width: '100%' }}>
-            <div style={{ minWidth: 0, flex: '1 1 auto' }}>
-              <p style={{ fontSize: 11, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 1.1, margin: 0, fontWeight: 800, whiteSpace: 'nowrap' }}>PROGRAM <span style={{ color: t.programCount, fontWeight: 600, whiteSpace: 'nowrap' }}>({totalBlocks} {totalBlocks === 1 ? 'block' : 'blocks'})</span></p>
-              <p style={{ fontSize: 10, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.8, margin: '4px 0 0 0' }}>Top to bottom order</p>
+      <div ref={programPanelRef} style={{ ...subPanelStyle, flex: '1 1 0' }}>
+          {/* Program header — switches to 2-row compact layout when panel is narrow */}
+          {programPanelW >= 340 ? (
+            /* ── Normal single-row header ── */
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexShrink: 0, width: '100%' }}>
+              <div style={{ minWidth: 0, flex: '1 1 auto' }}>
+                <p style={{ fontSize: 11, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 1.1, margin: 0, fontWeight: 800, whiteSpace: 'nowrap' }}>PROGRAM <span style={{ color: t.programCount, fontWeight: 600, whiteSpace: 'nowrap' }}>({totalBlocks} {totalBlocks === 1 ? 'block' : 'blocks'})</span></p>
+                <p style={{ fontSize: 10, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.8, margin: '4px 0 0 0' }}>Top to bottom order</p>
+              </div>
+              <div style={{ flex: '0 1 168px', minWidth: 150, textAlign: 'right', overflow: 'hidden', marginRight: 6 }}>
+                {targetCommands !== null && <span style={{ display: 'block', fontSize: 10.5, color: t.targetCmdColor, fontFamily: 'monospace', letterSpacing: 0.2, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'clip' }}>Shortest Path: {targetCommands} Blocks</span>}
+              </div>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end', flex: '0 0 auto' }}>
+                <button title="Delete" aria-label="Delete" onClick={onRemove} disabled={isRunning || sequence.length === 0} style={actionBtn(isRunning || sequence.length === 0)}>⌫</button>
+                <button title="Clear" aria-label="Clear" onClick={onClear} disabled={isRunning || sequence.length === 0} style={actionBtn(isRunning || sequence.length === 0)}>✕</button>
+                <button type="button" onClick={() => setShowCodeModal(true)} style={showCodeBtn}>{'</>'} Show Code</button>
+              </div>
             </div>
-            <div style={{ flex: '0 1 168px', minWidth: 150, textAlign: 'right', overflow: 'hidden', marginRight: 6 }}>
-              {targetCommands !== null && <span style={{ display: 'block', fontSize: 10.5, color: t.targetCmdColor, fontFamily: 'monospace', letterSpacing: 0.2, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'clip' }}>Shortest Path: {targetCommands} Blocks</span>}
+          ) : (
+            /* ── Compact two-row header for narrow panels ── */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 8, flexShrink: 0, width: '100%' }}>
+              {/* Row 1: label + buttons */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                <div style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
+                  <p style={{ fontSize: 10, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 0.8, margin: 0, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    PROGRAM <span style={{ color: t.programCount, fontWeight: 600 }}>({totalBlocks})</span>
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
+                  <button title="Delete" aria-label="Delete" onClick={onRemove} disabled={isRunning || sequence.length === 0} style={{ ...actionBtn(isRunning || sequence.length === 0), width: 26, height: 24, fontSize: 9 }}>⌫</button>
+                  <button title="Clear" aria-label="Clear" onClick={onClear} disabled={isRunning || sequence.length === 0} style={{ ...actionBtn(isRunning || sequence.length === 0), width: 26, height: 24, fontSize: 9 }}>✕</button>
+                  <button type="button" onClick={() => setShowCodeModal(true)} style={{ ...showCodeBtn, padding: '4px 7px', fontSize: 9, letterSpacing: 0.5 }}>{'</>'} Code</button>
+                </div>
+              </div>
+              {/* Row 2: shortest path (if present) */}
+              {targetCommands !== null && (
+                <p style={{ fontSize: 9, color: t.targetCmdColor, fontFamily: 'monospace', letterSpacing: 0.2, fontWeight: 800, margin: 0, whiteSpace: 'nowrap' }}>
+                  Shortest Path: {targetCommands} Blocks
+                </p>
+              )}
             </div>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end', flex: '0 0 auto' }}>
-              <button title="Delete" aria-label="Delete" onClick={onRemove} disabled={isRunning || sequence.length === 0} style={actionBtn(isRunning || sequence.length === 0)}>⌫</button>
-              <button title="Clear" aria-label="Clear" onClick={onClear} disabled={isRunning || sequence.length === 0} style={actionBtn(isRunning || sequence.length === 0)}>✕</button>
-              <button type="button" onClick={() => setShowCodeModal(true)} style={showCodeBtn}>{'</>'} Show Code</button>
-            </div>
-          </div>
+          )}
 
           <div
             ref={sequenceAreaRef}
