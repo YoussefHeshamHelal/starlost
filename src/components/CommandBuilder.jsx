@@ -465,7 +465,12 @@ function SpeedBar({ speed, onSpeedChange, theme }) {
   )
 }
 
-function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathCondition, onIfPathConditionChange, repeatTimes = 2, onRepeatTimesChange, showIfElse = false }) {
+function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathCondition, onIfPathConditionChange, repeatTimes = 2, onRepeatTimesChange, showIfElse = false, panelWidth = 9999 }) {
+  const compact = panelWidth < 220
+  const btnPadV = compact ? 6 : 10
+  const btnPadH = compact ? 10 : 12
+  const ifPadV  = compact ? 5 : 8
+  const ifPadH  = compact ? 8 : 10
   const pointerStartRef = useRef(null)
   const didDragRef = useRef(false)
   const addedByPointerRef = useRef(false)
@@ -561,8 +566,8 @@ function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathConditi
       }}
       data-tutorial-id={tutorialId}
       style={isIfPath
-        ? { width: '100%', padding: '8px 10px', background: ifElsePreviewBg, border: `1.5px solid ${ifElsePreviewColor}`, borderRadius: 10, color: ifElsePreviewColor, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 5, fontFamily: 'monospace', opacity: disabled ? 0.35 : 1, overflow: 'hidden' }
-        : { width: '100%', padding: '10px 12px', background: meta.bg, border: `1.5px solid ${meta.color}`, borderRadius: 10, color: meta.color, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'monospace', opacity: disabled ? 0.35 : 1 }}
+        ? { width: '100%', padding: `${ifPadV}px ${ifPadH}px`, background: ifElsePreviewBg, border: `1.5px solid ${ifElsePreviewColor}`, borderRadius: 10, color: ifElsePreviewColor, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 5, fontFamily: 'monospace', opacity: disabled ? 0.35 : 1, overflow: 'hidden' }
+        : { width: '100%', padding: `${btnPadV}px ${btnPadH}px`, background: meta.bg, border: `1.5px solid ${meta.color}`, borderRadius: 10, color: meta.color, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'monospace', opacity: disabled ? 0.35 : 1 }}
     >
       {isIfPath ? (
         <>
@@ -1764,7 +1769,9 @@ export default function CommandBuilder({
   const [showCodeModal, setShowCodeModal] = useState(false)
   const sequenceAreaRef = useRef(null)
   const programPanelRef = useRef(null)
+  const palettePanelRef = useRef(null)
   const [programPanelW, setProgramPanelW] = useState(9999)
+  const [palettePanelW, setPalettePanelW] = useState(9999)
 
   useEffect(() => {
     setIfPathPaletteCondition(defaultIfPathCondition)
@@ -1775,6 +1782,16 @@ export default function CommandBuilder({
     if (!el) return
     const ro = new ResizeObserver(([entry]) => {
       setProgramPanelW(entry.contentRect.width)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  useEffect(() => {
+    const el = palettePanelRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      setPalettePanelW(entry.contentRect.width)
     })
     ro.observe(el)
     return () => ro.disconnect()
@@ -1927,7 +1944,7 @@ export default function CommandBuilder({
 
   return (
     <div data-tutorial-id="command-builder" style={{ display: 'flex', gap: 16, width: '100%', height: '100%', flex: 1, minHeight: 0, background: wrapperBg, padding: 0, boxSizing: 'border-box' }}>
-      <div style={{ flex: '0 0 280px', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div ref={palettePanelRef} style={{ flex: '0 0 280px', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {showVisorFlip && (
           <motion.button whileTap={{ scale: 0.96 }} onClick={onVisorFlip} data-tutorial-id="visor-flip-button" style={{ width: '100%', padding: '9px 12px', background: t.visorBg, border: `1.5px solid ${t.visorBorder}`, borderRadius: 8, color: t.visorText, cursor: 'pointer', fontFamily: 'monospace', fontSize: 11, letterSpacing: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 700 }}>
             <span>{'\u{1F441}'} VISOR FLIP</span>
@@ -1951,6 +1968,7 @@ export default function CommandBuilder({
                   disabled={isRunning || paletteDisabled}
                   onAdd={handleTopLevelAdd}
                   theme={theme}
+                  panelWidth={palettePanelW}
                   tutorialId={code === 'F' ? 'command-forward' : code === 'C' ? 'command-collect' : code === 'TR' || code === 'TL' ? 'command-turn' : code === 'IF_PATH' ? (showIfElse ? 'command-if-else-path' : 'command-if-path') : 'command-repeat'}
                   ifPathCondition={ifPathPaletteCondition}
                   onIfPathConditionChange={setIfPathPaletteCondition}
