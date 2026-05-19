@@ -333,7 +333,12 @@ function generateLayout(generatorKey, facing) {
 }
 
 // animSpeed: number 10–100 (percentage). Controls step delay.
-export function useGameState(levelConfig, animSpeed = 50) {
+export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
+  const {
+    onCollectFragment,
+    onLevelSuccess,
+    onBlockedPath,
+  } = soundEvents
   // 1. Resolve facing first
   const [initialFacing] = useState(() => {
     if (levelConfig.lumaFacing === 'random') {
@@ -844,6 +849,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
         }
 
         if (atGoal && allPartsCollected) {
+          onLevelSuccess?.()
           setPhase('success')
           setNeedsReset(false)
           setReportOverride(isLaunchPadGoal(levelConfig)
@@ -894,6 +900,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
           blocked = true
           blockedType = hitWall ? 'rock' : 'boundary'
           stoppedEarly = true
+          onBlockedPath?.()
 
           const blockedMsg = buildBlockedReport(currentLuma, currentLuma.facing, blockedType, world)
           setReportOverride(blockedMsg)
@@ -939,6 +946,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
       }
 
       if (justCollectedIndex !== null) {
+        onCollectFragment?.()
         setCollectedParts(new Set(localCollected))
         const collectionMsg = buildCollectionReport(
           currentLuma,
@@ -963,6 +971,7 @@ export function useGameState(levelConfig, animSpeed = 50) {
     isRunning, sequence, luma, levelConfig, effectiveLevel, isMirrored,
     firstFailTime, collectedParts, shipPartObjects,
     predictionTile, missedFragmentsShown, clearIfPathSignal,
+    onBlockedPath, onCollectFragment, onLevelSuccess,
   ])
 
   // ── DISMISS MISSED-FRAGMENTS HINT ─────────────────────────────────────────

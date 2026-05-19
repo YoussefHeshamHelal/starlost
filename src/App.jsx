@@ -20,6 +20,7 @@ import { logGBI } from './logGBI'
 import { ThemeContext, useTheme, THEMES } from './context/theme'
 import { isValidParticipantId, touchParticipantSession } from './utils/participants'
 import { calculateMedal, fetchSessionProgress, updateSessionProgress } from './utils/progress'
+import { playSfx, preloadSfx } from './utils/sfx'
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 const HEADER_H = 56
@@ -31,12 +32,25 @@ const PANEL_W  = 810
 const GAP      = 24
 const EARLY_MAP_SCALE = 1.1
 const PLAYABLE_LEVELS = 23
+const STRATEGY_CARD_LEVELS = new Set([5, 9, 14, 20, 23])
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
 const SPEED_STORAGE_KEY = 'starlost:anim-speed'
 const PARTICIPANT_STORAGE_KEY = 'starlost:participantId'
 const MUTED_STORAGE_KEY = 'starlost:muted'
 const BG_MUSIC_SRC = '/assets/audio/starlost-bg-music.mp3'
 const BG_MUSIC_VOLUME = 0.22
+const LUMA_RADIO_DUCKED_VOLUME = 0.08
+const LUMA_VOICE_HINTS = [
+  'female',
+  'girl',
+  'child',
+  'kid',
+  'jenny',
+  'aria',
+  'samantha',
+  'google uk english female',
+  'google us english',
+]
 const OUTER_PHASES = new Set(['start', 'mission-setup', 'home'])
 const OUTER_PAGE_BG = '#020617'
 const OUTER_BG_ASSETS = [
@@ -101,6 +115,10 @@ function getDisplayWorldName(levelConfig) {
   return DISPLAY_WORLD_NAMES[levelConfig.world] ?? levelConfig.world ?? ''
 }
 
+function shouldShowStrategyCard(levelId) {
+  return STRATEGY_CARD_LEVELS.has(Number(levelId))
+}
+
 function readStoredAnimSpeed() {
   if (typeof window === 'undefined') return 50
   try {
@@ -126,12 +144,47 @@ function readStoredParticipantId() {
 }
 
 function readStoredMuted() {
-  if (typeof window === 'undefined') return false
+  if (typeof window === 'undefined') return true
   try {
-    return window.localStorage?.getItem(MUTED_STORAGE_KEY) === 'true'
+    window.localStorage?.setItem(MUTED_STORAGE_KEY, 'true')
   } catch {
-    return false
+    // Keep startup muted even when storage is unavailable.
   }
+  return true
+}
+
+function getSpeechSynthesis() {
+  if (typeof window === 'undefined') return null
+  return window.speechSynthesis ?? null
+}
+
+function getLumaSpeechText(text) {
+  if (text === null || text === undefined) return ''
+  const value = String(text)
+  const trimmed = value.trim()
+  if (trimmed.length >= 2) {
+    const first = trimmed[0]
+    const last = trimmed[trimmed.length - 1]
+    if ((first === '"' && last === '"') || (first === '“' && last === '”') || (first === '‘' && last === '’')) {
+      return trimmed.slice(1, -1)
+    }
+  }
+  return value
+}
+
+function getPreferredLumaVoice(synth = getSpeechSynthesis()) {
+  if (!synth?.getVoices) return null
+  const voices = synth.getVoices()
+  if (!voices?.length) return null
+
+  const englishVoices = voices.filter(voice => voice.lang?.toLowerCase().startsWith('en'))
+  const candidates = englishVoices.length ? englishVoices : voices
+  const hintedVoice = candidates.find(voice => {
+    const name = voice.name?.toLowerCase() ?? ''
+    return LUMA_VOICE_HINTS.some(hint => name.includes(hint))
+  })
+
+  return hintedVoice ?? englishVoices[0] ?? voices[0] ?? null
 }
 
 function getViewportSize() {
@@ -226,6 +279,12 @@ const ANIM_STYLES = `
   .level-sound-button--muted .menu-sound-icon__mute {
     opacity: 1;
   }
+  .helmet-radio-voice-button .menu-sound-icon {
+    width: 14px;
+    height: 14px;
+    color: currentColor;
+    filter: drop-shadow(0 0 4px currentColor);
+  }
   .identify-luma-choice-sprite > div > div {
     background: none !important;
     filter: none !important;
@@ -308,7 +367,13 @@ function LevelSoundButton({ theme, muted, onToggleMuted }) {
 }
 
 // Helmet Radio
-const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain }) {
+const HelmetRadio = memo(function HelmetRadio({
+  report,
+  radioIsUncertain,
+  onReplayVoice,
+  voiceSupported = false,
+  isSpeaking = false,
+}) {
   const theme = useTheme()
   const t = THEMES[theme]
   const panelBg = radioIsUncertain ? t.radioUncBg : t.radioBg
@@ -316,6 +381,8 @@ const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain }) {
   const titleColor = radioIsUncertain ? '#f59e0b' : (theme === 'light' ? '#1579ac' : '#2dd4bf')
   const textColor = radioIsUncertain ? t.radioUncText : t.radioText
   const signalColor = '#f59e0b'
+  const canReplayVoice = voiceSupported && Boolean(report)
+  const voiceButtonColor = titleColor
   return (
     <div data-tutorial-id="radio-panel" style={{
       background: panelBg,
@@ -331,7 +398,7 @@ const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain }) {
         ? '0 14px 28px rgba(55,117,182,0.10), 0 6px 18px rgba(69,214,226,0.14)'
         : '0 2px 16px rgba(0,0,0,0.4)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 4 }}>
         <p style={{
           fontSize: 9,
           color: titleColor,
@@ -341,26 +408,70 @@ const HelmetRadio = memo(function HelmetRadio({ report, radioIsUncertain }) {
           LUMA HELMET RADIO
         </p>
 
-        {radioIsUncertain && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-              {[0, 1, 2].map(i => (
-                <div key={i} style={{
-                  width: 4, height: 4, borderRadius: '50%', background: signalColor,
-                  animation: `pulse-dot 1.2s ${i * 0.25}s ease-in-out infinite`,
-                }} />
-              ))}
-            </div>
-            <div style={{
-              width: 20, height: 20, borderRadius: '50%',
-              background: `${signalColor}26`,
-              border: `1.5px solid ${signalColor}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, color: signalColor, fontWeight: 900, fontFamily: 'monospace',
-              animation: 'pulse-shadow 2s ease-in-out infinite',
-            }}>?</div>
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {radioIsUncertain && (
+            <>
+              <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                {[0, 1, 2].map(i => (
+                  <div key={i} style={{
+                    width: 4, height: 4, borderRadius: '50%', background: signalColor,
+                    animation: `pulse-dot 1.2s ${i * 0.25}s ease-in-out infinite`,
+                  }} />
+                ))}
+              </div>
+              <div style={{
+                width: 20, height: 20, borderRadius: '50%',
+                background: `${signalColor}26`,
+                border: `1.5px solid ${signalColor}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, color: signalColor, fontWeight: 900, fontFamily: 'monospace',
+                animation: 'pulse-shadow 2s ease-in-out infinite',
+              }}>?</div>
+            </>
+          )}
+          {voiceSupported && (
+            <motion.button
+              type="button"
+              className="helmet-radio-voice-button"
+              aria-label="Replay LUMA radio voice"
+              title="Replay radio voice"
+              onClick={onReplayVoice}
+              disabled={!canReplayVoice}
+              whileHover={canReplayVoice ? {
+                scale: 1.12,
+                y: -1,
+                boxShadow: `0 0 14px ${voiceButtonColor}88`,
+              } : undefined}
+              whileTap={canReplayVoice ? { scale: 0.92, y: 0 } : undefined}
+              style={{
+                width: 24,
+                height: 22,
+                padding: 0,
+                borderRadius: 9,
+                border: `1.5px solid ${voiceButtonColor}99`,
+                background: theme === 'light' ? 'rgba(255,255,255,0.74)' : 'rgba(8,20,32,0.72)',
+                color: voiceButtonColor,
+                cursor: canReplayVoice ? 'pointer' : 'not-allowed',
+                opacity: canReplayVoice ? 1 : 0.55,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                boxShadow: isSpeaking ? `0 0 10px ${voiceButtonColor}66` : 'none',
+                transition: 'opacity 0.2s, border-color 0.2s, background 0.2s',
+              }}
+            >
+              <motion.span
+                aria-hidden="true"
+                animate={isSpeaking ? { scale: [1, 1.12, 1], rotate: [0, -4, 4, 0] } : { scale: 1, rotate: 0 }}
+                transition={isSpeaking ? { duration: 0.9, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
+                style={{ width: 14, height: 14, display: 'inline-flex' }}
+              >
+                <MenuSoundIcon />
+              </motion.span>
+            </motion.button>
+          )}
+        </div>
       </div>
 
       <p style={{
@@ -639,9 +750,7 @@ const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, s
         width: '100%',
         boxSizing: 'border-box',
         display: 'flex', flexDirection: 'column', gap: 16,
-        boxShadow: theme === 'light'
-          ? '0 18px 34px rgba(71,140,206,0.12), 0 8px 22px rgba(56,201,221,0.14)'
-          : '0 4px 28px rgba(0,0,0,0.5)',
+        boxShadow: 'none',
       }}
     >
       {showVisorFlip && (
@@ -837,40 +946,128 @@ function MissedFragmentsAlert({ onDismiss }) {
 function SuccessScreen({ levelId, onNext, isFinalLevel = false }) {
   const theme = useTheme()
   const t = THEMES[theme]
+  const particles = useMemo(() => [
+    { left: '12%', top: '24%', size: 7, delay: 0.05, color: '#fef08a' },
+    { left: '20%', top: '70%', size: 5, delay: 0.28, color: '#67e8f9' },
+    { left: '33%', top: '16%', size: 4, delay: 0.42, color: '#c4b5fd' },
+    { left: '66%', top: '18%', size: 6, delay: 0.18, color: '#86efac' },
+    { left: '78%', top: '68%', size: 5, delay: 0.36, color: '#fbbf24' },
+    { left: '88%', top: '31%', size: 4, delay: 0.58, color: '#7dd3fc' },
+  ], [])
+  const isLight = theme === 'light'
+  const accent = isLight ? '#0ea5e9' : '#67e8f9'
+  const success = isLight ? '#10b981' : '#2dd4bf'
+  const violet = isLight ? '#8b5cf6' : '#a78bfa'
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.85, y: 20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.85, y: 20 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
       style={{
         position: 'fixed', inset: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 80, background: t.overlayBg, backdropFilter: 'blur(8px)',
+        zIndex: 80,
+        background: isLight
+          ? 'radial-gradient(circle at 50% 42%, rgba(236,253,245,0.94), rgba(219,244,255,0.86) 42%, rgba(242,238,255,0.82)), rgba(255,255,255,0.72)'
+          : 'radial-gradient(circle at 50% 42%, rgba(20,184,166,0.18), rgba(14,23,43,0.88) 43%, rgba(2,6,23,0.96)), rgba(2,6,23,0.84)',
+        backdropFilter: 'blur(10px)',
+        overflow: 'hidden',
       }}
     >
-      <div data-tutorial-id="success-card" style={{
-        background: t.successCardBg,
-        border: `2px solid ${t.successBorder}`, borderRadius: 20,
-        padding: '36px 44px', maxWidth: 440, textAlign: 'center',
-        boxShadow: `0 18px 38px rgba(32,201,151,0.18), 0 10px 24px rgba(47,201,223,0.14), 0 0 0 1px ${t.successBorder}44`,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
+      {particles.map((particle, index) => (
+        <motion.span
+          key={index}
+          aria-hidden="true"
+          initial={{ opacity: 0, y: 22, scale: 0.35, rotate: -40 }}
+          animate={{ opacity: [0, 1, 0.45, 0], y: [-4, -34, -58, -76], scale: [0.5, 1.1, 0.9, 0.6], rotate: [-20, 12, 28] }}
+          transition={{ duration: 2.4, delay: particle.delay, repeat: Infinity, repeatDelay: 0.9, ease: 'easeOut' }}
+          style={{
+            position: 'absolute',
+            left: particle.left,
+            top: particle.top,
+            width: particle.size,
+            height: particle.size,
+            borderRadius: 999,
+            background: particle.color,
+            boxShadow: `0 0 16px ${particle.color}`,
+          }}
+        />
+      ))}
+
+      <motion.div data-tutorial-id="success-card" initial={{ opacity: 0, scale: 0.86, y: 24 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 16 }} transition={{ type: 'spring', stiffness: 280, damping: 21 }} style={{
+        position: 'relative',
+        background: isLight
+          ? 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(232,255,248,0.97) 58%, rgba(238,245,255,0.98))'
+          : 'linear-gradient(180deg, rgba(8,20,36,0.98), rgba(5,15,30,0.99) 58%, rgba(11,18,34,0.98))',
+        border: `2px solid ${success}`, borderRadius: 22,
+        padding: '38px 46px 36px', width: 'min(480px, calc(100vw - 40px))', textAlign: 'center',
+        boxShadow: isLight
+          ? `0 24px 54px rgba(14,165,233,0.18), 0 12px 26px rgba(16,185,129,0.18), inset 0 1px 0 rgba(255,255,255,0.92), 0 0 0 1px ${success}44`
+          : `0 26px 58px rgba(0,0,0,0.46), 0 0 34px rgba(45,212,191,0.22), inset 0 1px 0 rgba(255,255,255,0.09), 0 0 0 1px ${success}55`,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18,
+        overflow: 'hidden',
       }}>
+        <div aria-hidden="true" style={{
+          position: 'absolute',
+          inset: 10,
+          borderRadius: 18,
+          border: `1px solid ${accent}22`,
+          pointerEvents: 'none',
+        }} />
         <motion.div
-          animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }}
-          transition={{ duration: 0.8 }}
-          style={{ fontSize: 52 }}
+          aria-hidden="true"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 11, repeat: Infinity, ease: 'linear' }}
+          style={{
+            position: 'absolute',
+            top: -58,
+            right: -52,
+            width: 142,
+            height: 142,
+            borderRadius: '50%',
+            border: `1px dashed ${violet}55`,
+          }}
+        />
+        <motion.div
+          initial={{ y: 10, rotate: -8, scale: 0.8 }}
+          animate={{ y: [0, -7, 0], rotate: [-4, 5, -4], scale: 1 }}
+          transition={{ y: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' }, rotate: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' }, scale: { duration: 0.35 } }}
+          style={{
+            position: 'relative',
+            width: 78,
+            height: 78,
+            borderRadius: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: `linear-gradient(135deg, ${success}22, ${accent}18 46%, ${violet}18)`,
+            border: `1.5px solid ${accent}77`,
+            boxShadow: `0 0 28px ${success}44, inset 0 1px 0 rgba(255,255,255,0.18)`,
+            fontSize: 42,
+          }}
         >🚀</motion.div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <p style={{
+            fontSize: 10,
+            color: success,
+            fontFamily: 'monospace',
+            letterSpacing: 3,
+            margin: 0,
+            fontWeight: 900,
+          }}>
+            MISSION SYNC COMPLETE
+          </p>
           <h2 style={{
-            fontSize: 22,
-            color: theme === 'light' ? '#124b73' : '#2dd4bf',
-            fontFamily: 'monospace', letterSpacing: 3, margin: 0, fontWeight: 800,
+            fontSize: 24,
+            color: isLight ? '#0f3f5f' : '#d9fffb',
+            fontFamily: 'monospace', letterSpacing: 2.5, margin: 0, fontWeight: 900,
+            textShadow: isLight ? '0 1px 0 rgba(255,255,255,0.9)' : `0 0 16px ${success}44`,
           }}>
             LEVEL {levelId} COMPLETE
           </h2>
-          <p style={{ fontSize: 14, color: t.textPrimary, lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
+          <p style={{ fontSize: 14, color: t.textPrimary, lineHeight: 1.65, margin: 0, fontWeight: 600 }}>
             {isFinalLevel
               ? 'Launch pad reached! LUMA is ready to fly home.'
               : 'LUMA made it back to the ship core! Great navigating.'}
@@ -879,21 +1076,28 @@ function SuccessScreen({ levelId, onNext, isFinalLevel = false }) {
 
         <motion.button
           whileTap={{ scale: 0.97 }}
+          whileHover={{ scale: 1.035, y: -1 }}
           onClick={onNext}
           style={{
-            padding: '14px 38px',
-            background: theme === 'light' ? 'linear-gradient(135deg, rgba(45,201,223,0.18), rgba(139,92,246,0.10))' : 'rgba(45,212,191,0.13)',
-            border: `2px solid ${theme === 'light' ? '#2fc9df' : '#2dd4bf'}`,
-            borderRadius: 10,
-            color: theme === 'light' ? '#124b73' : '#2dd4bf',
+            position: 'relative',
+            padding: '14px 40px',
+            background: isLight
+              ? 'linear-gradient(135deg, #d9fbff, #dcfce7 48%, #f3e8ff)'
+              : 'linear-gradient(135deg, rgba(45,212,191,0.24), rgba(14,165,233,0.18) 52%, rgba(167,139,250,0.17))',
+            border: `2px solid ${accent}`,
+            borderRadius: 12,
+            color: isLight ? '#0f4f68' : '#d8fffb',
             fontFamily: 'monospace', fontSize: 13, letterSpacing: 2,
             cursor: 'pointer',
-            fontWeight: 800,
+            fontWeight: 900,
+            boxShadow: isLight
+              ? '0 12px 24px rgba(14,165,233,0.18), inset 0 1px 0 rgba(255,255,255,0.85)'
+              : `0 0 22px ${accent}22, inset 0 1px 0 rgba(255,255,255,0.11)`,
           }}
         >
           {isFinalLevel ? 'HOME' : 'NEXT LEVEL →'}
         </motion.button>
-      </div>
+      </motion.div>
     </motion.div>
   )
 }
@@ -1348,9 +1552,26 @@ function hasUnseenTutorialStep(plan, levelId) {
 }
 
 // ── Level Screen ──────────────────────────────────────────────────────────────
-function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, onGoHome, onHeaderControls, topOffset = HEADER_H, animSpeed, onAnimSpeedChange, fastEntry = false }) {
+function LevelScreen({
+  levelConfig,
+  participantId,
+  onComplete,
+  onStrategyCard,
+  onGoHome,
+  onHeaderControls,
+  topOffset = HEADER_H,
+  animSpeed,
+  onAnimSpeedChange,
+  fastEntry = false,
+  voiceSupported = false,
+  isLumaRadioSpeaking = false,
+  speakLumaRadio,
+  cancelLumaRadioSpeech,
+  onPlaySfx,
+}) {
   const [tutorialSteps, setTutorialSteps] = useState([])
   const [tutorialIndex, setTutorialIndex] = useState(0)
+  const [radioRetryNonce, setRadioRetryNonce] = useState(0)
   const theme = useTheme()
   const t = THEMES[theme]
 
@@ -1368,7 +1589,11 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     predictionTile, setPrediction, predictionResult,
     traceSelection, traceEliminatedTiles, traceGoalRevealed, answerTraceCell,
     effectiveLevel, getGBISnapshot,
-  } = useGameState(levelConfig, animSpeed)
+  } = useGameState(levelConfig, animSpeed, {
+    onCollectFragment: () => onPlaySfx?.('collectFragment'),
+    onLevelSuccess: () => onPlaySfx?.('levelSuccess'),
+    onBlockedPath: () => onPlaySfx?.('blockedPath'),
+  })
 
   const tutorialContext = useMemo(() => ({
     phase,
@@ -1404,10 +1629,85 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
     visorFlipCount,
   ])
   const tutorialContextRef = useRef(tutorialContext)
+  const lastSpokenRadioKeyRef = useRef('')
+  const pendingRadioKeyRef = useRef('')
 
   useEffect(() => {
     tutorialContextRef.current = tutorialContext
   }, [tutorialContext])
+
+  useEffect(() => () => {
+    cancelLumaRadioSpeech?.()
+  }, [cancelLumaRadioSpeech])
+
+  useEffect(() => {
+    if (levelConfig.noRadio || !helmetReport) {
+      pendingRadioKeyRef.current = ''
+      cancelLumaRadioSpeech?.()
+      return
+    }
+
+    const speechText = getLumaSpeechText(helmetReport)
+    if (!speechText) return
+    const radioKey = `${levelConfig.id}:${speechText}`
+
+    if (lastSpokenRadioKeyRef.current === radioKey) return
+    pendingRadioKeyRef.current = radioKey
+    speakLumaRadio?.(speechText, {
+      onStart: () => {
+        lastSpokenRadioKeyRef.current = radioKey
+        if (pendingRadioKeyRef.current === radioKey) pendingRadioKeyRef.current = ''
+      },
+    })
+  }, [
+    cancelLumaRadioSpeech,
+    helmetReport,
+    levelConfig.id,
+    levelConfig.noRadio,
+    radioRetryNonce,
+    speakLumaRadio,
+  ])
+
+  useEffect(() => {
+    const speechText = getLumaSpeechText(helmetReport)
+    const radioKey = speechText ? `${levelConfig.id}:${speechText}` : ''
+
+    if (
+      levelConfig.noRadio ||
+      !radioKey ||
+      pendingRadioKeyRef.current !== radioKey ||
+      lastSpokenRadioKeyRef.current === radioKey
+    ) {
+      return undefined
+    }
+    if (typeof document === 'undefined') return undefined
+
+    const listenerOptions = { once: true, passive: true }
+    const keyListenerOptions = { once: true }
+    const removeRetryListeners = () => {
+      document.removeEventListener('pointerdown', retryRadioSpeech, listenerOptions)
+      document.removeEventListener('click', retryRadioSpeech, listenerOptions)
+      document.removeEventListener('keydown', retryRadioSpeech, keyListenerOptions)
+      document.removeEventListener('touchstart', retryRadioSpeech, listenerOptions)
+    }
+    const retryRadioSpeech = () => {
+      removeRetryListeners()
+      if (pendingRadioKeyRef.current !== radioKey || lastSpokenRadioKeyRef.current === radioKey) return
+      setRadioRetryNonce(nonce => nonce + 1)
+    }
+
+    document.addEventListener('pointerdown', retryRadioSpeech, listenerOptions)
+    document.addEventListener('click', retryRadioSpeech, listenerOptions)
+    document.addEventListener('keydown', retryRadioSpeech, keyListenerOptions)
+    document.addEventListener('touchstart', retryRadioSpeech, listenerOptions)
+
+    return removeRetryListeners
+  }, [helmetReport, levelConfig.id, levelConfig.noRadio, radioRetryNonce])
+
+  const handleReplayRadioVoice = useCallback(() => {
+    if (levelConfig.noRadio || !helmetReport) return
+    speakLumaRadio?.(getLumaSpeechText(helmetReport))
+  }, [helmetReport, levelConfig.noRadio, speakLumaRadio])
 
   const tutorialFeatureKeys = useMemo(
     () => getTutorialFeatureKeys(levelConfig, effectiveLevel),
@@ -1574,9 +1874,6 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   const handleClearSequence = useCallback(() => {
     clearSequence()
   }, [clearSequence])
-  const handleRunSequence = useCallback(() => {
-    runSequence()
-  }, [runSequence])
   const handleResetLuma = useCallback(() => {
     resetLuma()
   }, [resetLuma])
@@ -1646,6 +1943,11 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
   const runBlocked =
     (levelConfig.predictionPrompt && predictionTile === null && predictionResult === null) ||
     ifElseBlocked
+  const handleRunSequence = useCallback(() => {
+    if (isRunning || needsReset || runBlocked || sequence.length === 0) return
+    onPlaySfx?.('executeProgram')
+    runSequence()
+  }, [isRunning, needsReset, onPlaySfx, runBlocked, runSequence, sequence.length])
   const effectiveDefaultIfPathCondition = levelConfig.defaultIfPathCondition ?? 'ahead'
 
   const panelW = PANEL_W
@@ -1672,7 +1974,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
       achievementTargetBlocks: achievementInfo?.targetBlocks,
       achievementExtraBlocks: achievementInfo?.extraBlocks,
     })
-    if (levelConfig.strategyCardAfter) {
+    if (shouldShowStrategyCard(levelConfig.id)) {
       onStrategyCard(levelConfig.id, achievementInfo)
       return
     }
@@ -1685,7 +1987,7 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
         ? (levelConfig.traceMode ? 'PHASE 2 - TRACE' : 'PHASE 2 - DEVELOP')
         : 'COMPLETE'
   const panelInitial = fastEntry ? false : { opacity: 0, x: 20 }
-  const sptPanelInitial = fastEntry ? false : { opacity: 0, x: 20, y: 30 }
+  const sptPanelInitial = fastEntry ? false : { opacity: 0, x: 20, y: 12 }
   const panelTransition = fastEntry ? { duration: 0 } : undefined
 
   return (
@@ -1761,6 +2063,9 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
               <HelmetRadio
                 report={helmetReport}
                 radioIsUncertain={radioIsUncertain}
+                onReplayVoice={handleReplayRadioVoice}
+                voiceSupported={voiceSupported}
+                isSpeaking={isLumaRadioSpeaking}
               />
             </div>
           )}
@@ -1796,20 +2101,24 @@ function LevelScreen({ levelConfig, participantId, onComplete, onStrategyCard, o
         {/* Right panel */}
         <div style={{
           flex: '1 1 0', maxWidth: panelW,
-          height: phase === 'develop' ? '100%' : GRID_PX,
+          height: phase === 'identify' ? GRID_PX : phase === 'develop' ? '100%' : 'auto',
           display: 'flex', flexDirection: 'column',
           justifyContent: phase === 'identify' ? 'center' : 'flex-start',
-          minHeight: 0, overflow: 'hidden',
+          minHeight: 0,
+          overflowY: phase === 'identify' ? 'visible' : 'hidden',
+          overflowX: 'hidden',
+          paddingBottom: 0,
+          boxSizing: 'border-box',
         }}>
           <AnimatePresence mode="wait">
             {phase === 'identify' && levelConfig.sptQuestion && (
               <motion.div
                 key="spt"
                 initial={sptPanelInitial}
-                animate={{ opacity: 1, x: 0, y: 30 }}
-                exit={{ opacity: 0, x: -20, y: 30 }}
+                animate={{ opacity: 1, x: 0, y: 0 }}
+                exit={{ opacity: 0, x: -20, y: 8 }}
                 transition={panelTransition}
-                style={{ width: '100%' }}
+                style={{ width: '100%', overflow: 'visible' }}
               >
                 <SPTQuestion
                   question={levelConfig.sptQuestion}
@@ -1931,23 +2240,97 @@ export default function App() {
   const [levelHeaderControls, setLevelHeaderControls] = useState(null)
   const [animSpeed, setAnimSpeed] = useState(readStoredAnimSpeed)
   const [muted, setMuted] = useState(readStoredMuted)
+  const [voiceSupported, setVoiceSupported] = useState(false)
+  const [isLumaRadioSpeaking, setIsLumaRadioSpeaking] = useState(false)
+  const mutedRef = useRef(muted)
+  const lumaSpeechTokenRef = useRef(0)
+
+  useEffect(() => {
+    mutedRef.current = muted
+  }, [muted])
 
   const playBgMusic = useCallback((audio = bgMusicRef.current) => {
-    if (!audio) return
+    if (!audio) return Promise.resolve(false)
     const playPromise = audio.play()
-    if (playPromise?.catch) playPromise.catch(() => {})
+    if (!playPromise?.then) {
+      musicUnlockedRef.current = true
+      return Promise.resolve(true)
+    }
+    return playPromise
+      .then(() => {
+        musicUnlockedRef.current = true
+        return true
+      })
+      .catch(() => false)
   }, [])
 
+  const restoreBgMusicVolume = useCallback((speechToken = lumaSpeechTokenRef.current) => {
+    if (speechToken !== lumaSpeechTokenRef.current) return
+    const audio = bgMusicRef.current
+    if (audio) audio.volume = BG_MUSIC_VOLUME
+    setIsLumaRadioSpeaking(false)
+  }, [])
+
+  const cancelLumaRadioSpeech = useCallback(() => {
+    const synth = getSpeechSynthesis()
+    if (synth?.cancel) {
+      try {
+        lumaSpeechTokenRef.current += 1
+        synth.cancel()
+      } catch {
+        // Speech cancellation is best-effort across browsers.
+      }
+    }
+    restoreBgMusicVolume()
+  }, [restoreBgMusicVolume])
+
+  const speakLumaRadio = useCallback((text, options = {}) => {
+    const speechText = getLumaSpeechText(text)
+    if (!speechText) return false
+
+    const synth = getSpeechSynthesis()
+    if (!synth?.speak || typeof SpeechSynthesisUtterance === 'undefined') {
+      restoreBgMusicVolume()
+      return false
+    }
+
+    try {
+      synth.cancel()
+      const speechToken = lumaSpeechTokenRef.current + 1
+      lumaSpeechTokenRef.current = speechToken
+      const utterance = new SpeechSynthesisUtterance(speechText)
+      const preferredVoice = getPreferredLumaVoice(synth)
+      if (preferredVoice) utterance.voice = preferredVoice
+      utterance.lang = preferredVoice?.lang || 'en-US'
+      utterance.pitch = 1.32
+      utterance.rate = 0.94
+      utterance.volume = 0.9
+      utterance.onstart = () => {
+        if (speechToken !== lumaSpeechTokenRef.current) return
+        options.onStart?.()
+        setIsLumaRadioSpeaking(true)
+        const audio = bgMusicRef.current
+        if (audio && !mutedRef.current) audio.volume = LUMA_RADIO_DUCKED_VOLUME
+      }
+      utterance.onend = () => restoreBgMusicVolume(speechToken)
+      utterance.onerror = () => restoreBgMusicVolume(speechToken)
+      synth.speak(utterance)
+      return true
+    } catch {
+      restoreBgMusicVolume()
+      return false
+    }
+  }, [restoreBgMusicVolume])
+
   const unlockAndPlayMusic = useCallback(() => {
-    musicUnlockedRef.current = true
     const audio = bgMusicRef.current
     if (!audio || muted) return
     audio.muted = false
+    audio.volume = BG_MUSIC_VOLUME
     playBgMusic(audio)
   }, [muted, playBgMusic])
 
   const handleToggleMuted = useCallback(() => {
-    musicUnlockedRef.current = true
     setMuted(prevMuted => {
       const nextMuted = !prevMuted
       try {
@@ -1956,10 +2339,17 @@ export default function App() {
         // Keep mute persistence best-effort when storage is unavailable.
       }
 
+      mutedRef.current = nextMuted
       const audio = bgMusicRef.current
       if (audio) {
         audio.muted = nextMuted
-        if (!nextMuted) playBgMusic(audio)
+        if (nextMuted) {
+          audio.pause()
+        } else {
+          audio.volume = BG_MUSIC_VOLUME
+          audio.muted = false
+          playBgMusic(audio)
+        }
       }
 
       return nextMuted
@@ -1972,8 +2362,8 @@ export default function App() {
     const audio = new Audio(BG_MUSIC_SRC)
     audio.loop = true
     audio.volume = BG_MUSIC_VOLUME
-    audio.preload = 'none'
-    audio.muted = muted
+    audio.preload = 'auto'
+    audio.muted = mutedRef.current
     bgMusicRef.current = audio
 
     return () => {
@@ -1981,14 +2371,37 @@ export default function App() {
       audio.src = ''
       bgMusicRef.current = null
     }
-  }, [])
+  }, [playBgMusic])
 
   useEffect(() => {
     const audio = bgMusicRef.current
     if (!audio) return
     audio.muted = muted
-    if (!muted && musicUnlockedRef.current) playBgMusic(audio)
+    if (muted) {
+      audio.pause()
+      return
+    }
+    audio.muted = false
+    audio.volume = BG_MUSIC_VOLUME
+    playBgMusic(audio)
   }, [muted, playBgMusic])
+
+  useEffect(() => {
+    const synth = getSpeechSynthesis()
+    const supported = Boolean(synth?.speak) && typeof SpeechSynthesisUtterance !== 'undefined'
+    setVoiceSupported(supported)
+    if (!supported) return undefined
+
+    const handleVoicesChanged = () => {
+      setVoiceSupported(Boolean(getPreferredLumaVoice(synth) || synth.getVoices?.().length))
+    }
+
+    synth.addEventListener?.('voiceschanged', handleVoicesChanged)
+    return () => {
+      synth.removeEventListener?.('voiceschanged', handleVoicesChanged)
+      cancelLumaRadioSpeech()
+    }
+  }, [cancelLumaRadioSpeech])
 
   const toggleTheme = useCallback(() => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light')
@@ -2043,6 +2456,10 @@ export default function App() {
       const image = new Image()
       image.src = src
     })
+  }, [])
+
+  useEffect(() => {
+    preloadSfx()
   }, [])
 
   useEffect(() => {
@@ -2103,8 +2520,13 @@ export default function App() {
   }, [setAppPhase])
 
   const handleSelectLevel = useCallback((levelNumber) => {
-    if (levelNumber < 1 || levelNumber > PLAYABLE_LEVELS) return
-    setCurrentLevelIndex(levelNumber - 1)
+    const nextLevelNumber = Number(levelNumber)
+    const nextLevelIndex = LEVELS.findIndex(candidateLevel => candidateLevel.id === nextLevelNumber)
+    if (nextLevelIndex < 0 || nextLevelNumber < 1 || nextLevelNumber > PLAYABLE_LEVELS) {
+      console.warn('[StarMap] Ignoring invalid level selection:', levelNumber)
+      return
+    }
+    setCurrentLevelIndex(nextLevelIndex)
     setLevelSessionKey(key => key + 1)
     setStrategyCardLevelId(null)
     setLevelHeaderControls(null)
@@ -2551,6 +2973,11 @@ export default function App() {
                 animSpeed={animSpeed}
                 onAnimSpeedChange={handleAnimSpeedChange}
                 fastEntry={isMapGameplayTransition}
+                voiceSupported={voiceSupported}
+                isLumaRadioSpeaking={isLumaRadioSpeaking}
+                speakLumaRadio={speakLumaRadio}
+                cancelLumaRadioSpeech={cancelLumaRadioSpeech}
+                onPlaySfx={playSfx}
               />
             </motion.div>
           )}
@@ -2612,6 +3039,11 @@ export default function App() {
                     animSpeed={animSpeed}
                     onAnimSpeedChange={handleAnimSpeedChange}
                     fastEntry={isMapGameplayTransition}
+                    voiceSupported={voiceSupported}
+                    isLumaRadioSpeaking={isLumaRadioSpeaking}
+                    speakLumaRadio={speakLumaRadio}
+                    cancelLumaRadioSpeech={cancelLumaRadioSpeech}
+                    onPlaySfx={playSfx}
                   />
                 </motion.div>
               )}

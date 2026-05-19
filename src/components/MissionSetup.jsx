@@ -224,7 +224,8 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
         <motion.button
           type="button"
           className={`menu-icon-button menu-icon-button--right ${muted ? 'menu-icon-button--muted' : ''}`}
-          aria-label={muted ? 'Unmute sound' : 'Mute sound'}
+          aria-label={muted ? 'Unmute background music' : 'Mute background music'}
+          title={muted ? 'Unmute background music' : 'Mute background music'}
           onClick={onToggleMuted}
           whileHover={{ y: -3, scale: 1.04 }}
           whileTap={{ scale: 0.94 }}

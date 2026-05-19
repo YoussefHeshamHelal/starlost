@@ -21,6 +21,20 @@ function getDropPreviewHeight(depth = 0) {
   return Math.max(26, getDepthLayout(depth).chipHeight)
 }
 
+function getAutoScrollState(container) {
+  let state = AUTO_SCROLLERS.get(container)
+  if (!state) {
+    state = { frame: null, scrollDelta: 0 }
+    AUTO_SCROLLERS.set(container, state)
+  }
+  return state
+}
+
+function cancelAutoScrollState(container, state = AUTO_SCROLLERS.get(container)) {
+  if (state && state.frame !== null) cancelAnimationFrame(state.frame)
+  AUTO_SCROLLERS.delete(container)
+}
+
 function autoScrollContainerNearEdge(container, pointerY) {
   if (!container) return
 
@@ -40,17 +54,12 @@ function autoScrollContainerNearEdge(container, pointerY) {
     scrollDelta = Math.ceil(maxSpeed * intensity)
   }
 
-  let state = AUTO_SCROLLERS.get(container)
   if (scrollDelta === 0) {
-    if (state?.frame !== null) cancelAnimationFrame(state.frame)
-    AUTO_SCROLLERS.delete(container)
+    cancelAutoScrollState(container)
     return
   }
 
-  if (!state) {
-    state = { frame: null, scrollDelta }
-    AUTO_SCROLLERS.set(container, state)
-  }
+  const state = getAutoScrollState(container)
   state.scrollDelta = scrollDelta
 
   if (state.frame !== null) return
@@ -68,9 +77,7 @@ function autoScrollContainerNearEdge(container, pointerY) {
 
 function stopAutoScrollContainer(container) {
   if (!container) return
-  const state = AUTO_SCROLLERS.get(container)
-  if (state?.frame !== null) cancelAnimationFrame(state.frame)
-  AUTO_SCROLLERS.delete(container)
+  cancelAutoScrollState(container)
 }
 
 function isSameDropPath(activeDropPath, pathKey) {
