@@ -953,7 +953,7 @@ function MissedFragmentsAlert({ onDismiss }) {
 }
 
 // ── Success Screen ────────────────────────────────────────────────────────────
-function SuccessScreen({ levelId, onNext, isFinalLevel = false }) {
+function SuccessScreen({ levelId, onNext, onHome, isFinalLevel = false }) {
   const theme = useTheme()
   const t = THEMES[theme]
   const particles = useMemo(() => [
@@ -968,6 +968,17 @@ function SuccessScreen({ levelId, onNext, isFinalLevel = false }) {
   const accent = isLight ? '#0ea5e9' : '#67e8f9'
   const success = isLight ? '#10b981' : '#2dd4bf'
   const violet = isLight ? '#8b5cf6' : '#a78bfa'
+  const successButtonBaseStyle = {
+    position: 'relative',
+    minHeight: 48,
+    padding: '14px 30px',
+    borderRadius: 12,
+    fontFamily: 'monospace',
+    fontSize: 13,
+    letterSpacing: 2,
+    cursor: 'pointer',
+    fontWeight: 900,
+  }
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -1084,22 +1095,40 @@ function SuccessScreen({ levelId, onNext, isFinalLevel = false }) {
           </p>
         </div>
 
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, flexWrap: 'wrap' }}>
+          {!isFinalLevel && onHome && (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.035, y: -1 }}
+              onClick={onHome}
+              style={{
+                ...successButtonBaseStyle,
+                background: isLight
+                  ? 'linear-gradient(135deg, rgba(255,255,255,0.96), rgba(236,253,245,0.92))'
+                  : 'linear-gradient(135deg, rgba(15,23,42,0.82), rgba(20,184,166,0.13))',
+                border: `2px solid ${success}`,
+                color: isLight ? '#0f4f46' : '#d8fffb',
+                boxShadow: isLight
+                  ? '0 12px 24px rgba(16,185,129,0.14), inset 0 1px 0 rgba(255,255,255,0.88)'
+                  : `0 0 22px ${success}1f, inset 0 1px 0 rgba(255,255,255,0.10)`,
+              }}
+            >
+              HOME
+            </motion.button>
+          )}
+
         <motion.button
           whileTap={{ scale: 0.97 }}
           whileHover={{ scale: 1.035, y: -1 }}
           onClick={onNext}
           style={{
-            position: 'relative',
+            ...successButtonBaseStyle,
             padding: '14px 40px',
             background: isLight
               ? 'linear-gradient(135deg, #d9fbff, #dcfce7 48%, #f3e8ff)'
               : 'linear-gradient(135deg, rgba(45,212,191,0.24), rgba(14,165,233,0.18) 52%, rgba(167,139,250,0.17))',
             border: `2px solid ${accent}`,
-            borderRadius: 12,
             color: isLight ? '#0f4f68' : '#d8fffb',
-            fontFamily: 'monospace', fontSize: 13, letterSpacing: 2,
-            cursor: 'pointer',
-            fontWeight: 900,
             boxShadow: isLight
               ? '0 12px 24px rgba(14,165,233,0.18), inset 0 1px 0 rgba(255,255,255,0.85)'
               : `0 0 22px ${accent}22, inset 0 1px 0 rgba(255,255,255,0.11)`,
@@ -1107,6 +1136,7 @@ function SuccessScreen({ levelId, onNext, isFinalLevel = false }) {
         >
           {isFinalLevel ? 'HOME' : 'NEXT LEVEL →'}
         </motion.button>
+        </div>
       </motion.div>
     </motion.div>
   )
@@ -1427,10 +1457,20 @@ function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER
 
 const TUTORIAL_LEVELS_KEY = 'starlost:tutorial:levels'
 const TUTORIAL_FEATURES_KEY = 'starlost:tutorial:features'
+const TUTORIAL_STORAGE_PREFIX = 'starlost:tutorial'
 const LEVEL_1_RESET_TUTORIAL_KEY = 'level-1-reset'
-function readTutorialSessionSet(key) {
+
+function getTutorialStorageKey(baseKey, participantId) {
+  const safeParticipantId = String(participantId || 'anonymous').trim() || 'anonymous'
+  const tutorialScope = baseKey.startsWith(`${TUTORIAL_STORAGE_PREFIX}:`)
+    ? baseKey.slice(TUTORIAL_STORAGE_PREFIX.length + 1)
+    : baseKey
+  return `${TUTORIAL_STORAGE_PREFIX}:${safeParticipantId}:${tutorialScope}`
+}
+
+function readTutorialSessionSet(key, participantId) {
   try {
-    const raw = sessionStorage.getItem(key)
+    const raw = sessionStorage.getItem(getTutorialStorageKey(key, participantId))
     if (!raw) return new Set()
     const parsed = JSON.parse(raw)
     return new Set(Array.isArray(parsed) ? parsed : [])
@@ -1439,29 +1479,29 @@ function readTutorialSessionSet(key) {
   }
 }
 
-function writeTutorialSessionSet(key, values) {
+function writeTutorialSessionSet(key, participantId, values) {
   try {
-    sessionStorage.setItem(key, JSON.stringify(Array.from(values)))
+    sessionStorage.setItem(getTutorialStorageKey(key, participantId), JSON.stringify(Array.from(values)))
   } catch {
     // Ignore storage failures and keep the tutorial usable in-memory.
   }
 }
 
-function markTutorialPlanSeen(plan, levelId) {
+function markTutorialPlanSeen(plan, levelId, participantId) {
   const levelSteps = plan.filter(step => step.scope === 'level')
   if (levelSteps.length > 0) {
-    const seenLevels = readTutorialSessionSet(TUTORIAL_LEVELS_KEY)
+    const seenLevels = readTutorialSessionSet(TUTORIAL_LEVELS_KEY, participantId)
     seenLevels.add(String(levelId))
-    writeTutorialSessionSet(TUTORIAL_LEVELS_KEY, seenLevels)
+    writeTutorialSessionSet(TUTORIAL_LEVELS_KEY, participantId, seenLevels)
   }
 
   const featureSteps = plan.filter(step => step.scope === 'feature')
   if (featureSteps.length > 0) {
-    const seenFeatures = readTutorialSessionSet(TUTORIAL_FEATURES_KEY)
+    const seenFeatures = readTutorialSessionSet(TUTORIAL_FEATURES_KEY, participantId)
     featureSteps.forEach(step => {
       if (step.featureKey) seenFeatures.add(step.featureKey)
     })
-    writeTutorialSessionSet(TUTORIAL_FEATURES_KEY, seenFeatures)
+    writeTutorialSessionSet(TUTORIAL_FEATURES_KEY, participantId, seenFeatures)
   }
 }
 
@@ -1550,9 +1590,9 @@ function waitForTutorialTarget(targetId, { signal, maxFrames = 120, settleFrames
   })
 }
 
-function hasUnseenTutorialStep(plan, levelId) {
-  const seenLevels = readTutorialSessionSet(TUTORIAL_LEVELS_KEY)
-  const seenFeatures = readTutorialSessionSet(TUTORIAL_FEATURES_KEY)
+function hasUnseenTutorialStep(plan, levelId, participantId) {
+  const seenLevels = readTutorialSessionSet(TUTORIAL_LEVELS_KEY, participantId)
+  const seenFeatures = readTutorialSessionSet(TUTORIAL_FEATURES_KEY, participantId)
 
   return plan.some(step => {
     if (step.scope === 'level') return !seenLevels.has(String(levelId))
@@ -1566,6 +1606,7 @@ function LevelScreen({
   levelConfig,
   participantId,
   onComplete,
+  onCompleteAndGoHome,
   onStrategyCard,
   onGoHome,
   onHeaderControls,
@@ -1582,6 +1623,7 @@ function LevelScreen({
   const [tutorialSteps, setTutorialSteps] = useState([])
   const [tutorialIndex, setTutorialIndex] = useState(0)
   const [radioRetryNonce, setRadioRetryNonce] = useState(0)
+  const successCompletionHandledRef = useRef(false)
   const theme = useTheme()
   const t = THEMES[theme]
   const levelStageRef = useRef(null)
@@ -1798,10 +1840,10 @@ function LevelScreen({
       closeTutorial()
       return
     }
-    if (persist) markTutorialPlanSeen(steps, levelConfig.id)
+    if (persist) markTutorialPlanSeen(steps, levelConfig.id, participantId)
     setTutorialSteps(steps)
     setTutorialIndex(0)
-  }, [closeTutorial, levelConfig.id])
+  }, [closeTutorial, levelConfig.id, participantId])
 
   const launchTutorialWhenReady = useCallback(async (plan, { persist = false, signal } = {}) => {
     const renderablePlan = getRenderableTutorialSteps(plan, tutorialContextRef.current)
@@ -1845,7 +1887,7 @@ function LevelScreen({
       return undefined
     }
 
-    if (!currentLevelTutorialPlan.length || !hasUnseenTutorialStep(currentLevelTutorialPlan, levelConfig.id)) {
+    if (!currentLevelTutorialPlan.length || !hasUnseenTutorialStep(currentLevelTutorialPlan, levelConfig.id, participantId)) {
       return undefined
     }
 
@@ -1861,12 +1903,12 @@ function LevelScreen({
       window.cancelAnimationFrame(launchFrame)
       controller.abort()
     }
-  }, [currentLevelTutorialPlan, launchTutorialWhenReady, levelConfig.id, phase, tutorialSteps.length])
+  }, [currentLevelTutorialPlan, launchTutorialWhenReady, levelConfig.id, participantId, phase, tutorialSteps.length])
 
   useEffect(() => {
     if (levelConfig.id !== 1 || !needsReset || tutorialSteps.length > 0) return undefined
 
-    const seenFeatures = readTutorialSessionSet(TUTORIAL_FEATURES_KEY)
+    const seenFeatures = readTutorialSessionSet(TUTORIAL_FEATURES_KEY, participantId)
     if (seenFeatures.has(LEVEL_1_RESET_TUTORIAL_KEY)) return undefined
 
     const resetTutorialPlan = getFeatureTutorialSteps([LEVEL_1_RESET_TUTORIAL_KEY])
@@ -1884,7 +1926,7 @@ function LevelScreen({
       window.cancelAnimationFrame(launchFrame)
       controller.abort()
     }
-  }, [launchTutorialWhenReady, levelConfig.id, needsReset, tutorialSteps.length])
+  }, [launchTutorialWhenReady, levelConfig.id, needsReset, participantId, tutorialSteps.length])
 
   useEffect(() => {
     if (!currentTutorialStep) return
@@ -2007,11 +2049,11 @@ function LevelScreen({
   const usesEarlyMapOnlyLayout = levelConfig.id === 1 || levelConfig.id === 2
   const mapFootprintW = usesEarlyMapOnlyLayout ? GRID_PX * EARLY_MAP_SCALE : GRID_PX
 
-  const handleSuccessNext = () => {
+  const buildSuccessAchievementInfo = useCallback(() => {
     const blockCount = countProgramBlocks(sequence)
     const targetBlocks = Number(levelConfig.targetCommands)
     const medal = calculateMedal(blockCount, targetBlocks)
-    const achievementInfo = medal
+    return medal
       ? {
           medal,
           blockCount,
@@ -2019,6 +2061,13 @@ function LevelScreen({
           extraBlocks: Math.max(0, blockCount - targetBlocks),
         }
       : null
+  }, [levelConfig.targetCommands, sequence])
+
+  const finishSuccessfulLevel = useCallback((destination) => {
+    if (successCompletionHandledRef.current) return
+    successCompletionHandledRef.current = true
+
+    const achievementInfo = buildSuccessAchievementInfo()
     const snapshot = getGBISnapshot()
     logGBI(participantId, levelConfig.id, {
       ...snapshot,
@@ -2027,12 +2076,26 @@ function LevelScreen({
       achievementTargetBlocks: achievementInfo?.targetBlocks,
       achievementExtraBlocks: achievementInfo?.extraBlocks,
     })
+
+    if (destination === 'home') {
+      onCompleteAndGoHome(levelConfig.id, achievementInfo)
+      return
+    }
+
     if (shouldShowStrategyCard(levelConfig.id)) {
       onStrategyCard(levelConfig.id, achievementInfo)
       return
     }
     onComplete(levelConfig.id, achievementInfo)
-  }
+  }, [buildSuccessAchievementInfo, getGBISnapshot, levelConfig.id, onComplete, onCompleteAndGoHome, onStrategyCard, participantId])
+
+  const handleSuccessNext = useCallback(() => {
+    finishSuccessfulLevel('next')
+  }, [finishSuccessfulLevel])
+
+  const handleSuccessHome = useCallback(() => {
+    finishSuccessfulLevel('home')
+  }, [finishSuccessfulLevel])
   const phaseBadgeText =
     phase === 'identify'
       ? 'PHASE 1 - IDENTIFY'
@@ -2269,6 +2332,7 @@ function LevelScreen({
           <SuccessScreen
             levelId={levelConfig.id}
             onNext={handleSuccessNext}
+            onHome={handleSuccessHome}
             isFinalLevel={levelConfig.id >= PLAYABLE_LEVELS}
           />
         )}
@@ -2632,14 +2696,16 @@ export default function App() {
   }, [level?.id, levelSessionKey])
 
   const completeLevelProgress = useCallback(async (completedLevelId, achievementInfo = null) => {
-    if (!participantId) return
+    if (!participantId) return null
     try {
       const progress = await updateSessionProgress(participantId, completedLevelId, completedLevels, achievementInfo)
       setCompletedLevels(progress.completedLevels)
       setMedalsByLevel(progress.medalsByLevel)
       setAchievementTotals(progress.achievementTotals)
+      return progress
     } catch (err) {
       console.error('[Progress] Failed to update session progress:', err)
+      return null
     }
   }, [completedLevels, participantId])
 
@@ -2662,6 +2728,13 @@ export default function App() {
     setStrategyCardLevelId(completedLevelId)
     setLevelHeaderControls(null)
     setAppPhase('strategy-card')
+  }, [completeLevelProgress, setAppPhase])
+
+  const handleLevelCompleteGoHome = useCallback(async (completedLevelId, achievementInfo = null) => {
+    await completeLevelProgress(completedLevelId, achievementInfo)
+    setLevelHeaderControls(null)
+    setStrategyCardLevelId(null)
+    setAppPhase('home')
   }, [completeLevelProgress, setAppPhase])
 
   const handleStrategyCardDone = () => {
@@ -3037,6 +3110,7 @@ export default function App() {
                 levelConfig={level}
                 participantId={participantId}
                 onComplete={handleLevelComplete}
+                onCompleteAndGoHome={handleLevelCompleteGoHome}
                 onStrategyCard={handleShowStrategyCard}
                 onGoHome={handleGoHome}
                 onHeaderControls={handleLevelHeaderControls}
@@ -3104,6 +3178,7 @@ export default function App() {
                     levelConfig={level}
                     participantId={participantId}
                     onComplete={handleLevelComplete}
+                    onCompleteAndGoHome={handleLevelCompleteGoHome}
                     onStrategyCard={handleShowStrategyCard}
                     onGoHome={handleGoHome}
                     onHeaderControls={handleLevelHeaderControls}
