@@ -1688,6 +1688,8 @@ function LevelScreen({
   levelConfig,
   participantId,
   completedLevels = [],
+  completedProgram = null,
+  onCompletedProgramSaved,
   onComplete,
   onCompleteAndGoHome,
   onStrategyCard,
@@ -1769,17 +1771,30 @@ function LevelScreen({
   })
 
   useEffect(() => {
+    if (!participantId) return
+    if (!shouldPreserveCompletedProgram(levelConfig.id)) return
+    if (!Array.isArray(completedProgram) || completedProgram.length === 0) return
+
+    const restoreKey = `${participantId}:${levelConfig.id}:local`
+    if (completedProgramRestoreKeyRef.current === restoreKey) return
+    completedProgramRestoreKeyRef.current = restoreKey
+    setSequence(cloneNestedCommands(completedProgram))
+  }, [completedProgram, levelConfig.id, participantId, setSequence])
+
+  useEffect(() => {
     if (!participantId) return undefined
     if (!shouldPreserveCompletedProgram(levelConfig.id)) return undefined
     if (!isLevelCompleted(levelConfig.id, completedLevels)) return undefined
+    if (Array.isArray(completedProgram) && completedProgram.length > 0) return undefined
     const restoreKey = `${participantId}:${levelConfig.id}`
     if (completedProgramRestoreKeyRef.current === restoreKey) return undefined
-    completedProgramRestoreKeyRef.current = restoreKey
 
     let cancelled = false
     fetchCompletedProgram(participantId, levelConfig.id)
       .then(savedProgram => {
         if (cancelled || !savedProgram) return
+        completedProgramRestoreKeyRef.current = restoreKey
+        onCompletedProgramSaved?.(levelConfig.id, savedProgram)
         setSequence(cloneNestedCommands(savedProgram))
       })
       .catch(err => {
@@ -1789,7 +1804,7 @@ function LevelScreen({
     return () => {
       cancelled = true
     }
-  }, [completedLevels, levelConfig.id, participantId, setSequence])
+  }, [completedLevels, completedProgram, levelConfig.id, onCompletedProgramSaved, participantId, setSequence])
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
@@ -2177,7 +2192,13 @@ function LevelScreen({
 
     const achievementInfo = buildSuccessAchievementInfo()
     const snapshot = getGBISnapshot()
-    await saveCompletedProgram(participantId, levelConfig.id, sequence)
+    const completedProgramBlocks = shouldPreserveCompletedProgram(levelConfig.id) && sequence.length > 0
+      ? cloneNestedCommands(sequence)
+      : null
+    if (completedProgramBlocks) {
+      onCompletedProgramSaved?.(levelConfig.id, completedProgramBlocks)
+      await saveCompletedProgram(participantId, levelConfig.id, completedProgramBlocks)
+    }
     await logGBI(participantId, levelConfig.id, {
       ...snapshot,
       achievementMedal: achievementInfo?.medal,
@@ -2196,7 +2217,7 @@ function LevelScreen({
       return
     }
     onComplete(levelConfig.id, achievementInfo)
-  }, [buildSuccessAchievementInfo, getGBISnapshot, levelConfig.id, onComplete, onCompleteAndGoHome, onStrategyCard, participantId, sequence])
+  }, [buildSuccessAchievementInfo, getGBISnapshot, levelConfig.id, onComplete, onCompleteAndGoHome, onCompletedProgramSaved, onStrategyCard, participantId, sequence])
 
   const handleSuccessNext = useCallback(() => {
     finishSuccessfulLevel('next')
@@ -2480,6 +2501,7 @@ export default function App() {
   const [completedLevels, setCompletedLevels] = useState([])
   const [medalsByLevel, setMedalsByLevel] = useState({})
   const [achievementTotals, setAchievementTotals] = useState({ gold: 0, silver: 0, bronze: 0 })
+  const [completedProgramsByLevel, setCompletedProgramsByLevel] = useState({})
   const [strategyCardLevelId, setStrategyCardLevelId] = useState(null)
   const [theme, setTheme] = useState('light')
   const [levelHeaderControls, setLevelHeaderControls] = useState(null)
@@ -2747,6 +2769,7 @@ export default function App() {
     setCompletedLevels([])
     setMedalsByLevel({})
     setAchievementTotals({ gold: 0, silver: 0, bronze: 0 })
+    setCompletedProgramsByLevel({})
     setAppPhase('home')
   }, [setAppPhase])
 
@@ -2759,6 +2782,7 @@ export default function App() {
     }
 
     setParticipantId(storedParticipantId)
+    setCompletedProgramsByLevel({})
     try {
       await touchParticipantSession(storedParticipantId)
     } catch (err) {
@@ -2784,6 +2808,16 @@ export default function App() {
     setLevelHeaderControls(null)
     setAppPhase('playing')
   }, [completedLevels, setAppPhase])
+
+  const handleCompletedProgramSaved = useCallback((levelId, completedProgramBlocks) => {
+    if (!shouldPreserveCompletedProgram(levelId)) return
+    if (!Array.isArray(completedProgramBlocks) || completedProgramBlocks.length === 0) return
+
+    setCompletedProgramsByLevel(previousPrograms => ({
+      ...previousPrograms,
+      [String(Number(levelId))]: cloneNestedCommands(completedProgramBlocks),
+    }))
+  }, [])
 
   const handleGoHome = useCallback(() => {
     setAppPhase('home')
@@ -3229,6 +3263,8 @@ export default function App() {
                 levelConfig={level}
                 participantId={participantId}
                 completedLevels={completedLevels}
+                completedProgram={completedProgramsByLevel[String(level.id)]}
+                onCompletedProgramSaved={handleCompletedProgramSaved}
                 onComplete={handleLevelComplete}
                 onCompleteAndGoHome={handleLevelCompleteGoHome}
                 onStrategyCard={handleShowStrategyCard}
@@ -3298,6 +3334,8 @@ export default function App() {
                     levelConfig={level}
                     participantId={participantId}
                     completedLevels={completedLevels}
+                    completedProgram={completedProgramsByLevel[String(level.id)]}
+                    onCompletedProgramSaved={handleCompletedProgramSaved}
                     onComplete={handleLevelComplete}
                     onCompleteAndGoHome={handleLevelCompleteGoHome}
                     onStrategyCard={handleShowStrategyCard}
