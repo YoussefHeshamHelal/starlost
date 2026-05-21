@@ -1,0 +1,674 @@
+{
+  "common": {
+    "back": "Zurück",
+    "close": "Schließen",
+    "home": "Startseite",
+    "next": "Weiter",
+    "done": "Fertig",
+    "ok": "OK",
+    "level": "Level",
+    "blocks": "Bausteine",
+    "block": "Baustein",
+    "gold": "Gold",
+    "silver": "Silber",
+    "bronze": "Bronze",
+    "completed": "Abgeschlossen: {{completedCount}} / {{totalLevels}}",
+    "muteMusic": "Hintergrundmusik stummschalten",
+    "unmuteMusic": "Hintergrundmusik einschalten",
+    "aboutStarlost": "Über STARLOST",
+    "languageEnglish": "English",
+    "languageGerman": "Deutsch"
+  },
+  "blocks": {
+    "moveForward": "GERADEAUS BEWEGEN",
+    "turnLeft": "LINKS DREHEN",
+    "turnRight": "RECHTS DREHEN",
+    "collect": "EINSAMMELN",
+    "repeat": "WIEDERHOLEN",
+    "ifPath": "WENN PFAD",
+    "if": "WENN",
+    "else": "sonst",
+    "ifElse": "WENN/sonst",
+    "ahead": "geradeaus",
+    "left": "nach links",
+    "right": "nach rechts",
+    "pathAhead": "PFAD geradeaus",
+    "pathLeft": "PFAD nach links",
+    "pathRight": "PFAD nach rechts",
+    "repeatTimes": "WIEDERHOLEN ({{times}}) MAL",
+    "ifCondition": "WENN {{condition}}",
+    "do": "ausführen:",
+    "elseLower": "sonst",
+    "doBranch": "ausführen:",
+    "elseBranch": "sonst"
+  },
+  "start": {
+    "ariaLabel": "STARLOST-Startseite",
+    "tagline": "Verloren im All. Von dir geführt.",
+    "startGame": "Spiel starten",
+    "continue": "Fortfahren",
+    "achievements": "Erfolge",
+    "achievementsTitle": "ERFOLGE",
+    "achievementTotals": "Erfolge gesamt",
+    "language": "Sprache",
+    "english": "English",
+    "german": "Deutsch",
+    "aboutBody": "STARLOST ist ein kinderfreundliches Lernabenteuer im All. Du hilfst LUMA, nach Hause zu finden, indem du Rätsel auf einer Rasterkarte löst.",
+    "aboutThesis": "Das Spiel unterstützt und untersucht räumliche Perspektivübernahme und algorithmisches Denken mit Bewegungsbausteinen, Wegplanung, Perspektivhinweisen und Problemlöseaufgaben.",
+    "aboutCredit": "STARLOST wurde als Teil eines Bachelorarbeitsprojekts von Youssef Hesham Helal erstellt.",
+    "achievementsList": {
+      "firstMission": {
+        "title": "Erste Mission",
+        "description": "Schließe ein Level ab."
+      },
+      "goldExplorer": {
+        "title": "Gold-Entdecker",
+        "description": "Verdiene eine Goldmedaille."
+      },
+      "risingStar": {
+        "title": "Aufsteigender Stern",
+        "description": "Schließe 5 Level ab."
+      },
+      "spaceNavigator": {
+        "title": "Weltraum-Navigator",
+        "description": "Schließe 10 Level ab."
+      },
+      "deepExplorer": {
+        "title": "Tiefen-Entdecker",
+        "description": "Schließe alle 23 Level ab."
+      },
+      "bronzeMaster": {
+        "title": "Bronze-Meister",
+        "description": "Verdiene Bronzemedaillen in allen Leveln."
+      },
+      "silverMaster": {
+        "title": "Silber-Meister",
+        "description": "Verdiene Silbermedaillen in allen Leveln."
+      },
+      "goldMaster": {
+        "title": "Gold-Meister",
+        "description": "Verdiene Goldmedaillen in allen Leveln."
+      }
+    }
+  },
+  "mission": {
+    "ariaLabel": "STAR-Code-Station",
+    "speechStart": "Lass uns deinen",
+    "speechAccent": "STARLOST",
+    "speechEnd": "Code erstellen!",
+    "saving": "Speichern...",
+    "invalid": "Fülle jedes Feld aus und wähle eine Zahl.",
+    "duplicate": "Dieser STARLOST-Code wird schon benutzt. Bitte probiere einen anderen Code.",
+    "saveError": "Die STAR-Code-Station konnte diesen Code nicht speichern. Bitte versuche es erneut.",
+    "preview": "Dein STARLOST-Code",
+    "helper": "Gib in jedes Feld nur einen Buchstaben ein.",
+    "create": "Code erstellen",
+    "currentCode": "Aktueller STARLOST-Code {{code}}",
+    "pickDigit": "Wähle eine Zahl von 0 bis 9",
+    "pickNumber": "Zahl {{digit}} wählen",
+    "fields": {
+      "firstInitial": "Erster Buchstabe deines Vornamens",
+      "secondInitial": "Erster Buchstabe deines zweiten Namens",
+      "colorInitial": "Erster Buchstabe deiner Lieblingsfarbe",
+      "animalInitial": "Erster Buchstabe deines Lieblingstiers"
+    }
+  },
+  "starMap": {
+    "ariaLabel": "Levelauswahl auf der Sternenkarte",
+    "title": "STERNENKARTE",
+    "crashSite": "Absturzstelle",
+    "forestEntrance": "Waldeingang",
+    "deepForest": "Tiefer Wald",
+    "repairSite": "Reparaturstelle",
+    "launchSite": "Startplatz",
+    "progress": "FORTSCHRITT",
+    "levelWithMedal": "Level {{level}}, {{medal}}-Medaille",
+    "level": "Level {{level}}"
+  },
+  "gameplay": {
+    "headerPlaying": "Verloren im All. Von dir geführt.",
+    "headerMenu": "Hilf LUMA, nach Hause zu finden.",
+    "replayTutorial": "Tutorial erneut abspielen",
+    "themeMode": "{{theme}}-Modus",
+    "levelTitle": "LEVEL {{level}} - {{world}}",
+    "phaseIdentify": "ERKENNEN",
+    "phaseDevelop": "PROGRAMM BAUEN",
+    "radioTitle": "LUMAS HELMFUNK",
+    "replayRadioVoice": "LUMAs Funkstimme erneut abspielen",
+    "replayRadioTitle": "Funkstimme erneut abspielen",
+    "visorFlip": "VISOR-BLICK",
+    "tryIt": "Probier es aus!",
+    "sptUnsureHint": "LUMA wirkt unsicher... vielleicht schaust du durch ihren Helm?",
+    "sptPrompt": "In welche Richtung schaut LUMA?",
+    "chooseFacing": "Wähle LUMAs Blickrichtung {{direction}}",
+    "notQuiteFacing": "Noch nicht ganz - nutze den Funkhinweis, um LUMAs Blickrichtung zu finden.",
+    "correctFacing": "Richtig! Führe LUMA jetzt nach Hause.",
+    "directions": {
+      "up": "Oben",
+      "right": "Rechts",
+      "down": "Unten",
+      "left": "Links"
+    },
+    "predictionTitle": "VORHERSAGE-AUFGABE",
+    "predictionPerfect": "Perfekte Vorhersage!",
+    "predictionExact": "Du wusstest genau, wo LUMA landen würde.",
+    "predictionWrong": "Noch nicht ganz...",
+    "predictionChanged": "LUMA ist auf einem anderen Feld gelandet. Was hat deinen Plan verändert?",
+    "predictionSet": "Vorhersage gesetzt: [{{x}}, {{y}}]",
+    "predictionExecute": "Führe jetzt dein Programm aus - mal sehen, ob du richtig liegst!",
+    "predictionTap": "Tippe auf ein Feld, um vorherzusagen, wo LUMA am Ende stehen wird.",
+    "predictionRequired": "Du musst eine Vorhersage setzen, bevor du das Programm ausführen kannst.",
+    "missingFragments": "FEHLENDE FRAGMENTE",
+    "missingFragmentsBody": "LUMA hat den Schiffskern erreicht, aber es liegen noch Schiffsfragmente auf dem Planeten!",
+    "missingFragmentsHint": "Sammle alle Fragmente ein, bevor du zum Schiffskern zurückkehrst.",
+    "resetRetry": "OK - ZURÜCKSETZEN & ERNEUT VERSUCHEN",
+    "phaseTrace": "VERFOLGEN",
+    "phaseComplete": "ABGESCHLOSSEN"
+  },
+  "commandBuilder": {
+    "speed": "LUMA-GESCHWINDIGKEIT",
+    "instructions": "ANWEISUNGEN",
+    "tapOrDrag": "Tippe oder ziehe von hier",
+    "program": "PROGRAMM",
+    "topToBottom": "Reihenfolge von oben nach unten",
+    "dragBlocksHere": "Bausteine hierher ziehen",
+    "delete": "Löschen",
+    "clear": "Leeren",
+    "showCode": "CODE ANZEIGEN",
+    "closeShowCode": "Codeansicht schließen",
+    "resetLuma": "AUSGANGSPOSITION",
+    "running": "LÄUFT",
+    "addElseBlock": "sonst-BAUSTEIN HINZUFÜGEN",
+    "setPredictionFirst": "ZUERST VORHERSAGE SETZEN",
+    "executeProgram": "PROGRAMM AUSFÜHREN",
+    "warningFlipped": "WARNUNG: LINKS / RECHTS VERTAUSCHT",
+    "shortestPath": "Kürzester Pfad: {{count}} Bausteine",
+    "launchProgram": "PROGRAMM STARTEN",
+    "traceInstruction": "Lies den Code, verfolge ihn und wähle dann LUMAs Zielfeld.",
+    "programBlockCount": "({{count}} {{unit}})",
+    "showCodeIntroPrefix": "Auch Top-Universitäten lehren blockbasiertes Programmieren (z. B. ",
+    "showCodeIntroSuffix": "). Im Hintergrund können die Bausteine, die du zusammengesetzt hast, auch in Python gezeigt werden, einer der weltweit meistgenutzten Programmiersprachen:",
+    "slow": "LANGSAM",
+    "medium": "MITTEL",
+    "fast": "SCHNELL",
+    "times": "MAL",
+    "emptyPython": "# Füge Bausteine in das Programmfeld ein, um hier Python zu sehen."
+  },
+  "tutorial": {
+    "step": "SCHRITT {{current}} / {{total}}",
+    "doThisNow": "Jetzt ausführen: {{action}}",
+    "skip": "Tutorial überspringen"
+  },
+  "success": {
+    "missionComplete": "GLÜCKWUNSCH!",
+    "levelComplete": "LEVEL {{level}} ABGESCHLOSSEN",
+    "launchPadReached": "Startrampe erreicht! LUMA ist bereit, nach Hause zu fliegen.",
+    "shipCoreReached": "LUMA ist zurück beim Schiffskern! Super navigiert.",
+    "nextLevel": "NÄCHSTES LEVEL"
+  },
+  "strategy": {
+    "lumaSays": "LUMA SAGT",
+    "promptTitle": "Tolle Arbeit in Level {{level}}!",
+    "promptBody": "Wie hast du herausgefunden, in welche Richtung ich geschaut habe? Wähle die Karte, die zu deinem Denken passt!",
+    "confirm": "DAS IST MEINE STRATEGIE!",
+    "pickCard": "WÄHLE EINE KARTE, UM WEITERZUMACHEN",
+    "greatChoice": "GUTE WAHL!",
+    "skip": "überspringen ->",
+    "cards": {
+      "embody": {
+        "title": "Ich habe mir vorgestellt, LUMA zu sein",
+        "subtitle": "Hineinversetzen",
+        "description": "Ich habe mir vorgestellt, genau dort zu stehen, wo LUMA war, und gespürt, in welche Richtung ich schaue.",
+        "quote": "\"Ich habe an deine Sicht gedacht.\""
+      },
+      "rotate": {
+        "title": "Ich habe die Karte gedreht",
+        "subtitle": "Drehen",
+        "description": "Ich habe die Karte in meinem Kopf gedreht, bis sie zu LUMAs Blickrichtung passte.",
+        "quote": "\"Ich habe die Karte gedreht.\""
+      },
+      "landmarks": {
+        "title": "Ich habe Felsen benutzt",
+        "subtitle": "Merkpunkte",
+        "description": "Ich habe Felsen und Schiffsteile in der Nähe gesucht, um LUMAs Blickrichtung herauszufinden.",
+        "quote": "\"Ich habe den großen Felsen gesehen.\""
+      }
+    }
+  },
+  "radio": {
+    "relative": {
+      "front": "vor mir",
+      "right": "rechts von mir",
+      "back": "hinter mir",
+      "left": "links von mir"
+    },
+    "obstacles": {
+      "rock": "Felsen",
+      "tree": "Baum",
+      "box": "Kiste",
+      "aRock": "ein Felsen",
+      "aTree": "ein Baum",
+      "aBox": "eine Kiste",
+      "edge": "der Rand der Karte"
+    },
+    "canYouSee": "Kannst du sehen, wo ich bin? ",
+    "wall": "{{opener}}Da ist {{obstacle}} {{relative}}.",
+    "fragment": "{{opener}}Ich spüre ein Schiffsfragment {{relative}}.",
+    "goal": "{{opener}}Ich erkenne den Schiffskern {{relative}}!",
+    "clear": "{{opener}}Der Weg um mich herum sieht frei aus... aber ich weiß nicht, in welche Richtung ich schaue.",
+    "fixed": {
+      "openFrontRightBlockedBackLeft": "Vor mir und rechts von mir ist der Weg frei, aber hinter mir und links von mir ist kein Weg.",
+      "treeLeft": "Links von mir ist ein Baum.",
+      "treeRightFragmentFront": "Rechts von mir ist ein Baum und vor mir ist ein Schiffsfragment.",
+      "level15": "Kannst du erkennen, wo ich bin? Hinter mir ist eine Kiste und rechts von mir ist eine Kiste.",
+      "level17": "Kannst du sehen, wo ich bin? Rechts von mir ist eine Kiste, links von mir ist eine Kiste, und vor mir ist ein Schiffsfragment.",
+      "level21": "Kannst du sehen, wo ich bin? Vor mir und rechts von mir ist der Weg frei, aber hinter mir und links von mir ist kein Weg.",
+      "level23": "Kannst du sehen, wo ich bin? Hinter mir ist kein Weg."
+    },
+    "collectionOpen": "Geschafft! Ich habe ein Schiffsfragment gefunden!",
+    "collectionWall": "{{opener}} Von hier aus ist {{obstacle}} {{relative}}.",
+    "collectionMore": "{{opener}} Ich spüre noch ein Fragment in der Nähe - weiter so!",
+    "collectionGoal": "{{opener}} Ich erkenne den Schiffskern {{relative}}!",
+    "collectionClear": "{{opener}} Der Bereich sieht frei aus. Führe mich zum nächsten Fragment!",
+    "blocked": "Ich kann nicht geradeaus gehen! Vor mir ist {{blockedText}}. Mein Weg ist blockiert.",
+    "successLaunch": "Startrampe erreicht! LUMA ist bereit, nach Hause zu fliegen.",
+    "successCore": "Ich habe es geschafft! Der Schiffskern ist genau hier - wir haben es geschafft!",
+    "missing": "Ich bin beim Schiffskern, aber mir fehlen {{count}} Fragment{{plural}}... Setze zurück und versuche einen anderen Weg!",
+    "traceRetry": "Noch nicht ganz. Verfolge den Code noch einmal und probiere ein anderes Zielfeld.",
+    "traceLaunch": "Richtig! Die Startrampe erscheint. Sieh zu, wie LUMA den Startcode ausführt!",
+    "traceCore": "Richtig! Der Schiffskern erscheint. Sieh zu, wie LUMA das Programm ausführt!",
+    "uncertainMessages": [
+      "Ähm... ich glaube, vor mir ist ein Felsen... oder vielleicht seitlich? Schwer zu sagen...",
+      "Ich bin nicht ganz sicher... aber links von mir fühlt sich etwas nah an. Das Signal ist etwas verschwommen.",
+      "Warte... ist das ein Felsen? Ich glaube, ich sehe etwas, aber ich weiß nicht genau, in welche Richtung ich schaue.",
+      "Hmm... ich glaube, etwas blockiert meinen Weg... ich weiß nur nicht, aus welcher Richtung."
+    ],
+    "visorReactions": [
+      "Ohhh! Jetzt kann ich es klar sehen! Das hilft sehr!",
+      "Ja! Genau das ist vor mir! Gut gedacht!",
+      "Danke! Das hilft! Jetzt weiß ich genau, wo ich bin!",
+      "Wow, jetzt kann ich alles sehen! Du bist richtig schlau!"
+    ],
+    "uncertain": {
+      "wallFront": "Ähm... ich glaube, vor mir ist {{obstacle}}? Ich bin nicht ganz sicher...",
+      "wallRight": "Ich bin nicht ganz sicher... aber ich glaube, rechts von mir ist etwas.",
+      "wallLeft": "Warte... ich glaube, links von mir spüre ich {{obstacle}}? Wegen all dem Staub ist es schwer zu sagen.",
+      "wallBack": "Hinter mir fühlt sich etwas nah an... aber meine Sensoren sind etwas verschwommen.",
+      "partFront": "Ich glaube... vor mir spüre ich ein Schiffsteil? Vielleicht? Das Signal bricht immer wieder ab.",
+      "partRight": "Hmm... rechts von mir ist etwas? Es könnte ein Schiffsfragment sein, ich bin nicht sicher.",
+      "partLeft": "Warte... ist da ein Schiffsteil links von mir? Ich kann es von hier kaum erkennen.",
+      "partBack": "Etwas ist in der Nähe... hinter mir? Ich kann es nicht ganz herausfinden.",
+      "goal": "Ich glaube... ich erkenne den Schiffskern irgendwo {{relative}}? Das Signal ist aber schwach.",
+      "clear": "Hmm... ich weiß nicht, in welche Richtung ich schaue. Meine Sensoren spielen verrückt. Kannst du helfen?",
+      "level13": "Ich spüre einen Baum neben mir, aber mein Visor ist unscharf. Er könnte links oder rechts von mir sein.",
+      "level13Confirm": "Ja, das stimmt! Der Baum ist {{sideTree}}, der Schiffskern ist links von mir, und die Fragmente sind geradeaus.",
+      "level13ConfirmFallback": "Ja, das stimmt! Jetzt weiß ich, wo die Baumreihe ist."
+    },
+    "hintOpeners": [
+      "Kannst du sehen, wo ich bin?",
+      "Kannst du erkennen, wo ich bin?",
+      "Kannst du herausfinden, wo ich bin?",
+      "Kannst du entdecken, wo ich bin?"
+    ],
+    "identifySuccessMessages": [
+      "Ja! Du hast herausgefunden, in welche Richtung ich schaue!",
+      "Das stimmt! Du hast meine Richtung richtig erkannt!",
+      "Ja! Du hast meine Richtung richtig erraten!",
+      "Gut gemacht! Du wusstest, in welche Richtung ich geschaut habe!"
+    ]
+  },
+  "levelNames": {
+    "1": "Geführter Start",
+    "2": "Erste Drehung",
+    "3": "Erstes Erkennen",
+    "4": "Erkennen üben",
+    "5": "Fragment-Route",
+    "6": "Muster-Druck",
+    "7": "Waldweg",
+    "8": "Wiederholen und Drehen",
+    "9": "Muster wiederholen",
+    "10": "Fragment im Wald",
+    "11": "Zwei Wiederholungen",
+    "12": "Nebelpfad",
+    "13": "Verwirrter Visor",
+    "14": "Tiefer Wald",
+    "15": "Kistenpfad",
+    "16": "Zwei Drehungen",
+    "17": "Logik an der Reparaturstelle",
+    "18": "WENN/sonst-Start",
+    "19": "Mehrere Aktionen",
+    "20": "Verschachtelte Logik",
+    "21": "Code verfolgen",
+    "22": "Startcode",
+    "23": "Letzter Start"
+  },
+  "spt": {
+    "prompt": "Tippe auf die Karte, um einen Mittelpunkt zu markieren."
+  },
+  "decomp": {
+    "prompt": "Tippe auf die Karte, um einen Mittelpunkt zu markieren."
+  },
+  "grid": {
+    "predictionPrompt": "TIPPE AUF EIN FELD FÜR DEINE VORHERSAGE",
+    "forestTree": "BAUM!",
+    "bigRock": "GROSSER FELSEN!",
+    "repairBox": "REPARATURKISTE!",
+    "wall": "WAND!",
+    "boundary": "GRENZE",
+    "launchPad": "STARTRAMPE",
+    "shipCore": "SCHIFFSKERN!",
+    "shipPiece": "SCHIFFSTEIL!",
+    "allClear": "ALLES FREI!",
+    "myRight": "rechts von mir",
+    "myLeft": "links von mir",
+    "inFrontOfMe": "vor mir",
+    "helmetCam": "LUMAS HELMKAMERA",
+    "tapToClose": "ZUM SCHLIESSEN TIPPEN"
+  },
+  "homePage": {
+    "missionControl": "MISSIONSKONTROLLE",
+    "chooseMission": "Wähle eine Mission und führe LUMA durch die Sterne.",
+    "liveSummary": "Absturzstelle, Waldeingang, Tiefer Wald, Reparaturstelle und die letzte Mission am Startplatz sind jetzt spielbar.",
+    "liveNow": "JETZT LIVE",
+    "levelsReady": "Level 1-23 bereit zum Spielen",
+    "missionZone": "MISSIONSZONE",
+    "comingSoon": "KOMMT BALD",
+    "play": "SPIELEN",
+    "locked": "GESPERRT",
+    "descriptions": {
+      "crashSite": "Erkunde die Absturzstelle und lerne, wie du LUMA führst.",
+      "forestEntrance": "Folge dem leuchtenden Waldeingang und nutze erste Wiederholen-Wege.",
+      "deepForest": "Gehe tiefer durch Waldwege mit Visor-Hilfe und Fragment-Routen.",
+      "repairSite": "Erreiche die Reparaturbucht, lerne WENN PFAD und sammle jedes Fragment.",
+      "launchSite": "Verfolge den letzten Startcode und hilf LUMA, nach Hause zu fliegen.",
+      "future": "Neue Welten laden noch für zukünftige Rettungsmissionen."
+    }
+  },
+  "tutorials": {
+    "level-1-welcome": {
+      "title": "Lerne LUMA kennen",
+      "body": "Das ist LUMA. Wir helfen ihr nach Hause.",
+      "nextLabel": "Los gehts"
+    },
+    "level-1-grid": {
+      "title": "Das ist die Karte",
+      "body": "Die Karte zeigt, wohin LUMA gehen kann."
+    },
+    "level-1-luma": {
+      "title": "Hier ist LUMA",
+      "body": "Sie startet auf diesem Feld."
+    },
+    "level-1-goal": {
+      "title": "Hier ist das Zuhause",
+      "body": "Führe LUMA zum leuchtenden Schiffskern."
+    },
+    "level-1-palette": {
+      "title": "Das sind Bausteine",
+      "body": "Mit Bausteinen baust du LUMAs Plan."
+    },
+    "level-1-forward": {
+      "title": "GERADEAUS BEWEGEN",
+      "body": "Dieser Baustein lässt LUMA einen Schritt geradeaus gehen, in die Richtung, in die sie schaut.",
+      "actionLabel": "Tippe auf GERADEAUS BEWEGEN"
+    },
+    "level-1-sequence": {
+      "title": "Dein Plan kommt hierhin",
+      "body": "Jeder Baustein wird Teil von LUMAs Weg."
+    },
+    "level-1-build-three": {
+      "title": "Füge drei GERADEAUS-Bausteine hinzu",
+      "body": "Dieses Level braucht drei kleine Schritte.",
+      "actionLabel": "Füge 3 GERADEAUS-Bausteine hinzu"
+    },
+    "level-1-run": {
+      "title": "Drücke Programm ausführen",
+      "body": "Jetzt folgt LUMA deinem Plan.",
+      "actionLabel": "Drücke Programm ausführen"
+    },
+    "level-1-success": {
+      "title": "Du hast es geschafft!",
+      "body": "Gut gemacht, du hast LUMA geholfen.",
+      "nextLabel": "Juhu!"
+    },
+    "level-6-trees-block-path": {
+      "title": "Bäume blockieren den Weg",
+      "body": "Bäume ersetzen jetzt Felsen. Sie blockieren LUMAs Weg auch.",
+      "nextLabel": "Verstanden"
+    },
+    "level-7-repeat-forward": {
+      "title": "Nutze Wiederholen für lange Wege",
+      "body": "Statt vier GERADEAUS-Bausteine einzufügen, nutze WIEDERHOLEN 4 mit GERADEAUS darin. So wird das Programm kürzer.",
+      "nextLabel": "Verstanden"
+    },
+    "level-7-blocks-inside-repeat": {
+      "title": "Bausteine gehören in Wiederholen",
+      "body": "Die Bausteine, die wiederholt werden sollen, kommen in den Wiederholen-Baustein.",
+      "nextLabel": "Verstanden"
+    },
+    "level-8-repeat-then-turn": {
+      "title": "Drehungen können außen bleiben",
+      "body": "Manche Bausteine bleiben außerhalb von Wiederholen, wenn sich der Weg ändert.",
+      "nextLabel": "Okay"
+    },
+    "level-9-repeat-pattern": {
+      "title": "Wiederhole ein Muster",
+      "body": "Wiederholen kann mehr als einen Baustein enthalten. Alles darin läuft der Reihe nach wiederholt ab.",
+      "nextLabel": "Ich sehe es"
+    },
+    "level-10-repeat-fragment": {
+      "title": "Wiederholen bis zum Fragment",
+      "body": "Nutze Wiederholen, um das Fragment zu erreichen, und dann Einsammeln.",
+      "nextLabel": "Bereit"
+    },
+    "level-11-repeat-collect-turn": {
+      "title": "Zwei kleine Wiederholen-Bausteine",
+      "body": "Nutze jetzt zwei kleine Wiederholen-Bausteine: einen vor dem Einsammeln und einen nach dem Drehen.",
+      "nextLabel": "Bereit"
+    },
+    "level-15-boxes-block-path": {
+      "title": "Kisten blockieren den Weg",
+      "body": "Kisten ersetzen jetzt Bäume. Sie blockieren LUMAs Weg auch.",
+      "nextLabel": "Verstanden"
+    },
+    "level-15-meet-if-path": {
+      "title": "Lerne WENN PFAD kennen",
+      "body": "WENN PFAD prüft, ob LUMA in eine gewählte Richtung gehen kann. Du kannst geradeaus, nach links oder nach rechts wählen.",
+      "nextLabel": "Verstanden"
+    },
+    "level-15-if-repeat": {
+      "title": "Nutze Wiederholen mit WENN PFAD",
+      "body": "Setze WENN PFAD in Wiederholen, damit LUMA eine Richtung immer wieder prüfen kann. Das Auswahlfeld hilft dir, die Prüfrichtung auszuwählen.",
+      "nextLabel": "Bereit"
+    },
+    "level-16-same-rule-two-turns": {
+      "title": "Gleiche Regel, zwei Drehungen",
+      "body": "Dieser Weg biegt zweimal ab. Nutze Wiederholen mit WENN PFAD nach rechts, damit LUMA dreht, wenn ein Seitenweg offen ist.",
+      "nextLabel": "Verstanden"
+    },
+    "level-17-collect-after-moving": {
+      "title": "Nach dem Bewegen einsammeln",
+      "body": "Dieser Weg hat Schiffsfragmente. Setze EINSAMMELN nach GERADEAUS BEWEGEN in den Wiederholen-Baustein, damit LUMA jedes Fragment einsammelt, auf dem sie landet.",
+      "nextLabel": "Verstanden"
+    },
+    "level-18-if-else-command": {
+      "title": "Neuer Baustein: WENN/sonst",
+      "body": "WENN/sonst hilft LUMA, zwischen zwei Aktionen zu wählen. WENN heißt: Tu dies, wenn der Pfad offen ist. sonst heißt: Tu stattdessen dies.",
+      "nextLabel": "Verstanden"
+    },
+    "level-18-two-places": {
+      "title": "Zwei Teile in einem Baustein",
+      "body": "Dieser Baustein hat zwei Plätze. Nutze den oberen Teil für das, was LUMA tun soll, wenn der Pfad offen ist. Nutze sonst für das, was LUMA sonst tun soll.",
+      "nextLabel": "Ich sehe es"
+    },
+    "level-18-else-needed": {
+      "title": "sonst braucht einen Baustein",
+      "body": "sonst darf in diesem Level nicht leer bleiben. Füge dort einen Baustein ein, damit LUMA weiß, was sie tun soll, wenn der Pfad blockiert ist.",
+      "nextLabel": "Bereit"
+    },
+    "level-19-two-blocks-inside-if": {
+      "title": "Mehr Bausteine in WENN oder sonst",
+      "body": "Die WENN- und sonst-Teile können mehr als einen Baustein enthalten. So kann LUMA je nach Pfadprüfung mehrere Aktionen ausführen.",
+      "nextLabel": "Verstanden"
+    },
+    "level-20-nested-if-else": {
+      "title": "Verschachtelte WENN/sonst-Bausteine",
+      "body": "Du kannst einen WENN/sonst-Baustein in einen anderen WENN/sonst-Baustein setzen. So prüft LUMA den Pfad in 3 Richtungen statt in 2.",
+      "nextLabel": "Verstanden"
+    },
+    "level-21-trace-code": {
+      "title": "Verfolge den Code",
+      "body": "Diesmal ist das Programm für LUMA schon geschrieben.",
+      "nextLabel": "Okay"
+    },
+    "level-21-read-carefully": {
+      "title": "Lies genau",
+      "body": "Schau dir die Bausteine an und verfolge, wohin LUMA geht.",
+      "nextLabel": "Ich sehe es"
+    },
+    "level-21-choose-ending": {
+      "title": "Wähle das Zielfeld",
+      "body": "Tippe auf das Feld, auf dem LUMA am Ende stehen wird.",
+      "nextLabel": "Bereit"
+    },
+    "level-21-launch-pad": {
+      "title": "Finde das richtige Feld",
+      "body": "Wenn du das richtige Feld wählst, erscheint der Schiffskern und LUMA führt das Programm aus.",
+      "nextLabel": "Ausführen"
+    },
+    "level-23-final-level-intro": {
+      "title": "Letztes Level",
+      "body": "Das ist das letzte Level. Löse es, damit LUMA ihr repariertes Schiff starten und nach Hause fliegen kann.",
+      "nextLabel": "Fertig machen"
+    },
+    "level-23-launch-pad": {
+      "title": "Finde das richtige Feld",
+      "body": "Wenn du das richtige Feld wählst, erscheint die Startrampe und LUMA fliegt nach Hause.",
+      "nextLabel": "Startzeit"
+    },
+    "level-1-reset": {
+      "title": "Noch ein Versuch?",
+      "body": "Wenn etwas schiefgeht, nutze Zurücksetzen und versuche es erneut.",
+      "nextLabel": "Okay"
+    },
+    "luma-confused-intro": {
+      "title": "LUMA ist verwirrt",
+      "body": "Sie weiß nicht, in welche Richtung sie schaut. Hilf ihr, es herauszufinden.",
+      "nextLabel": "Ich helfe"
+    },
+    "helmet-radio-intro": {
+      "title": "Helmfunk",
+      "body": "LUMA sendet hier einen Hinweis. Lies ihn zuerst.",
+      "nextLabel": "Verstanden"
+    },
+    "identify-phase-intro": {
+      "title": "Zuerst erkennen",
+      "body": "Finde heraus, in welche Richtung LUMA schaut, bevor du Bewegungen planst.",
+      "nextLabel": "Okay"
+    },
+    "facing-question-intro": {
+      "title": "Wähle LUMAs Richtung",
+      "body": "Höre auf den Hinweis und tippe auf das LUMA-Bild, das zu ihrer Blickrichtung passt.",
+      "actionLabel": "Wähle das richtige LUMA-Bild"
+    },
+    "rock-obstacle-intro": {
+      "title": "Felsen blockieren den Weg",
+      "body": "LUMA kann nicht durch Felsen laufen.",
+      "nextLabel": "Okay"
+    },
+    "turn-commands-intro": {
+      "title": "Jetzt brauchst du vielleicht eine Drehung",
+      "body": "GERADEAUS BEWEGEN reicht nicht mehr. Nutze auch Drehungen nach links oder rechts.",
+      "nextLabel": "Selbst versuchen"
+    },
+    "uncertain-radio-intro": {
+      "title": "Dieser Hinweis klingt unsicher",
+      "body": "Manchmal klingt LUMA unsicher. Dann musst du vielleicht genauer hinschauen.",
+      "nextLabel": "Okay"
+    },
+    "visor-flip-intro": {
+      "title": "Probiere jetzt den Visor-Blick!",
+      "body": "Tippe auf Visor-Blick, damit du sehen kannst, was LUMA sieht.",
+      "actionLabel": "Visor-Blick einschalten"
+    },
+    "visor-flip-level-9-intro": {
+      "title": "Probiere jetzt den Visor-Blick!",
+      "body": "Tippe auf Visor-Blick, damit du sehen kannst, was LUMA sieht.",
+      "actionLabel": "Visor-Blick einschalten"
+    },
+    "repeat-intro": {
+      "title": "Wiederholen hilft bei Mustern",
+      "body": "Wenn du merkst, dass sich ein Weg wiederholt, nutze WIEDERHOLEN. Dann kann LUMA diese Bausteine erneut ausführen.",
+      "nextLabel": "Zeig es mir"
+    },
+    "repeat-add-block": {
+      "title": "Füge einen Wiederholen-Baustein hinzu",
+      "body": "Tippe zuerst auf WIEDERHOLEN. Dann lege das Muster, das du willst, in den Baustein.",
+      "actionLabel": "WIEDERHOLEN hinzufügen"
+    },
+    "repeat-settings": {
+      "title": "Stelle den Wiederholen-Baustein ein",
+      "body": "Ändere die Zahl oben, um zu wählen, wie oft LUMA die Bausteine darin wiederholt.",
+      "nextLabel": "Verstanden"
+    },
+    "repeat-builder-intro": {
+      "title": "Manche Bausteine bleiben außerhalb von Wiederholen",
+      "body": "Nutze normale Bausteine vor oder nach WIEDERHOLEN, wenn nicht der ganze Weg gleich ist.",
+      "nextLabel": "Okay"
+    },
+    "if-path-intro": {
+      "title": "Neuer Baustein: WENN PFAD",
+      "body": "WENN PFAD prüft, ob LUMA in eine Richtung gehen kann.",
+      "nextLabel": "Was passiert?"
+    },
+    "if-path-true-false": {
+      "title": "Läuft nur, wenn es stimmt",
+      "body": "Wenn dieser Pfad offen ist, führt LUMA die Bausteine darin aus. Wenn der Pfad blockiert ist, überspringt sie die inneren Bausteine.",
+      "nextLabel": "Einen hinzufügen"
+    },
+    "if-path-add": {
+      "title": "Füge einen WENN-Baustein hinzu",
+      "body": "Tippe auf WENN PFAD, um den Bedingungsbaustein zu deinem Programm hinzuzufügen.",
+      "actionLabel": "WENN PFAD hinzufügen"
+    },
+    "if-path-block": {
+      "title": "Bausteine kommen hinein",
+      "body": "Ziehe Bausteine in den WENN-Baustein, genau wie bei WIEDERHOLEN.",
+      "nextLabel": "Ich sehe es"
+    },
+    "if-path-inside": {
+      "title": "Innen kann ein Muster sein",
+      "body": "Innen können viele Bausteine liegen, und du kannst sie nach oben oder unten bewegen.",
+      "nextLabel": "Prima"
+    },
+    "if-path-nesting": {
+      "title": "WENN und WIEDERHOLEN passen ineinander",
+      "body": "WIEDERHOLEN kann in WENN liegen, und WENN kann in WIEDERHOLEN liegen. Das hilft bei den Wegen an der Reparaturstelle.",
+      "nextLabel": "Bereit"
+    },
+    "ship-fragments-intro": {
+      "title": "Sammle Schiffsfragmente",
+      "body": "Sammle jedes leuchtende Schiffsteil auf der Karte ein.",
+      "nextLabel": "Verstanden"
+    },
+    "collect-command-intro": {
+      "title": "Nutze EINSAMMELN auf einem Fragment",
+      "body": "Wenn LUMA auf einem Schiffsfragment steht, füge EINSAMMELN hinzu, um es aufzuheben.",
+      "nextLabel": "Ich sammle es ein"
+    },
+    "collect-all-fragments-intro": {
+      "title": "Nicht zu früh fertig werden",
+      "body": "Sammle alle Schiffsfragmente ein, bevor du den Schiffskern erreichst.",
+      "nextLabel": "Okay"
+    },
+    "fog-intro": {
+      "title": "Nebel versteckt Felder",
+      "body": "Jetzt kannst du nicht alles sehen. Nutze Hinweise und plane vorsichtig.",
+      "nextLabel": "Ich sehe es"
+    },
+    "prediction-intro": {
+      "title": "Vorhersage-Aufgabe",
+      "body": "Dieses Feld fragt dich, wo LUMA anhalten wird, bevor du das Programm ausführst.",
+      "nextLabel": "Okay"
+    }
+  }
+}

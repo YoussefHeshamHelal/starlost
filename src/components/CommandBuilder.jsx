@@ -1,6 +1,8 @@
 ﻿import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { ThemeContext } from '../context/theme'
+import i18n from '../i18n/index.js'
 import {
   clampRepeatTimes,
   countProgramBlocks,
@@ -186,20 +188,20 @@ const THEMES = {
 }
 
 const META = {
-  F: { buttonLabel: 'MOVE FORWARD', rowLabel: 'MOVE FORWARD', icon: '↑', color: '#14b8d4', darkColor: '#2dd4bf', bg: 'rgba(20,184,212,0.12)', darkBg: 'rgba(45,212,191,0.20)' },
-  TR: { buttonLabel: 'TURN RIGHT', rowLabel: 'TURN RIGHT', icon: '→', color: '#f59e0b', darkColor: '#f59e0b', bg: 'rgba(245,158,11,0.12)', darkBg: 'rgba(245,158,11,0.20)' },
-  TL: { buttonLabel: 'TURN LEFT', rowLabel: 'TURN LEFT', icon: '←', color: '#8b5cf6', darkColor: '#a78bfa', bg: 'rgba(139,92,246,0.11)', darkBg: 'rgba(167,139,250,0.22)' },
-  C: { buttonLabel: 'COLLECT', rowLabel: 'COLLECT', icon: 'collect', color: '#38bdf8', darkColor: '#67e8f9', bg: 'rgba(56,189,248,0.12)', darkBg: 'rgba(103,232,249,0.16)' },
-  REPEAT: { buttonLabel: 'REPEAT', rowLabel: 'REPEAT', icon: '↺', color: '#22c55e', darkColor: '#4ade80', bg: 'rgba(34,197,94,0.12)', darkBg: 'rgba(74,222,128,0.18)' },
-  IF_PATH: { buttonLabel: 'IF PATH', rowLabel: 'IF PATH', icon: '?', color: '#0ea5e9', darkColor: '#7dd3fc', bg: 'rgba(14,165,233,0.13)', darkBg: 'rgba(125,211,252,0.17)' },
+  F: { labelKey: 'blocks.moveForward', buttonLabel: 'MOVE FORWARD', rowLabel: 'MOVE FORWARD', icon: '↑', color: '#14b8d4', darkColor: '#2dd4bf', bg: 'rgba(20,184,212,0.12)', darkBg: 'rgba(45,212,191,0.20)' },
+  TR: { labelKey: 'blocks.turnRight', buttonLabel: 'TURN RIGHT', rowLabel: 'TURN RIGHT', icon: '→', color: '#f59e0b', darkColor: '#f59e0b', bg: 'rgba(245,158,11,0.12)', darkBg: 'rgba(245,158,11,0.20)' },
+  TL: { labelKey: 'blocks.turnLeft', buttonLabel: 'TURN LEFT', rowLabel: 'TURN LEFT', icon: '←', color: '#8b5cf6', darkColor: '#a78bfa', bg: 'rgba(139,92,246,0.11)', darkBg: 'rgba(167,139,250,0.22)' },
+  C: { labelKey: 'blocks.collect', buttonLabel: 'COLLECT', rowLabel: 'COLLECT', icon: 'collect', color: '#38bdf8', darkColor: '#67e8f9', bg: 'rgba(56,189,248,0.12)', darkBg: 'rgba(103,232,249,0.16)' },
+  REPEAT: { labelKey: 'blocks.repeat', buttonLabel: 'REPEAT', rowLabel: 'REPEAT', icon: '↺', color: '#22c55e', darkColor: '#4ade80', bg: 'rgba(34,197,94,0.12)', darkBg: 'rgba(74,222,128,0.18)' },
+  IF_PATH: { labelKey: 'blocks.ifPath', buttonLabel: 'IF PATH', rowLabel: 'IF PATH', icon: '?', color: '#0ea5e9', darkColor: '#7dd3fc', bg: 'rgba(14,165,233,0.13)', darkBg: 'rgba(125,211,252,0.17)' },
 }
 
 const PALETTE_ORDER = ['F', 'TR', 'TL', 'C', 'REPEAT', 'IF_PATH']
 
 const IF_PATH_OPTIONS = [
-  { value: 'ahead', label: 'ahead' },
-  { value: 'left', label: 'to the left' },
-  { value: 'right', label: 'to the right' },
+  { value: 'ahead', labelKey: 'blocks.ahead', label: 'ahead' },
+  { value: 'left', labelKey: 'blocks.left', label: 'to the left' },
+  { value: 'right', labelKey: 'blocks.right', label: 'to the right' },
 ]
 
 function createCommandFromCode(code, ifPathCondition = 'ahead', repeatTimes = 2) {
@@ -397,7 +399,8 @@ function getMeta(command, theme) {
       : META[command]
   const color = theme === 'light' ? base.color : base.darkColor
   const bg = theme === 'light' ? base.bg : base.darkBg
-  return { ...base, color, bg }
+  const label = i18n.t(base.labelKey, base.rowLabel)
+  return { ...base, buttonLabel: label, rowLabel: label, color, bg }
 }
 
 function getRowEstimate(command) {
@@ -410,6 +413,7 @@ function getRowEstimate(command) {
 }
 
 function SpeedBar({ speed, onSpeedChange, theme }) {
+  const { t: tr } = useTranslation()
   const t = THEMES[theme]
   const safeSpeed = Math.max(10, Math.min(100, Number(speed) || 50))
   const fillPct = ((safeSpeed - 10) / 90) * 100
@@ -426,7 +430,7 @@ function SpeedBar({ speed, onSpeedChange, theme }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <p style={{ fontSize: 10, color: t.speedLabelClr, fontFamily: 'monospace', letterSpacing: 1, margin: 0, fontWeight: 800 }}>LUMA SPEED</p>
+        <p style={{ fontSize: 10, color: t.speedLabelClr, fontFamily: 'monospace', letterSpacing: 1, margin: 0, fontWeight: 800 }}>{tr('commandBuilder.speed')}</p>
         <span style={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 800, color: trackColor }}>{safeSpeed}%</span>
       </div>
 
@@ -442,7 +446,7 @@ function SpeedBar({ speed, onSpeedChange, theme }) {
           step="5"
           value={safeSpeed}
           onChange={handleSpeedChange}
-          aria-label="LUMA speed"
+          aria-label={tr('commandBuilder.speed')}
           style={{
             position: 'absolute',
             inset: 0,
@@ -457,9 +461,9 @@ function SpeedBar({ speed, onSpeedChange, theme }) {
       </div>
 
       <div style={{ position: 'relative', height: 10, fontSize: 8, color: t.tickColor, fontFamily: 'monospace', letterSpacing: 0.5, fontWeight: 700 }}>
-        <span style={{ position: 'absolute', left: 0 }}>SLOW</span>
-        <span style={{ position: 'absolute', left: `calc(${THUMB_R}px + (100% - ${THUMB_R * 2}px) * ${(50 - 10) / 90})`, transform: 'translateX(-50%)' }}>MED</span>
-        <span style={{ position: 'absolute', right: 0 }}>FAST</span>
+        <span style={{ position: 'absolute', left: 0 }}>{tr('commandBuilder.slow')}</span>
+        <span style={{ position: 'absolute', left: `calc(${THUMB_R}px + (100% - ${THUMB_R * 2}px) * ${(50 - 10) / 90})`, transform: 'translateX(-50%)' }}>{tr('commandBuilder.medium')}</span>
+        <span style={{ position: 'absolute', right: 0 }}>{tr('commandBuilder.fast')}</span>
       </div>
     </div>
   )
@@ -575,7 +579,7 @@ function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathConditi
             data-tutorial-id={showIfElse ? 'command-if-path' : undefined}
             style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}
           >
-            <span style={{ color: ifElsePreviewColor, fontSize: 10, lineHeight: 1, fontWeight: 800, letterSpacing: 0.8, whiteSpace: 'nowrap' }}>IF PATH</span>
+            <span style={{ color: ifElsePreviewColor, fontSize: 10, lineHeight: 1, fontWeight: 800, letterSpacing: 0.8, whiteSpace: 'nowrap' }}>{i18n.t('blocks.ifPath')}</span>
             <select
               data-palette-control="true"
               value={ifPathCondition}
@@ -591,17 +595,17 @@ function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathConditi
               style={ifElseSelectStyle}
             >
               {IF_PATH_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
+                <option key={option.value} value={option.value}>{i18n.t(option.labelKey, option.label)}</option>
               ))}
             </select>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-            <span style={{ width: 28, color: ifElsePreviewColor, fontSize: 10, lineHeight: 1, fontWeight: 800, letterSpacing: 0.8, textAlign: 'left' }}>DO</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'visible' }}>
+            <span style={{ flex: '0 0 76px', minWidth: 76, color: ifElsePreviewColor, fontSize: 10, lineHeight: 1.1, fontWeight: 800, letterSpacing: 0.6, textAlign: 'left', whiteSpace: 'nowrap', overflow: 'visible' }}>{i18n.t('blocks.doBranch')}</span>
             <span aria-hidden="true" style={ifElseSocketStyle} />
           </div>
           {showIfElse && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-              <span style={{ width: 28, color: ifElsePreviewColor, fontSize: 10, lineHeight: 1, fontWeight: 800, letterSpacing: 0.8, textAlign: 'left' }}>ELSE</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'visible' }}>
+              <span style={{ flex: '0 0 76px', minWidth: 76, color: ifElsePreviewColor, fontSize: 10, lineHeight: 1.1, fontWeight: 800, letterSpacing: 0.6, textAlign: 'left', whiteSpace: 'nowrap', overflow: 'visible' }}>{i18n.t('blocks.elseBranch')}</span>
               <span aria-hidden="true" style={ifElseSocketStyle} />
             </div>
           )}
@@ -675,18 +679,19 @@ function RepeatCounter({
 
   return (
     <div data-tutorial-id={tutorialId} onPointerDown={maybeStopControlPointer} onClick={maybeStopControlClick} style={{ display: 'flex', alignItems: 'center', gap: compact ? 3 : Math.max(3, 5 - Math.min(depth, 2)), padding: 0, background: 'transparent', border: 'none', borderRadius: 0, flex: compact ? '1 1 auto' : '0 0 auto', minWidth: 0, maxWidth: '100%' }}>
-      {showLabel && <span style={labelStyle}>REPEAT</span>}
+      {showLabel && <span style={labelStyle}>{i18n.t('blocks.repeat')}</span>}
       <div style={{ display: 'flex', alignItems: 'center', gap: compact ? 1 : 2, padding: compact ? '1px' : '2px', border: `1px solid ${color}33`, borderRadius: 7, background: `${color}10`, flexShrink: 0 }}>
         <button type="button" data-palette-control="true" disabled={disabled} style={buttonStyle} onClick={() => updateTimes(command.times - 1)}>-</button>
         <input data-palette-control="true" type="text" inputMode="numeric" disabled={disabled} value={inputValue} onChange={handleInputChange} onBlur={() => inputValue === '' && setInputValue(String(command.times))} style={{ width: compact ? Math.max(20, 24 - Math.min(depth, 3) * 2) : Math.max(28, 34 - Math.min(depth, 3) * 2), padding: compact ? '1px 3px' : '2px 4px', borderRadius: 6, border: `1px solid ${color}55`, background: 'rgba(255,255,255,0.82)', color, fontFamily: 'monospace', fontSize: compact ? Math.max(8, 10 - Math.min(depth, 2)) : Math.max(9, 11 - Math.min(depth, 2)), fontWeight: 800, textAlign: 'center', boxSizing: 'border-box' }} />
         <button type="button" data-palette-control="true" disabled={disabled} style={buttonStyle} onClick={() => updateTimes(command.times + 1)}>+</button>
       </div>
-      <span style={labelStyle}>TIMES</span>
+      <span style={labelStyle}>{i18n.t('commandBuilder.times')}</span>
     </div>
   )
 }
 
 function RowDelete({ isRunning, onDelete, theme, depth = 0, positioned = true }) {
+  const { t: tr } = useTranslation()
   const layout = getDepthLayout(depth)
   const deleteColor = theme === 'light' ? '#dc2626' : '#fb7185'
   const deleteBorder = theme === 'light' ? 'rgba(220,38,38,0.45)' : 'rgba(251,113,133,0.55)'
@@ -699,8 +704,8 @@ function RowDelete({ isRunning, onDelete, theme, depth = 0, positioned = true })
   return (
     <button
       type="button"
-      title="Delete"
-      aria-label="Delete"
+      title={tr('commandBuilder.delete')}
+      aria-label={tr('commandBuilder.delete')}
       onPointerDown={(event) => event.stopPropagation()}
       onClick={onDelete}
       disabled={isRunning}
@@ -739,9 +744,9 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
   const layout = getDepthLayout(depth)
   const labelFontSize = layout.labelSize
   const labelStyle = { fontSize: labelFontSize, color: meta.color, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800 }
-  const branchLabelStyle = { width: 'fit-content', padding: `${Math.max(2, 3 - Math.min(depth, 2))}px ${Math.max(6, 8 - Math.min(depth, 2))}px`, background: `${meta.color}12`, border: `1px solid ${meta.color}33`, borderRadius: 7, color: meta.color, fontSize: Math.max(8, layout.controlFontSize - 2), fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800, flexShrink: 0, textAlign: 'center', boxSizing: 'border-box' }
+  const branchLabelStyle = { width: 'fit-content', minWidth: 'max-content', padding: `${Math.max(2, 3 - Math.min(depth, 2))}px ${Math.max(6, 8 - Math.min(depth, 2))}px`, background: `${meta.color}12`, border: `1px solid ${meta.color}33`, borderRadius: 7, color: meta.color, fontSize: Math.max(8, layout.controlFontSize - 2), fontFamily: 'monospace', letterSpacing: 0.8, fontWeight: 800, flexShrink: 0, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'visible', boxSizing: 'border-box' }
   const branchGap = 5
-  const branchLabelColumnWidth = isTightConditional ? 'auto' : Math.max(38, 44 - Math.min(depth, 2) * 3)
+  const branchLabelColumnWidth = isTightConditional ? 'auto' : Math.max(72, 82 - Math.min(depth, 2) * 4)
   const branchPreviewHeight = getDropPreviewHeight(depth + 1)
   const branchDropMinHeight = branchPreviewHeight + 2
   const commandsIsActive = isSameDropPath(activeNestedDropPath, pathKey)
@@ -790,7 +795,7 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3, minWidth: 0, maxWidth: '100%' }}>
                 {!isRepeat && (
                   <div style={{ display: 'flex', flexDirection: isTightConditional ? 'column' : 'row', alignItems: isTightConditional ? 'stretch' : 'center', gap: isTightConditional ? 4 : 6, flexWrap: isTightConditional ? 'nowrap' : 'wrap', minWidth: 0, maxWidth: '100%' }}>
-                    <span style={labelStyle}>IF PATH</span>
+                    <span style={labelStyle}>{i18n.t('blocks.ifPath')}</span>
                     <select
                       value={command.condition ?? 'ahead'}
                       onPointerDown={(event) => event.stopPropagation()}
@@ -805,7 +810,7 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
                       style={{ ...selectStyle, width: isTightConditional ? '100%' : undefined, minWidth: 0, maxWidth: '100%', cursor: isRunning ? 'not-allowed' : 'pointer' }}
                     >
                       {IF_PATH_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value} style={selectStyle}>{option.label}</option>
+                        <option key={option.value} value={option.value} style={selectStyle}>{i18n.t(option.labelKey, option.label)}</option>
                       ))}
                     </select>
                   </div>
@@ -822,7 +827,7 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
           <div style={{ display: 'flex', flexDirection: isTightConditional ? 'column' : 'row', alignItems: 'stretch', gap: branchGap, minWidth: 0, marginLeft: branchMarginLeft, marginRight: branchMarginRight }}>
             {!isRepeat && (
               <div style={{ width: branchLabelColumnWidth, display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', paddingTop: 1, flexShrink: 0 }}>
-                <span onPointerDown={(event) => event.stopPropagation()} style={branchLabelStyle}>DO</span>
+                <span onPointerDown={(event) => event.stopPropagation()} style={branchLabelStyle}>{i18n.t('blocks.doBranch')}</span>
               </div>
             )}
             <div
@@ -863,7 +868,7 @@ function NestedBlockCard({ command, index, depth, path, theme, isRunning, onDele
             <>
               <div style={{ display: 'flex', flexDirection: isTightConditional ? 'column' : 'row', alignItems: 'stretch', gap: branchGap, minWidth: 0, margin: '6px 0 0 0' }}>
                 <div style={{ width: branchLabelColumnWidth, display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', paddingTop: 1, flexShrink: 0 }}>
-                  <span onPointerDown={(event) => event.stopPropagation()} style={{ ...branchLabelStyle, fontWeight: 900, letterSpacing: 1.1 }}>ELSE</span>
+                  <span onPointerDown={(event) => event.stopPropagation()} style={{ ...branchLabelStyle, fontWeight: 900, letterSpacing: 0.8 }}>{i18n.t('blocks.elseBranch')}</span>
                 </div>
                 <div
                   onDragOver={(event) => {
@@ -1511,6 +1516,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
 }
 
 function ShowCodeModal({ code, theme, onClose }) {
+  const { t } = useTranslation()
   const isLight = theme === 'light'
   const panelBg = isLight
     ? 'linear-gradient(180deg, rgba(255,255,255,0.99), rgba(235,248,255,0.98))'
@@ -1566,7 +1572,7 @@ function ShowCodeModal({ code, theme, onClose }) {
       >
         <button
           type="button"
-          aria-label="Close Show Code"
+          aria-label={t('commandBuilder.closeShowCode')}
           onClick={onClose}
           style={{
             position: 'absolute',
@@ -1588,7 +1594,7 @@ function ShowCodeModal({ code, theme, onClose }) {
         </button>
 
         <p style={{ margin: '4px 42px 0 0', fontSize: 18, lineHeight: 1.48, color: text, fontWeight: 650 }}>
-          Even top universities teach block-based coding (e.g.,{' '}
+          {t('commandBuilder.showCodeIntroPrefix')}{' '}
           <a
             href="https://www.edx.org/cs50"
             target="_blank"
@@ -1606,7 +1612,7 @@ function ShowCodeModal({ code, theme, onClose }) {
           >
             Berkeley
           </a>
-          {'). But behind the scenes, the blocks you have assembled can also be shown in Python, one of the world\'s most widely used programming languages:'}
+          {t('commandBuilder.showCodeIntroSuffix')}
         </p>
 
         <pre
@@ -1650,7 +1656,7 @@ function ShowCodeModal({ code, theme, onClose }) {
               fontWeight: 900,
             }}
           >
-            OK
+            {t('common.ok')}
           </button>
         </div>
       </motion.div>
@@ -1666,10 +1672,10 @@ function LockedProgramList({ sequence, theme, depth = 0 }) {
         const isRepeat = isRepeatCommand(command)
         const isIf = isIfPathCommand(command)
         const conditionLabel = {
-          ahead: 'PATH ahead',
-          left: 'PATH to the left',
-          right: 'PATH to the right',
-        }[command.condition ?? 'ahead'] ?? 'PATH ahead'
+          ahead: i18n.t('blocks.pathAhead'),
+          left: i18n.t('blocks.pathLeft'),
+          right: i18n.t('blocks.pathRight'),
+        }[command.condition ?? 'ahead'] ?? i18n.t('blocks.pathAhead')
 
         if (isRepeat || isIf) {
           return (
@@ -1687,17 +1693,17 @@ function LockedProgramList({ sequence, theme, depth = 0 }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <span style={{ color: meta.color, fontSize: 10, fontFamily: 'monospace', fontWeight: 900, width: 18, textAlign: 'right' }}>{String(index + 1).padStart(2, '0')}</span>
                 <span style={{ color: meta.color, fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 900 }}>
-                  {isRepeat ? `REPEAT (${command.times}) TIMES` : `IF ${conditionLabel}`}
+                  {isRepeat ? i18n.t('blocks.repeatTimes', { times: command.times }) : i18n.t('blocks.ifCondition', { condition: conditionLabel })}
                 </span>
               </div>
               {isIf ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 14 }}>
                   <div>
-                    <p style={{ margin: '0 0 5px 0', color: meta.color, fontSize: 10, fontFamily: 'monospace', fontWeight: 900 }}>do:</p>
+                    <p style={{ margin: '0 0 5px 0', color: meta.color, fontSize: 10, fontFamily: 'monospace', fontWeight: 900 }}>{i18n.t('blocks.do')}</p>
                     <LockedProgramList sequence={command.commands ?? []} theme={theme} depth={depth + 1} />
                   </div>
                   <div>
-                    <p style={{ margin: '0 0 5px 0', color: meta.color, fontSize: 10, fontFamily: 'monospace', fontWeight: 900 }}>else:</p>
+                    <p style={{ margin: '0 0 5px 0', color: meta.color, fontSize: 10, fontFamily: 'monospace', fontWeight: 900 }}>{i18n.t('blocks.elseLower')}</p>
                     <LockedProgramList sequence={command.elseCommands ?? []} theme={theme} depth={depth + 1} />
                   </div>
                 </div>
@@ -1761,6 +1767,7 @@ export default function CommandBuilder({
   lockedProgram = false,
   paletteDisabled = false,
 }) {
+  const { t: tr } = useTranslation()
   const theme = useContext(ThemeContext)
   const t = THEMES[theme]
   const [dragOver, setDragOver] = useState(false)
@@ -1798,7 +1805,7 @@ export default function CommandBuilder({
   }, [])
 
   const totalBlocks = countProgramBlocks(sequence)
-  const programCode = programToPython(sequence)
+  const programCode = programToPython(sequence, tr('commandBuilder.emptyPython'))
   const isDisabled = isRunning || sequence.length === 0 || needsReset || runBlocked
   const wrapperBg = theme === 'light' ? 'rgba(255,255,255,0.18)' : 'rgba(6,11,20,0.16)'
   const subPanelStyle = {
@@ -1902,12 +1909,12 @@ export default function CommandBuilder({
         <div data-tutorial-id="trace-program-box" style={{ ...subPanelStyle, flex: '1 1 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, flexShrink: 0 }}>
             <div>
-              <p style={{ fontSize: 12, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 1.2, margin: 0, fontWeight: 900 }}>LAUNCH PROGRAM</p>
-              <p style={{ fontSize: 10, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.8, margin: '4px 0 0 0' }}>Read it, trace it, then choose LUMA's ending tile.</p>
+            <p style={{ fontSize: 12, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 1.2, margin: 0, fontWeight: 900 }}>{tr('commandBuilder.launchProgram')}</p>
+              <p style={{ fontSize: 10, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.8, margin: '4px 0 0 0' }}>{tr('commandBuilder.traceInstruction')}</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end', flexShrink: 0 }}>
-              {targetCommands !== null && <span style={{ color: t.targetCmdColor, fontSize: 10.5, fontFamily: 'monospace', fontWeight: 900, whiteSpace: 'nowrap' }}>Shortest Path: {targetCommands} Blocks</span>}
-              <button type="button" onClick={() => setShowCodeModal(true)} style={showCodeBtn}>{'</>'} Show Code</button>
+              {targetCommands !== null && <span style={{ color: t.targetCmdColor, fontSize: 10.5, fontFamily: 'monospace', fontWeight: 900, whiteSpace: 'nowrap' }}>{tr('commandBuilder.shortestPath', { count: targetCommands })}</span>}
+              <button type="button" onClick={() => setShowCodeModal(true)} style={showCodeBtn}>{'</>'} {tr('commandBuilder.showCode')}</button>
             </div>
           </div>
           <div
@@ -1947,19 +1954,19 @@ export default function CommandBuilder({
       <div ref={palettePanelRef} style={{ flex: '0 0 280px', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {showVisorFlip && (
           <motion.button whileTap={{ scale: 0.96 }} onClick={onVisorFlip} data-tutorial-id="visor-flip-button" style={{ width: '100%', padding: '9px 12px', background: t.visorBg, border: `1.5px solid ${t.visorBorder}`, borderRadius: 8, color: t.visorText, cursor: 'pointer', fontFamily: 'monospace', fontSize: 11, letterSpacing: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 700 }}>
-            <span>{'\u{1F441}'} VISOR FLIP</span>
+            <span>{'\u{1F441}'} {tr('gameplay.visorFlip')}</span>
           </motion.button>
         )}
 
         <SpeedBar speed={speed} onSpeedChange={onSpeedChange} theme={theme} />
 
         <AnimatePresence>
-          {isMirrored && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} style={{ overflow: 'hidden', padding: '6px 10px', background: t.mirrorBg, border: `1.5px solid ${t.mirrorBorder}`, borderRadius: 6, color: t.mirrorText, fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800 }}>WARNING: LEFT / RIGHT FLIPPED</motion.div>}
+        {isMirrored && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} style={{ overflow: 'hidden', padding: '6px 10px', background: t.mirrorBg, border: `1.5px solid ${t.mirrorBorder}`, borderRadius: 6, color: t.mirrorText, fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, fontWeight: 800 }}>{tr('commandBuilder.warningFlipped')}</motion.div>}
         </AnimatePresence>
         <div style={{ ...subPanelStyle, flex: '1 1 0' }}>
           <div data-tutorial-id="command-palette" style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0, overflowY: 'auto' }}>
-            <p style={{ fontSize: 11, color: t.subLabel, fontFamily: 'monospace', letterSpacing: 1.1, margin: 0, fontWeight: 800 }}>INSTRUCTIONS</p>
-            <p style={{ fontSize: 10, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.8, margin: 0 }}>Tap or drag from here</p>
+            <p style={{ fontSize: 11, color: t.subLabel, fontFamily: 'monospace', letterSpacing: 1.1, margin: 0, fontWeight: 800 }}>{tr('commandBuilder.instructions')}</p>
+            <p style={{ fontSize: 10, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.8, margin: 0 }}>{tr('commandBuilder.tapOrDrag')}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {visibleCommands.map((code) => (
                 <PaletteButton
@@ -1981,11 +1988,11 @@ export default function CommandBuilder({
           </div>
         </div>
 
-        {needsReset && <motion.button key="reset-btn" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.97 }} onClick={onReset} disabled={isRunning} data-tutorial-id="reset-button" style={{ width: '100%', padding: '11px 0', background: t.resetBg, border: '2px solid #fb7185', borderRadius: 8, color: theme === 'light' ? '#be123c' : '#fb7185', fontFamily: 'monospace', fontSize: 13, letterSpacing: 2, cursor: isRunning ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontWeight: 800 }}>{'\u21BA'} RESET LUMA</motion.button>}
+        {needsReset && <motion.button key="reset-btn" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.97 }} onClick={onReset} disabled={isRunning} data-tutorial-id="reset-button" style={{ width: '100%', padding: '11px 0', background: t.resetBg, border: '2px solid #fb7185', borderRadius: 8, color: theme === 'light' ? '#be123c' : '#fb7185', fontFamily: 'monospace', fontSize: 13, letterSpacing: 2, cursor: isRunning ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontWeight: 800 }}>{'\u21BA'} {tr('commandBuilder.resetLuma')}</motion.button>}
 
         {!needsReset && (
           <motion.button whileTap={{ scale: 0.97 }} onClick={onRun} disabled={isDisabled} data-tutorial-id="run-button" style={{ width: '100%', padding: '13px 0', background: isDisabled ? t.runBgDisabled : t.runBgActive, border: `2px solid ${isDisabled ? t.runBorderDisabled : t.runBorderActive}`, borderRadius: 8, color: isDisabled ? t.runColorDisabled : t.runColorActive, fontFamily: 'monospace', fontSize: 14, letterSpacing: 2, cursor: isDisabled ? 'not-allowed' : 'pointer', fontWeight: 800 }}>
-            {isRunning ? 'RUNNING' : ifElseBlocked ? 'ADD ELSE BLOCK' : runBlocked ? 'SET PREDICTION FIRST' : 'EXECUTE PROGRAM'}
+            {isRunning ? tr('commandBuilder.running') : ifElseBlocked ? tr('commandBuilder.addElseBlock') : runBlocked ? tr('commandBuilder.setPredictionFirst') : tr('commandBuilder.executeProgram')}
           </motion.button>
         )}
       </div>
@@ -1996,16 +2003,16 @@ export default function CommandBuilder({
             /* ── Normal single-row header ── */
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexShrink: 0, width: '100%' }}>
               <div style={{ minWidth: 0, flex: '1 1 auto' }}>
-                <p style={{ fontSize: 11, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 1.1, margin: 0, fontWeight: 800, whiteSpace: 'nowrap' }}>PROGRAM <span style={{ color: t.programCount, fontWeight: 600, whiteSpace: 'nowrap' }}>({totalBlocks} {totalBlocks === 1 ? 'block' : 'blocks'})</span></p>
-                <p style={{ fontSize: 10, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.8, margin: '4px 0 0 0' }}>Top to bottom order</p>
+                <p style={{ fontSize: 11, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 1.1, margin: 0, fontWeight: 800, whiteSpace: 'nowrap' }}>{tr('commandBuilder.program')} <span style={{ color: t.programCount, fontWeight: 600, whiteSpace: 'nowrap' }}>{tr('commandBuilder.programBlockCount', { count: totalBlocks, unit: tr(totalBlocks === 1 ? 'common.block' : 'common.blocks') })}</span></p>
+                <p style={{ fontSize: 10, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.8, margin: '4px 0 0 0' }}>{tr('commandBuilder.topToBottom')}</p>
               </div>
               <div style={{ flex: '0 1 168px', minWidth: 150, textAlign: 'right', overflow: 'hidden', marginRight: 6 }}>
-                {targetCommands !== null && <span style={{ display: 'block', fontSize: 10.5, color: t.targetCmdColor, fontFamily: 'monospace', letterSpacing: 0.2, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'clip' }}>Shortest Path: {targetCommands} Blocks</span>}
+                {targetCommands !== null && <span style={{ display: 'block', fontSize: 10.5, color: t.targetCmdColor, fontFamily: 'monospace', letterSpacing: 0.2, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'clip' }}>{tr('commandBuilder.shortestPath', { count: targetCommands })}</span>}
               </div>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end', flex: '0 0 auto' }}>
-                <button title="Delete" aria-label="Delete" onClick={onRemove} disabled={isRunning || sequence.length === 0} style={actionBtn(isRunning || sequence.length === 0)}>⌫</button>
-                <button title="Clear" aria-label="Clear" onClick={onClear} disabled={isRunning || sequence.length === 0} style={actionBtn(isRunning || sequence.length === 0)}>✕</button>
-                <button type="button" onClick={() => setShowCodeModal(true)} style={showCodeBtn}>{'</>'} Show Code</button>
+                <button title={tr('commandBuilder.delete')} aria-label={tr('commandBuilder.delete')} onClick={onRemove} disabled={isRunning || sequence.length === 0} style={actionBtn(isRunning || sequence.length === 0)}>⌫</button>
+                <button title={tr('commandBuilder.clear')} aria-label={tr('commandBuilder.clear')} onClick={onClear} disabled={isRunning || sequence.length === 0} style={actionBtn(isRunning || sequence.length === 0)}>✕</button>
+                <button type="button" onClick={() => setShowCodeModal(true)} style={showCodeBtn}>{'</>'} {tr('commandBuilder.showCode')}</button>
               </div>
             </div>
           ) : (
@@ -2015,20 +2022,20 @@ export default function CommandBuilder({
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
                 <div style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
                   <p style={{ fontSize: 10, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 0.8, margin: 0, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    PROGRAM <span style={{ color: t.programCount, fontWeight: 600 }}>({totalBlocks} {totalBlocks === 1 ? 'block' : 'blocks'})</span>
+                    {tr('commandBuilder.program')} <span style={{ color: t.programCount, fontWeight: 600 }}>{tr('commandBuilder.programBlockCount', { count: totalBlocks, unit: tr(totalBlocks === 1 ? 'common.block' : 'common.blocks') })}</span>
                   </p>
-                  <p style={{ fontSize: 9, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.6, margin: '2px 0 0 0' }}>Top to bottom order</p>
+                  <p style={{ fontSize: 9, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.6, margin: '2px 0 0 0' }}>{tr('commandBuilder.topToBottom')}</p>
                 </div>
                 <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
-                  <button title="Delete" aria-label="Delete" onClick={onRemove} disabled={isRunning || sequence.length === 0} style={{ ...actionBtn(isRunning || sequence.length === 0), width: 26, height: 24, fontSize: 9 }}>⌫</button>
-                  <button title="Clear" aria-label="Clear" onClick={onClear} disabled={isRunning || sequence.length === 0} style={{ ...actionBtn(isRunning || sequence.length === 0), width: 26, height: 24, fontSize: 9 }}>✕</button>
-                  <button type="button" onClick={() => setShowCodeModal(true)} style={{ ...showCodeBtn, padding: '4px 7px', fontSize: 9, letterSpacing: 0.5 }}>{'</>'} Show Code</button>
+                  <button title={tr('commandBuilder.delete')} aria-label={tr('commandBuilder.delete')} onClick={onRemove} disabled={isRunning || sequence.length === 0} style={{ ...actionBtn(isRunning || sequence.length === 0), width: 26, height: 24, fontSize: 9 }}>⌫</button>
+                  <button title={tr('commandBuilder.clear')} aria-label={tr('commandBuilder.clear')} onClick={onClear} disabled={isRunning || sequence.length === 0} style={{ ...actionBtn(isRunning || sequence.length === 0), width: 26, height: 24, fontSize: 9 }}>✕</button>
+                  <button type="button" onClick={() => setShowCodeModal(true)} style={{ ...showCodeBtn, padding: '4px 7px', fontSize: 9, letterSpacing: 0.5 }}>{'</>'} {tr('commandBuilder.showCode')}</button>
                 </div>
               </div>
               {/* Row 2: shortest path (if present) */}
               {targetCommands !== null && (
                 <p style={{ fontSize: 9, color: t.targetCmdColor, fontFamily: 'monospace', letterSpacing: 0.2, fontWeight: 800, margin: 0, whiteSpace: 'nowrap' }}>
-                  Shortest Path: {targetCommands} Blocks
+                  {tr('commandBuilder.shortestPath', { count: targetCommands })}
                 </p>
               )}
             </div>
@@ -2067,7 +2074,7 @@ export default function CommandBuilder({
             {sequence.length === 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100%', gap: 6 }}>
                 <div style={{ fontSize: 18, opacity: theme === 'light' ? 0.28 : 0.18, color: theme === 'light' ? '#14b8d4' : '#5a8890' }}>↓</div>
-                <p style={{ color: t.emptyText, fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, margin: 0, userSelect: 'none', fontWeight: 700 }}>Drag blocks here</p>
+                <p style={{ color: t.emptyText, fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, margin: 0, userSelect: 'none', fontWeight: 700 }}>{tr('commandBuilder.dragBlocksHere')}</p>
               </div>
             ) : (
               <DraggableProgram

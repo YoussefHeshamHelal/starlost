@@ -178,8 +178,8 @@ function commandsToPythonLines(commands = [], depth = 0, counterState = { next: 
   })
 }
 
-export function programToPython(sequence = []) {
-  if (!sequence.length) return '# Add blocks to the Program box to see Python here.'
+export function programToPython(sequence = [], emptyComment = '# Add blocks to the Program box to see Python here.') {
+  if (!sequence.length) return emptyComment
   return commandsToPythonLines(sequence, 0, { next: 1, totalRepeats: countRepeatBlocks(sequence) }).join('\n')
 }
 

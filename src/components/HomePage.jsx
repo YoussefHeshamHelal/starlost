@@ -1,16 +1,18 @@
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { useTheme, THEMES } from '../context/theme'
 
 const PLAYABLE_LEVELS = 23
 const HOME_MAPS = [
-  { id: 'crash-site', title: 'Crash Site', levels: [1, 2, 3, 4, 5], accent: 'teal' },
-  { id: 'forest-entrance', title: 'Forest Entrance', levels: [6, 7, 8, 9], accent: 'amber' },
-  { id: 'deep-forest', title: 'Deep Forest', levels: [10, 11, 12, 13, 14], accent: 'emerald' },
-  { id: 'repair-site', title: 'Repair Site', levels: [15, 16, 17, 18, 19, 20], accent: 'violet' },
-  { id: 'launch-site', title: 'Launch Site', levels: [21, 22, 23], accent: 'cyan' },
+  { id: 'crash-site', titleKey: 'starMap.crashSite', descriptionKey: 'homePage.descriptions.crashSite', levels: [1, 2, 3, 4, 5], accent: 'teal' },
+  { id: 'forest-entrance', titleKey: 'starMap.forestEntrance', descriptionKey: 'homePage.descriptions.forestEntrance', levels: [6, 7, 8, 9], accent: 'amber' },
+  { id: 'deep-forest', titleKey: 'starMap.deepForest', descriptionKey: 'homePage.descriptions.deepForest', levels: [10, 11, 12, 13, 14], accent: 'emerald' },
+  { id: 'repair-site', titleKey: 'starMap.repairSite', descriptionKey: 'homePage.descriptions.repairSite', levels: [15, 16, 17, 18, 19, 20], accent: 'violet' },
+  { id: 'launch-site', titleKey: 'starMap.launchSite', descriptionKey: 'homePage.descriptions.launchSite', levels: [21, 22, 23], accent: 'cyan' },
 ]
 
 export default function HomePage({ headerHeight, onSelectLevel }) {
+  const { t: tr } = useTranslation()
   const theme = useTheme()
   const t = THEMES[theme]
 
@@ -120,7 +122,7 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                 fontWeight: 800,
                 color: theme === 'light' ? '#1579ac' : '#67e8f9',
               }}>
-                MISSION CONTROL
+                {tr('homePage.missionControl')}
               </p>
               <h2 style={{
                 margin: 0,
@@ -138,7 +140,7 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                 fontWeight: 800,
                 color: theme === 'light' ? '#124d74' : '#e8edf5',
               }}>
-                Choose a mission and guide LUMA through the stars.
+                {tr('homePage.chooseMission')}
               </p>
               <p style={{
                 margin: '10px 0 0 0',
@@ -147,7 +149,7 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                 color: t.textSecondary,
                 maxWidth: 620,
               }}>
-                Crash Site, Forest Entrance, Deep Forest, Repair Site, and the final Launch Site mission are live now.
+                {tr('homePage.liveSummary')}
               </p>
             </div>
 
@@ -171,10 +173,10 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                 fontWeight: 800,
                 color: theme === 'light' ? '#1579ac' : '#67e8f9',
               }}>
-                LIVE NOW
+                {tr('homePage.liveNow')}
               </p>
               <p style={{ margin: 0, fontSize: 13, color: t.textSecondary, fontWeight: 700 }}>
-                Levels 1-23 ready to play
+                {tr('homePage.levelsReady')}
               </p>
             </div>
           </motion.div>
@@ -263,7 +265,7 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                       fontWeight: 800,
                       color: isLiveMap ? accentBorder : t.textMuted,
                     }}>
-                      {isLiveMap ? 'MISSION ZONE' : 'COMING SOON'}
+                      {isLiveMap ? tr('homePage.missionZone') : tr('homePage.comingSoon')}
                     </p>
                     <h3 style={{
                       margin: 0,
@@ -271,7 +273,7 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                       fontWeight: 900,
                       color: t.levelTitle,
                     }}>
-                      {mapConfig.title}
+                      {tr(mapConfig.titleKey)}
                     </h3>
                     <p style={{
                       margin: '6px 0 0 0',
@@ -279,17 +281,7 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                       lineHeight: 1.45,
                       color: t.textSecondary,
                     }}>
-                      {isLiveMap
-                        ? mapConfig.id === 'crash-site'
-                          ? 'Explore the crash site and learn how to guide LUMA.'
-                          : mapConfig.id === 'forest-entrance'
-                            ? 'Follow the glowing forest entrance and start using repeat routes.'
-                            : mapConfig.id === 'deep-forest'
-                              ? 'Push deeper through forest paths with visor help and fragment routes.'
-                            : mapConfig.id === 'repair-site'
-                              ? 'Reach the repair bay, learn IF PATH, and collect every fragment.'
-                              : 'Trace the final launch code and help LUMA lift off for home.'
-                        : 'New worlds are still powering up for future rescue missions.'}
+                      {isLiveMap ? tr(mapConfig.descriptionKey) : tr('homePage.descriptions.future')}
                     </p>
                   </div>
 
@@ -357,7 +349,7 @@ export default function HomePage({ headerHeight, onSelectLevel }) {
                             fontWeight: 800,
                             color: unlocked ? t.textSecondary : t.textMuted,
                           }}>
-                            {unlocked ? 'PLAY' : 'LOCKED'}
+                            {unlocked ? tr('homePage.play') : tr('homePage.locked')}
                           </span>
                         </motion.button>
                       )

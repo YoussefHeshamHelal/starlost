@@ -522,6 +522,7 @@
 }
 
 .language-option {
+  appearance: none;
   border-radius: 18px;
   padding: 13px 18px;
   color: #ffffff;
@@ -529,6 +530,9 @@
   font-weight: 900;
   background: rgba(111, 70, 255, 0.38);
   border: 1.5px solid rgba(172, 220, 255, 0.7);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
 }
 
 .language-option--selected {

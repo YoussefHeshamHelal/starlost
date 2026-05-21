@@ -1,30 +1,17 @@
 import { useCallback, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { isLevelCompleted, TOTAL_LEVELS } from '../utils/progress'
 import MenuSoundIcon from './MenuSoundIcon'
 import './menuScreens.css'
 
-const COPY = {
-  starMap: 'STAR MAP',
-  crashSite: 'Crash Site',
-  forestEntrance: 'Forest Entrance',
-  deepForest: 'Deep Forest',
-  repairSite: 'Repair Site',
-  launchSite: 'Launch Site',
-  back: 'Back',
-  progress: 'PROGRESS',
-  aboutTitle: 'About STARLOST',
-  aboutBody: 'STARLOST is a child-friendly educational space adventure where players help LUMA find her way home by solving grid-world puzzle levels.',
-  aboutThesis: 'The game is designed to support and assess children’s spatial perspective-taking and computational thinking through movement blocks, path planning, perspective clues, and problem-solving challenges.',
-  aboutCredit: 'STARLOST was created as part of a bachelor thesis project by Youssef Hesham Helal.',
-  close: 'Close',
-}
 
-const ZONES = [
+function getZones(t) {
+  return [
   {
     id: 'crash',
     className: 'star-zone--crash',
-    title: COPY.crashSite,
+    title: t('starMap.crashSite'),
     path: [1, 2, 3, 4, 5],
     positions: {
       1: { left: 14, top: 59 },
@@ -37,7 +24,7 @@ const ZONES = [
   {
     id: 'forest',
     className: 'star-zone--forest',
-    title: COPY.forestEntrance,
+    title: t('starMap.forestEntrance'),
     path: [6, 7, 8, 9],
     positions: {
       6: { left: 22, top: 59 },
@@ -49,7 +36,7 @@ const ZONES = [
   {
     id: 'deep-forest',
     className: 'star-zone--deep-forest',
-    title: COPY.deepForest,
+    title: t('starMap.deepForest'),
     path: [10, 11, 12, 13, 14],
     positions: {
       10: { left: 15, top: 67 },
@@ -62,7 +49,7 @@ const ZONES = [
   {
     id: 'repair',
     className: 'star-zone--repair',
-    title: COPY.repairSite,
+    title: t('starMap.repairSite'),
     path: [15, 16, 17, 18, 19, 20],
     positions: {
       15: { left: 15, top: 77 },
@@ -76,7 +63,7 @@ const ZONES = [
   {
     id: 'launch',
     className: 'star-zone--launch',
-    title: COPY.launchSite,
+    title: t('starMap.launchSite'),
     path: [21, 22, 23],
     positions: {
       21: { left: 26, top: 62 },
@@ -84,7 +71,8 @@ const ZONES = [
       23: { left: 72, top: 62 },
     },
   },
-]
+  ]
+}
 
 function ProgressStarIcon() {
   return (
@@ -95,6 +83,7 @@ function ProgressStarIcon() {
 }
 
 function MenuModal({ onClose }) {
+  const { t } = useTranslation()
   return (
     <motion.div
       className="menu-modal-backdrop"
@@ -108,10 +97,10 @@ function MenuModal({ onClose }) {
         animate={{ y: 0, scale: 1 }}
         exit={{ y: 12, scale: 0.96 }}
       >
-        <h2>{COPY.aboutTitle}</h2>
-        <p>{COPY.aboutBody}</p>
-        <p>{COPY.aboutThesis}</p>
-        <p>{COPY.aboutCredit}</p>
+        <h2>{t('common.aboutStarlost')}</h2>
+        <p>{t('start.aboutBody')}</p>
+        <p>{t('start.aboutThesis')}</p>
+        <p>{t('start.aboutCredit')}</p>
         <motion.button
           type="button"
           className="menu-pill-button menu-pill-button--secondary"
@@ -120,7 +109,7 @@ function MenuModal({ onClose }) {
           whileTap={{ scale: 0.96 }}
           style={{ minHeight: 48, fontSize: 18, width: 'min(220px, 100%)', margin: '8px auto 0' }}
         >
-          {COPY.close}
+          {t('common.close')}
         </motion.button>
       </motion.div>
     </motion.div>
@@ -128,6 +117,7 @@ function MenuModal({ onClose }) {
 }
 
 function LevelNode({ level, position, completedLevels, medalsByLevel, onSelectLevel }) {
+  const { t } = useTranslation()
   const completed = isLevelCompleted(level, completedLevels)
   const medal = completed ? medalsByLevel?.[String(level)]?.medal : null
   const className = [
@@ -140,7 +130,7 @@ function LevelNode({ level, position, completedLevels, medalsByLevel, onSelectLe
     <button
       type="button"
       className={className}
-      aria-label={`Level ${level}${medal ? `, ${medal} medal` : ''}`}
+      aria-label={medal ? t('starMap.levelWithMedal', { level, medal }) : t('starMap.level', { level })}
       style={{ left: `${position.left}%`, top: `${position.top}%` }}
       onClick={() => onSelectLevel(level)}
     >
@@ -210,7 +200,9 @@ export default function StarMapLevelSelect({
   onSelectLevel,
   onBack,
 }) {
+  const { t } = useTranslation()
   const [modal, setModal] = useState(null)
+  const zones = useMemo(() => getZones(t), [t])
   const normalizedCompletedLevels = useMemo(
     () => [...new Set(completedLevels)].filter(level => level >= 1 && level <= TOTAL_LEVELS),
     [completedLevels]
@@ -231,11 +223,11 @@ export default function StarMapLevelSelect({
       animate={{ opacity: 1 }}
       exit={{ opacity: 1 }}
       transition={{ duration: 0 }}
-      aria-label="Star map level select"
+      aria-label={t('starMap.ariaLabel')}
     >
       <img className="starlost-menu__bg" src="/assets/ui/star-map-bg.png" alt="" />
       <div className="star-map-art-layer">
-        {ZONES.map(zone => (
+        {zones.map(zone => (
           <StarZone
             key={zone.id}
             zone={zone}
@@ -249,7 +241,7 @@ export default function StarMapLevelSelect({
         <motion.button
           type="button"
           className="menu-icon-button menu-icon-button--left"
-          aria-label="About STARLOST"
+          aria-label={t('common.aboutStarlost')}
           onClick={() => setModal('about')}
           whileHover={{ y: -3, scale: 1.04 }}
           whileTap={{ scale: 0.94 }}
@@ -259,8 +251,8 @@ export default function StarMapLevelSelect({
         <button
           type="button"
           className={`menu-icon-button menu-icon-button--right ${muted ? 'menu-icon-button--muted' : ''}`}
-          aria-label={muted ? 'Unmute background music' : 'Mute background music'}
-          title={muted ? 'Unmute background music' : 'Mute background music'}
+          aria-label={muted ? t('common.unmuteMusic') : t('common.muteMusic')}
+          title={muted ? t('common.unmuteMusic') : t('common.muteMusic')}
           onClick={onToggleMuted}
         >
           <MenuSoundIcon />
@@ -273,13 +265,13 @@ export default function StarMapLevelSelect({
           whileHover={{ x: -2, scale: 1.01 }}
           whileTap={{ scale: 0.96 }}
         >
-          {'\u2190'} {COPY.back}
+          {'\u2190'} {t('common.back')}
         </motion.button>
 
         <div className="star-progress" aria-live="polite">
           <div className="star-progress__readout">
             <ProgressStarIcon />
-            <span className="star-progress__label">{COPY.progress}</span>
+            <span className="star-progress__label">{t('starMap.progress')}</span>
             <span className="star-progress__count">
               {loading ? '...' : `${normalizedCompletedLevels.length} / ${TOTAL_LEVELS}`}
             </span>

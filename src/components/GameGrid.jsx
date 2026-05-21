@@ -1,6 +1,7 @@
 // GameGrid.jsx
 import { useContext } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import LumaSprite from './LumaSprite'
 import CrashSiteBackground from './CrashSiteBackground'
 import ForestTrailBackground from './ForestTrailBackground'
@@ -25,10 +26,10 @@ function isLaunchPadGoal(level) {
 function getTileInDirection(luma, relDir, level) {
   const { grid, walls = [], objects = [], goal } = level
   const forestObstacle = level.world === 'forest-trail'
-    ? { type: 'forest_tree', label: 'FOREST TREE!', emoji: '\u{1F332}', color: '#65a30d' }
-    : { type: 'rock', label: 'BIG ROCK!', emoji: '🪨', color: '#c0845a' }
+    ? { type: 'forest_tree', labelKey: 'grid.forestTree', emoji: '\u{1F332}', color: '#65a30d' }
+    : { type: 'rock', labelKey: 'grid.bigRock', emoji: '🪨', color: '#c0845a' }
   const worldObstacle = level.world === 'repair-site' || level.world === 'launch-site'
-    ? { type: 'repair_box', label: 'REPAIR BOX!', emoji: '\u{1F4E6}', color: '#38bdf8' }
+    ? { type: 'repair_box', labelKey: 'grid.repairBox', emoji: '\u{1F4E6}', color: '#38bdf8' }
     : forestObstacle
   const facingIdx = DIRECTIONS.indexOf(luma.facing)
 
@@ -40,21 +41,21 @@ function getTileInDirection(luma, relDir, level) {
   const ay = luma.y + dy
 
   if (ax < 0 || ax >= grid.cols || ay < 0 || ay >= grid.rows)
-    return { type: 'boundary', label: 'WALL!', emoji: '🚧', color: '#64748b' }
+    return { type: 'boundary', labelKey: 'grid.wall', emoji: '🚧', color: '#64748b' }
   if (walls.some(w => w.x === ax && w.y === ay))
     return worldObstacle
   if (goal && goal.x === ax && goal.y === ay) {
     if (isLaunchPadGoal(level)) {
-      return { type: 'launch_pad', label: 'LAUNCH PAD', emoji: '\u2726', color: '#22d3ee' }
+      return { type: 'launch_pad', labelKey: 'grid.launchPad', emoji: '\u2726', color: '#22d3ee' }
     }
-    return { type: 'goal', label: 'SHIP CORE!', emoji: '⭐', color: '#f59e0b' }
+    return { type: 'goal', labelKey: 'grid.shipCore', emoji: '⭐', color: '#f59e0b' }
   }
   const obj = objects.find(o => o.x === ax && o.y === ay)
   if (obj?.type === 'ship_part')
-    return { type: 'ship_part', label: 'SHIP PIECE!', emoji: '🛸', color: '#38bdf8' }
+    return { type: 'ship_part', labelKey: 'grid.shipPiece', emoji: '🛸', color: '#38bdf8' }
   if (obj?.type === 'rock')
     return worldObstacle
-  return { type: 'open', label: 'ALL CLEAR!', emoji: '✅', color: '#4ade80' }
+  return { type: 'open', labelKey: 'grid.allClear', emoji: '✅', color: '#4ade80' }
 }
 
 function isTileFogged(col, row, luma, sptCorrect) {
@@ -1426,6 +1427,7 @@ function ZoneContent({ tile, zone, W, H }) {
 // left edge, right from the right edge, and the front is the full-width center.
 // Kid-friendly labels with big emojis make it clear what LUMA can see.
 function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose }) {
+  const { t } = useTranslation()
   const W = gridWidth
   const H = gridHeight
 
@@ -1440,10 +1442,10 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
     ahead.type === 'goal'      ? '#f59e0b' :
     '#2dd4bf'
   const visorLabel = tile => {
-    if (tile.type === 'boundary') return 'BOUNDARY'
-    if (tile.type === 'repair_box') return 'REPAIR BOX'
-    if (tile.type === 'launch_pad') return 'LAUNCH PAD'
-    return tile.label
+    if (tile.type === 'boundary') return t('grid.boundary')
+    if (tile.type === 'repair_box') return t('grid.repairBox')
+    if (tile.type === 'launch_pad') return t('grid.launchPad')
+    return t(tile.labelKey)
   }
 
   return (
@@ -1731,7 +1733,7 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
           gap: 2,
         }}>
           <span style={{ fontSize: 9, color: '#a78bfa', fontFamily: 'monospace', letterSpacing: 2, fontWeight: 700 }}>
-            ◀ MY LEFT
+            ◀ {t('grid.myLeft')}
           </span>
           <span style={{ fontSize: 16 }}>{leftTile.emoji}</span>
           <span style={{
@@ -1766,7 +1768,7 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
           gap: 2,
         }}>
           <span style={{ fontSize: 9, color: '#a78bfa', fontFamily: 'monospace', letterSpacing: 2, fontWeight: 700 }}>
-            MY RIGHT ▶
+            {t('grid.myRight')} ▶
           </span>
           <span style={{ fontSize: 16 }}>{rightTile.emoji}</span>
           <span style={{
@@ -1807,7 +1809,7 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
               fontSize: 8, color: '#2dd4bf',
               fontFamily: 'monospace', letterSpacing: 2,
             }}>
-              ▲ IN FRONT OF ME
+              ▲ {t('grid.inFrontOfMe')}
             </span>
             <span style={{
               fontSize: 11, color: ahead.color,
@@ -1842,7 +1844,7 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
           gap: 8,
         }}>
           <span style={{ fontSize: 8, color: '#2dd4bf', fontFamily: 'monospace', letterSpacing: 3 }}>
-            👁 LUMA'S HELMET CAM
+            👁 {t('grid.helmetCam')}
           </span>
         </div>
       </div>
@@ -1862,7 +1864,7 @@ function VisorView({ ahead, leftTile, rightTile, gridWidth, gridHeight, onClose 
           pointerEvents: 'none',
         }}
       >
-        TAP TO CLOSE ✕
+        {t('grid.tapToClose')} ✕
       </motion.div>
 
       {/* Helmet oval frame overlay — gives a real helmet-visor feel */}
@@ -1922,6 +1924,7 @@ export default function GameGrid({
   // effectiveLevel: merged level with generated walls/objects (from useGameState)
   effectiveLevel,
 }) {
+  const { t } = useTranslation()
   const theme = useContext(ThemeContext)
   const isLight = theme === 'light'
 
@@ -1977,7 +1980,7 @@ export default function GameGrid({
               fontWeight: 700,
             }}
           >
-            🎯 TAP A TILE TO SET YOUR PREDICTION
+            {'\u{1F3AF}'} {t('grid.predictionPrompt')}
           </motion.div>
         )}
       </AnimatePresence>

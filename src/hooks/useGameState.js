@@ -20,6 +20,7 @@ import {
   generateLevel21Layout,
 } from '../data/levels'
 import { clampRepeatTimes, countProgramBlocks, hasEmptyRequiredElse, isIfPathCommand, isRepeatCommand } from '../utils/commands'
+import i18n from '../i18n/index.js'
 
 const DIRECTIONS = ['north', 'east', 'south', 'west']
 
@@ -35,6 +36,14 @@ const RELATIVE_LABEL = {
   right: 'to my right',
   back:  'behind me',
   left:  'to my left',
+}
+
+function tr(key, options) {
+  return i18n.t(key, options)
+}
+
+function getRelativeLabel(direction) {
+  return tr(`radio.relative.${direction}`, RELATIVE_LABEL[direction])
 }
 
 function getRelativeDirection(luma, tile) {
@@ -81,16 +90,15 @@ function getRandomFrom(arr) {
   return arr[Math.floor(Math.random() * arr.length)]
 }
 
-function getObstacleNoun(world) {
-  if (world === 'forest-trail') return 'tree'
-  if (world === 'repair-site' || world === 'launch-site') return 'box'
-  return 'rock'
+function getTranslatedList(key, fallback) {
+  const value = tr(key, { returnObjects: true })
+  return Array.isArray(value) ? value : fallback
 }
 
 function getObstacleArticle(world) {
-  if (world === 'forest-trail') return 'a tree'
-  if (world === 'repair-site' || world === 'launch-site') return 'a box'
-  return 'a rock'
+  if (world === 'forest-trail') return tr('radio.obstacles.aTree')
+  if (world === 'repair-site' || world === 'launch-site') return tr('radio.obstacles.aBox')
+  return tr('radio.obstacles.aRock')
 }
 
 function getGoalVisual(level) {
@@ -105,14 +113,14 @@ function isLaunchPadGoal(level) {
 function buildRadioReport(lumaPos, facing, walls = [], objects = [], goal, collectedIndices = new Set(), world = 'crash-site', includeOpener = false) {
   const lumaCtx = { x: lumaPos.x, y: lumaPos.y, facing }
   const priority = ['front', 'right', 'left', 'back']
-  const opener = includeOpener ? "Can you see where I am? " : ''
-  const obstacleNoun = getObstacleNoun(world)
+  const opener = includeOpener ? tr('radio.canYouSee') : ''
+  const obstacleText = getObstacleArticle(world)
 
   const adjacentWalls = walls.filter(w => getRelativeDirection(lumaCtx, w) !== null)
   if (adjacentWalls.length > 0) {
     const relDirs = adjacentWalls.map(w => getRelativeDirection(lumaCtx, w)).filter(Boolean)
     const chosen  = priority.find(p => relDirs.includes(p)) ?? relDirs[0]
-    return `${opener}There is a ${obstacleNoun} ${RELATIVE_LABEL[chosen]}.`
+    return tr('radio.wall', { opener, obstacle: obstacleText, relative: getRelativeLabel(chosen) })
   }
 
   const adjacentParts = objects.filter(
@@ -121,15 +129,15 @@ function buildRadioReport(lumaPos, facing, walls = [], objects = [], goal, colle
   if (adjacentParts.length > 0) {
     const relDirs = adjacentParts.map(o => getRelativeDirection(lumaCtx, o)).filter(Boolean)
     const chosen  = priority.find(p => relDirs.includes(p)) ?? relDirs[0]
-    return `${opener}I can sense a ship fragment ${RELATIVE_LABEL[chosen]}.`
+    return tr('radio.fragment', { opener, relative: getRelativeLabel(chosen) })
   }
 
   if (goal) {
     const rel = getRelativeDirection(lumaCtx, goal)
-    if (rel) return `${opener}I can detect the ship core ${RELATIVE_LABEL[rel]}!`
+    if (rel) return tr('radio.goal', { opener, relative: getRelativeLabel(rel) })
   }
 
-  return `${opener}The path around me looks clear… but I can't tell which way I'm facing.`
+  return tr('radio.clear', { opener })
 }
 
 // ── Level 2 uncertain radio builder ──────────────────────────────────────────
@@ -137,19 +145,19 @@ function buildRadioReport(lumaPos, facing, walls = [], objects = [], goal, colle
 function buildUncertainRadioReport(lumaPos, facing, walls = [], objects = [], goal, collectedIndices = new Set(), world = 'crash-site') {
   const lumaCtx = { x: lumaPos.x, y: lumaPos.y, facing }
   const priority = ['front', 'right', 'left', 'back']
-  const obstacleNoun = getObstacleNoun(world)
+  const obstacleText = getObstacleArticle(world)
 
   const adjacentWalls = walls.filter(w => getRelativeDirection(lumaCtx, w) !== null)
   if (adjacentWalls.length > 0) {
     const relDirs = adjacentWalls.map(w => getRelativeDirection(lumaCtx, w)).filter(Boolean)
     const chosen  = priority.find(p => relDirs.includes(p)) ?? relDirs[0]
     const uncertainPhrases = {
-      front: `Umm… I think there's a ${obstacleNoun} in front of me? I'm not totally sure…`,
-      right: "I'm not totally sure… but I think something is on my right.",
-      left:  `Wait… I think I sense a ${obstacleNoun} to my left? Hard to tell with all this dust.`,
-      back:  "Something feels close behind me… but my sensors are a bit fuzzy.",
+      front: tr('radio.uncertain.wallFront', { obstacle: obstacleText }),
+      right: tr('radio.uncertain.wallRight'),
+      left:  tr('radio.uncertain.wallLeft', { obstacle: obstacleText }),
+      back:  tr('radio.uncertain.wallBack'),
     }
-    return uncertainPhrases[chosen] ?? getRandomFrom(UNCERTAIN_RADIO_MESSAGES)
+    return uncertainPhrases[chosen] ?? getRandomFrom(getTranslatedList('radio.uncertainMessages', UNCERTAIN_RADIO_MESSAGES))
   }
 
   const adjacentParts = objects.filter(
@@ -159,25 +167,25 @@ function buildUncertainRadioReport(lumaPos, facing, walls = [], objects = [], go
     const relDirs = adjacentParts.map(o => getRelativeDirection(lumaCtx, o)).filter(Boolean)
     const chosen  = priority.find(p => relDirs.includes(p)) ?? relDirs[0]
     const uncertainPartPhrases = {
-      front: "I think… I can sense a ship piece in front of me? Maybe? The signal keeps breaking up.",
-      right: "Hmm… something's on my right? It might be a ship fragment, I'm not sure.",
-      left:  "Wait… is that a ship part to my left? I can barely tell from here.",
-      back:  "Something's nearby… behind me? I can't quite figure it out.",
+      front: tr('radio.uncertain.partFront'),
+      right: tr('radio.uncertain.partRight'),
+      left:  tr('radio.uncertain.partLeft'),
+      back:  tr('radio.uncertain.partBack'),
     }
-    return uncertainPartPhrases[chosen] ?? getRandomFrom(UNCERTAIN_RADIO_MESSAGES)
+    return uncertainPartPhrases[chosen] ?? getRandomFrom(getTranslatedList('radio.uncertainMessages', UNCERTAIN_RADIO_MESSAGES))
   }
 
   if (goal) {
     const rel = getRelativeDirection(lumaCtx, goal)
-    if (rel) return `I think… I can detect the ship core somewhere ${RELATIVE_LABEL[rel]}? The signal is weak though.`
+    if (rel) return tr('radio.uncertain.goal', { relative: getRelativeLabel(rel) })
   }
 
-  return "Hmm… I can't tell which way I'm facing. My sensors are acting up. Can you help?"
+  return tr('radio.uncertain.clear')
 }
 
 // ── Old Level 9 / new Level 13 radio helpers ──────────────────────────────────
 function buildLevel9UncertainRadioReport() {
-  return "I sense a tree beside me, but my visor is blurry. It might be on my left or my right."
+  return tr('radio.uncertain.level13')
 }
 
 function buildLevel9IdentifyConfirmation(lumaPos, facing, walls = []) {
@@ -187,45 +195,45 @@ function buildLevel9IdentifyConfirmation(lumaPos, facing, walls = []) {
     .find(rel => rel === 'left' || rel === 'right')
 
   if (sideTree) {
-    return `Yes, that's right! The tree is on my ${sideTree}, the ship core is to my left, and the fragments are straight ahead.`
+    return tr('radio.uncertain.level13Confirm', { sideTree: getRelativeLabel(sideTree) })
   }
 
-  return "Yes, that's right! Now I know where the tree line is."
+  return tr('radio.uncertain.level13ConfirmFallback')
 }
 
 // ── Collection report ─────────────────────────────────────────────────────────
 function buildCollectionReport(lumaPos, facing, walls = [], objects = [], goal, collectedIndices = new Set(), world = 'crash-site') {
-  const opener = "Got it! I found a ship fragment!"
+  const opener = tr('radio.collectionOpen')
   const lumaCtx = { x: lumaPos.x, y: lumaPos.y, facing }
   const priority = ['front', 'right', 'left', 'back']
-  const obstacleNoun = getObstacleNoun(world)
+  const obstacleText = getObstacleArticle(world)
 
   const adjacentWalls = walls.filter(w => getRelativeDirection(lumaCtx, w) !== null)
   if (adjacentWalls.length > 0) {
     const relDirs = adjacentWalls.map(w => getRelativeDirection(lumaCtx, w)).filter(Boolean)
     const chosen  = priority.find(p => relDirs.includes(p)) ?? relDirs[0]
-    return `${opener} There's a ${obstacleNoun} ${RELATIVE_LABEL[chosen]} from here.`
+    return tr('radio.collectionWall', { opener, obstacle: obstacleText, relative: getRelativeLabel(chosen) })
   }
 
   const remainingParts = objects.filter(
     (o, i) => o.type === 'ship_part' && !collectedIndices.has(i) && getRelativeDirection(lumaCtx, o) !== null
   )
   if (remainingParts.length > 0) {
-    return `${opener} I can sense another fragment nearby — keep going!`
+    return tr('radio.collectionMore', { opener })
   }
 
   if (goal) {
     const rel = getRelativeDirection(lumaCtx, goal)
-    if (rel) return `${opener} I can detect the ship core ${RELATIVE_LABEL[rel]}!`
+    if (rel) return tr('radio.collectionGoal', { opener, relative: getRelativeLabel(rel) })
   }
 
-  return `${opener} The area looks clear. Guide me to the next fragment!`
+  return tr('radio.collectionClear', { opener })
 }
 
 // ── Blocked report ────────────────────────────────────────────────────────────
 function buildBlockedReport(lumaPos, facing, blockedType, world = 'crash-site') {
-  const blockedText = blockedType === 'rock' ? getObstacleArticle(world) : 'the edge of the map'
-  return `I can't move forward! There's ${blockedText} in front of me. My path is blocked.`
+  const blockedText = blockedType === 'rock' ? getObstacleArticle(world) : tr('radio.obstacles.edge')
+  return tr('radio.blocked', { blockedText })
 }
 
 function getRelativeFacing(facing, condition = 'ahead') {
@@ -407,7 +415,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
   // ── Level 2/3/4 uncertain radio ───────────────────────────────────────────
   // Pick a fixed uncertain message for this session (so it doesn't change on re-renders)
   const [initialRadioHint] = useState(() => {
-    const opener = getRandomFrom(RADIO_HINT_OPENERS)
+    const opener = getRandomFrom(getTranslatedList('radio.hintOpeners', RADIO_HINT_OPENERS))
     const withOpener = (hint) => `${opener} ${hint}`
 
     if (levelConfig.noRadio) {
@@ -431,31 +439,31 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     }
 
     if (levelConfig.id === 12) {
-      return withOpener("There’s open path in front of me and on my right, but there’s no path behind me or to my left.")
+      return withOpener(tr('radio.fixed.openFrontRightBlockedBackLeft'))
     }
 
     if (levelConfig.id === 14) {
-      return withOpener("There is a tree on my left.")
+      return withOpener(tr('radio.fixed.treeLeft'))
     }
 
     if (levelConfig.id === 15) {
-      return "Can you tell where I am? There is a box behind me and a box on my right."
+      return tr('radio.fixed.level15')
     }
 
     if (levelConfig.id === 17) {
-      return "Can you see where I am? There is a box on my right and a box on my left, and a ship fragment in front of me."
+      return tr('radio.fixed.level17')
     }
 
     if (levelConfig.id === 21 || levelConfig.id === 22) {
-      return "Can you see where I am? There’s open path in front of me and on my right, but there’s no path behind me or to my left."
+      return tr('radio.fixed.level21')
     }
 
     if (levelConfig.id === 23) {
-      return "Can you see where I am? There is no path behind me."
+      return tr('radio.fixed.level23')
     }
 
     if (levelConfig.id === 6) {
-      return withOpener("There is a tree to my right and a ship fragment in front of me.")
+      return withOpener(tr('radio.fixed.treeRightFragmentFront'))
     }
 
     return withOpener(buildRadioReport(
@@ -475,7 +483,8 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
 
   // ── Reactive helmet report ────────────────────────────────────────────────
   const [reportOverride, setReportOverride] = useState(null)
-  const [successRadioMessage] = useState(() => getRandomFrom(IDENTIFY_SUCCESS_RADIO_MESSAGES))
+  const [successRadioMessageIndex] = useState(() => Math.floor(Math.random() * IDENTIFY_SUCCESS_RADIO_MESSAGES.length))
+  const successRadioMessage = getTranslatedList('radio.identifySuccessMessages', IDENTIFY_SUCCESS_RADIO_MESSAGES)[successRadioMessageIndex] ?? IDENTIFY_SUCCESS_RADIO_MESSAGES[successRadioMessageIndex]
   const uncertainMessage = initialRadioHint
 
   const liveReport = useMemo(() => {
@@ -499,7 +508,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
       luma.facing === resolvedFacing &&
       collectedParts.size === 0
     ) {
-      return "There’s open path in front of me and on my right, but there’s no path behind me or to my left."
+      return tr('radio.fixed.openFrontRightBlockedBackLeft')
     }
     if (
       levelConfig.id === 14 &&
@@ -508,7 +517,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
       luma.facing === resolvedFacing &&
       collectedParts.size === 0
     ) {
-      return "There is a tree on my left."
+      return tr('radio.fixed.treeLeft')
     }
     if (
       levelConfig.id === 6 &&
@@ -517,7 +526,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
       luma.facing === resolvedFacing &&
       collectedParts.size === 0
     ) {
-      return "There is a tree to my right and a ship fragment in front of me."
+      return tr('radio.fixed.treeRightFragmentFront')
     }
     return buildRadioReport(
       luma,
@@ -626,7 +635,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     // Mark that the visor was flipped and pick a reaction message where used.
     if (levelConfig.uncertainRadio && !visorFlippedThisLevel) {
       setVisorFlippedThisLevel(true)
-      setVisorFlipReaction(levelConfig.id === 13 ? null : getRandomFrom(VISOR_FLIP_REACTIONS))
+      setVisorFlipReaction(levelConfig.id === 13 ? null : getRandomFrom(getTranslatedList('radio.visorReactions', VISOR_FLIP_REACTIONS)))
     }
   }, [visorActive, visorFlipTiming, hadErrorBefore, levelConfig.id, levelConfig.uncertainRadio, visorFlippedThisLevel])
 
@@ -853,8 +862,8 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
           setPhase('success')
           setNeedsReset(false)
           setReportOverride(isLaunchPadGoal(levelConfig)
-              ? "Launch pad reached! LUMA is ready to fly home."
-              : "I made it! The ship core is right here — we did it!")
+              ? tr('radio.successLaunch')
+              : tr('radio.successCore'))
         } else if (onIncomplete?.({
           luma: currentLuma,
           collectedParts: localCollected,
@@ -870,7 +879,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
           if (!firstFailTime) setFirstFailTime(Date.now())
           setNeedsReset(true)
           setReportOverride(
-              `I'm at the ship core, but I'm missing ${shipPartObjects.length - localCollected.size} fragment${shipPartObjects.length - localCollected.size > 1 ? 's' : ''}… Reset and try a different path!`
+              tr('radio.missing', { count: shipPartObjects.length - localCollected.size, plural: shipPartObjects.length - localCollected.size > 1 ? 's' : '' })
             )
         } else {
           setHadErrorBefore(true)
@@ -997,7 +1006,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
       setHadErrorBefore(true)
       if (!firstFailTime) setFirstFailTime(Date.now())
       setSelfCorrected(true)
-      setReportOverride("Not quite. Trace the code again and try another ending tile.")
+      setReportOverride(tr('radio.traceRetry'))
       window.setTimeout(() => {
         setTraceEliminatedTiles((previousTiles) => (
           previousTiles.includes(traceKey) ? previousTiles : [...previousTiles, traceKey]
@@ -1012,8 +1021,8 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
         traceRunStartedRef.current = true
     setTraceGoalRevealed(true)
     setReportOverride(isLaunchPadGoal(levelConfig)
-      ? "Correct! The launch pad is appearing. Watch LUMA run the launch code!"
-      : "Correct! The ship core is appearing. Watch LUMA run the program!")
+      ? tr('radio.traceLaunch')
+      : tr('radio.traceCore'))
 
     window.setTimeout(() => {
       setTraceSelection((currentSelection) => (

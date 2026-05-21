@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { THEMES, useTheme } from '../context/theme'
 
 const VIEWPORT_MARGIN = 18
@@ -152,6 +153,7 @@ export default function TutorialOverlay({
   onSkip,
   canGoBack,
 }) {
+  const { t: tr } = useTranslation()
   const theme = useTheme()
   const t = THEMES[theme]
   const overlayRef = useRef(null)
@@ -346,7 +348,7 @@ export default function TutorialOverlay({
                     marginBottom: 10,
                   }}
                 >
-                  STEP {stepIndex + 1} / {totalSteps}
+                  {tr('tutorial.step', { current: stepIndex + 1, total: totalSteps })}
                 </div>
               )}
               <h3
@@ -357,7 +359,7 @@ export default function TutorialOverlay({
                   fontWeight: 900,
                 }}
               >
-                {step.title}
+                {tr(`tutorials.${step.id}.title`, step.title)}
               </h3>
               <p
                 style={{
@@ -368,7 +370,7 @@ export default function TutorialOverlay({
                   fontWeight: 600,
                 }}
               >
-                {step.body}
+                {tr(`tutorials.${step.id}.body`, step.body)}
               </p>
             </div>
           </div>
@@ -395,7 +397,7 @@ export default function TutorialOverlay({
                   fontWeight: 800,
                 }}
               >
-                Do this now: {step.actionLabel}
+                {tr('tutorial.doThisNow', { action: tr(`tutorials.${step.id}.actionLabel`, step.actionLabel) })}
               </span>
             </div>
           )}
@@ -421,7 +423,7 @@ export default function TutorialOverlay({
                 letterSpacing: 1,
               }}
             >
-              Skip Tutorial
+              {tr('tutorial.skip')}
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -439,7 +441,7 @@ export default function TutorialOverlay({
                   fontWeight: 800,
                 }}
               >
-                Back
+                {tr('common.back')}
               </button>
 
               {!step.requiresAction && (
@@ -456,7 +458,7 @@ export default function TutorialOverlay({
                     fontWeight: 900,
                   }}
                 >
-                  {step.nextLabel ?? (stepIndex === totalSteps - 1 ? 'Done' : 'Next')}
+                  {step.nextLabel ? tr(`tutorials.${step.id}.nextLabel`, step.nextLabel) : (stepIndex === totalSteps - 1 ? tr('common.done') : tr('common.next'))}
                 </button>
               )}
             </div>

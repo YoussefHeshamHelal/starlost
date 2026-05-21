@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { LEVELS } from './data/levels'
 import { countProgramBlocks, hasEmptyRequiredElse } from './utils/commands'
 import {
@@ -61,6 +62,16 @@ const LUMA_VOICE_HINTS = [
   'google uk english female',
   'google us english',
 ]
+const LUMA_GERMAN_VOICE_HINTS = [
+  'anna',
+  'katja',
+  'marlene',
+  'petra',
+  'google deutsch',
+  'microsoft katja',
+  'german',
+  'deutsch',
+]
 const OUTER_PHASES = new Set(['start', 'mission-setup', 'home'])
 const OUTER_PAGE_BG = '#020617'
 const OUTER_BG_ASSETS = [
@@ -90,10 +101,10 @@ const MAP_LEVEL_VARIANTS = {
   animate: { opacity: 1, y: 0, scale: 1 },
   exit: { opacity: 1, y: 0, scale: 1 },
 }
-const DISPLAY_WORLD_NAMES = {
-  'crash-site': 'Crash Site',
-  'repair-site': 'Repair Site',
-  'launch-site': 'Launch Site',
+const DISPLAY_WORLD_NAME_KEYS = {
+  'crash-site': 'starMap.crashSite',
+  'repair-site': 'starMap.repairSite',
+  'launch-site': 'starMap.launchSite',
 }
 const PAGE_SHELL_STYLE = {
   position: 'absolute',
@@ -114,15 +125,18 @@ const INSTANT_TRANSITION = {
   duration: 0,
 }
 
-function getDisplayWorldName(levelConfig) {
+function getDisplayWorldName(levelConfig, tr) {
   if (!levelConfig) return ''
-  if (levelConfig.mapTitle || levelConfig.displayWorldName) {
+  if ((levelConfig.mapTitle || levelConfig.displayWorldName) && !tr) {
     return levelConfig.mapTitle ?? levelConfig.displayWorldName
   }
   if (levelConfig.world === 'forest-trail') {
-    return levelConfig.id >= 10 ? 'Deep Forest' : 'Forest Entrance'
+    return tr
+      ? tr(levelConfig.id >= 10 ? 'starMap.deepForest' : 'starMap.forestEntrance')
+      : levelConfig.id >= 10 ? 'Deep Forest' : 'Forest Entrance'
   }
-  return DISPLAY_WORLD_NAMES[levelConfig.world] ?? levelConfig.world ?? ''
+  const key = DISPLAY_WORLD_NAME_KEYS[levelConfig.world]
+  return key && tr ? tr(key) : levelConfig.mapTitle ?? levelConfig.displayWorldName ?? levelConfig.world ?? ''
 }
 
 function shouldShowStrategyCard(levelId) {
@@ -182,10 +196,24 @@ function getLumaSpeechText(text) {
   return value
 }
 
-function getPreferredLumaVoice(synth = getSpeechSynthesis()) {
+function getPreferredLumaVoice(synth = getSpeechSynthesis(), language = 'en') {
   if (!synth?.getVoices) return null
   const voices = synth.getVoices()
   if (!voices?.length) return null
+
+  const normalizedLanguage = String(language || 'en').toLowerCase()
+  if (normalizedLanguage.startsWith('de')) {
+    const germanVoices = voices.filter(voice => voice.lang?.toLowerCase().startsWith('de'))
+    if (!germanVoices.length) return null
+
+    const deDeVoice = germanVoices.find(voice => voice.lang?.toLowerCase() === 'de-de')
+    const hintedVoice = germanVoices.find(voice => {
+      const name = voice.name?.toLowerCase() ?? ''
+      return LUMA_GERMAN_VOICE_HINTS.some(hint => name.includes(hint))
+    })
+
+    return hintedVoice ?? deDeVoice ?? germanVoices[0] ?? null
+  }
 
   const englishVoices = voices.filter(voice => voice.lang?.toLowerCase().startsWith('en'))
   const candidates = englishVoices.length ? englishVoices : voices
@@ -304,6 +332,7 @@ const ANIM_STYLES = `
 
 // ── Theme Toggle Button ───────────────────────────────────────────────────────
 function ThemeToggle({ theme, onToggle }) {
+  const { t: tr } = useTranslation()
   const t = THEMES[theme]
   return (
     <motion.button
@@ -335,19 +364,20 @@ function ThemeToggle({ theme, onToggle }) {
       >
         {t.toggleIcon}
       </motion.span>
-      <span>{t.toggleLabel} Mode</span>
+      <span>{tr('gameplay.themeMode', { theme: t.toggleLabel })}</span>
     </motion.button>
   )
 }
 
 // Level sound button
 function LevelSoundButton({ theme, muted, onToggleMuted }) {
+  const { t: tr } = useTranslation()
   const t = THEMES[theme]
   return (
     <motion.button
       type="button"
-      aria-label={muted ? 'Unmute background music' : 'Mute background music'}
-      title={muted ? 'Unmute music' : 'Mute music'}
+      aria-label={muted ? tr('common.unmuteMusic') : tr('common.muteMusic')}
+      title={muted ? tr('common.unmuteMusic') : tr('common.muteMusic')}
       onClick={onToggleMuted}
       whileTap={{ scale: 0.92 }}
       whileHover={{ scale: 1.06 }}
@@ -376,6 +406,41 @@ function LevelSoundButton({ theme, muted, onToggleMuted }) {
   )
 }
 
+function HeaderLanguageSelect({ theme }) {
+  const { i18n, t: tr } = useTranslation()
+  const t = THEMES[theme]
+  const currentLanguage = (i18n.resolvedLanguage || i18n.language || 'en').toLowerCase().startsWith('de') ? 'de' : 'en'
+
+  return (
+    <select
+      aria-label={tr('start.language')}
+      value={currentLanguage}
+      onChange={(event) => i18n.changeLanguage(event.target.value)}
+      style={{
+        height: 40,
+        minWidth: 104,
+        padding: '0 30px 0 12px',
+        borderRadius: 14,
+        border: `1.5px solid ${t.toggleBorder}`,
+        background: t.toggleBg,
+        color: t.toggleText,
+        fontFamily: 'monospace',
+        fontSize: 11,
+        fontWeight: 800,
+        letterSpacing: 0.8,
+        cursor: 'pointer',
+        flexShrink: 0,
+        boxShadow: theme === 'light'
+          ? '0 10px 22px rgba(54,131,201,0.14), inset 0 1px 0 rgba(255,255,255,0.62)'
+          : '0 2px 12px rgba(45,212,191,0.08)',
+      }}
+    >
+      <option value="en">English</option>
+      <option value="de">Deutsch</option>
+    </select>
+  )
+}
+
 // Helmet Radio
 const HelmetRadio = memo(function HelmetRadio({
   report,
@@ -384,6 +449,7 @@ const HelmetRadio = memo(function HelmetRadio({
   voiceSupported = false,
   isSpeaking = false,
 }) {
+  const { t: tr } = useTranslation()
   const theme = useTheme()
   const t = THEMES[theme]
   const panelBg = radioIsUncertain ? t.radioUncBg : t.radioBg
@@ -415,7 +481,7 @@ const HelmetRadio = memo(function HelmetRadio({
           fontFamily: 'monospace', letterSpacing: 3, margin: 0,
           fontWeight: 800,
         }}>
-          LUMA HELMET RADIO
+          {tr('gameplay.radioTitle')}
         </p>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -443,8 +509,8 @@ const HelmetRadio = memo(function HelmetRadio({
             <motion.button
               type="button"
               className="helmet-radio-voice-button"
-              aria-label="Replay LUMA radio voice"
-              title="Replay radio voice"
+              aria-label={tr('gameplay.replayRadioVoice')}
+              title={tr('gameplay.replayRadioTitle')}
               onClick={onReplayVoice}
               disabled={!canReplayVoice}
               whileHover={canReplayVoice ? {
@@ -506,6 +572,7 @@ const HelmetRadio = memo(function HelmetRadio({
 })
 
 const VisorFlipButton = memo(function VisorFlipButton({ onVisorFlip, highlighted }) {
+  const { t: tr } = useTranslation()
   const theme = useTheme()
   const t = THEMES[theme]
   return (
@@ -527,13 +594,13 @@ const VisorFlipButton = memo(function VisorFlipButton({ onVisorFlip, highlighted
         fontWeight: 700,
       }}
     >
-      <span>{'\u{1F441}'} VISOR FLIP</span>
+      <span>{'\u{1F441}'} {tr('gameplay.visorFlip')}</span>
       {highlighted && (
         <span style={{
           fontSize: 10, color: '#f59e0b', fontFamily: 'monospace', marginRight: 4,
           animation: 'blink-try 1.2s ease-in-out infinite', fontWeight: 700,
         }}>
-          Try it!
+          {tr('gameplay.tryIt')}
         </span>
       )}
     </button>
@@ -619,8 +686,10 @@ const COMPASS_AREAS = `
 `
 
 function DiamondButton({ option, isSelected, isCorrect, isWrong, disabled, onClick }) {
+  const { t: tr } = useTranslation()
   const meta = ARROW_META[option] ?? { symbol: option, label: option, gridArea: 'center' }
   const facing = getFacingFromDirectionOption(option)
+  const directionLabel = tr(`gameplay.directions.${meta.gridArea === 'top' ? 'up' : meta.gridArea === 'right' ? 'right' : meta.gridArea === 'bottom' ? 'down' : 'left'}`, meta.label)
   const arrow = getArrowFromDirectionOption(option)
   const theme = useTheme()
   const accentColor = isCorrect
@@ -635,7 +704,7 @@ function DiamondButton({ option, isSelected, isCorrect, isWrong, disabled, onCli
     <div style={{ gridArea: meta.gridArea, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 110, height: 110 }}>
       <motion.button
         type="button"
-        aria-label={`Choose LUMA facing ${meta.label}`}
+        aria-label={tr('gameplay.chooseFacing', { direction: directionLabel })}
         onClick={() => !disabled && onClick(option)}
         disabled={disabled}
         whileHover={!disabled ? {
@@ -745,6 +814,7 @@ function DiamondButton({ option, isSelected, isCorrect, isWrong, disabled, onCli
 
 // ── SPT Question panel ────────────────────────────────────────────────────────
 const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, sptCorrect, visorFlipCount, onVisorFlip, radioIsUncertain, showVisorFlip }) {
+  const { t: tr } = useTranslation()
   const theme = useTheme()
   const t = THEMES[theme]
   return (
@@ -780,12 +850,12 @@ const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, s
           animation: 'fade-in-hint 0.4s 0.5s ease both',
           fontWeight: 700,
         }}>
-          LUMA seems unsure… maybe peek through her helmet?
+          {tr('gameplay.sptUnsureHint')}
         </p>
       )}
 
       <p style={{ fontSize: 14, color: t.textPrimary, lineHeight: 1.55, margin: 0, fontWeight: 600 }}>
-        {question.prompt}
+        {tr('gameplay.sptPrompt', question.prompt)}
       </p>
 
       <div style={{
@@ -824,12 +894,12 @@ const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, s
 
       {sptAnswer && !sptCorrect && (
         <p style={{ margin: 0, color: '#fb7185', fontSize: 12, fontFamily: 'monospace', textAlign: 'center', animation: 'fade-in-hint 0.2s ease both', fontWeight: 700 }}>
-          Not quite — use the radio clue to find LUMA's facing.
+          {tr('gameplay.notQuiteFacing')}
         </p>
       )}
       {sptCorrect && (
         <p style={{ margin: 0, color: '#10b981', fontSize: 12, fontFamily: 'monospace', textAlign: 'center', letterSpacing: 1, animation: 'fade-in-hint 0.2s ease both', fontWeight: 700 }}>
-          ✓ Correct! Now guide LUMA home.
+          {'\u2713'} {tr('gameplay.correctFacing')}
         </p>
       )}
     </motion.div>
@@ -838,6 +908,7 @@ const SPTQuestion = memo(function SPTQuestion({ question, onAnswer, sptAnswer, s
 
 // ── Prediction Prompt ─────────────────────────────────────────────────────────
 const PredictionBanner = memo(function PredictionBanner({ predictionTile, predictionResult }) {
+  const { t: tr } = useTranslation()
   const theme = useTheme()
   const t = THEMES[theme]
   const hasResult = predictionResult !== null
@@ -849,18 +920,18 @@ const PredictionBanner = memo(function PredictionBanner({ predictionTile, predic
 
   if (hasResult && predictionResult === 'correct') {
     borderColor = '#10b981'
-    message = '✓ Perfect prediction!'
-    subMessage = 'You knew exactly where LUMA would end up.'
+    message = tr('gameplay.predictionPerfect')
+    subMessage = tr('gameplay.predictionExact')
   } else if (hasResult && predictionResult === 'wrong') {
     borderColor = '#fb7185'
-    message = '✗ Not quite…'
-    subMessage = `LUMA ended up at a different tile. What changed your plan?`
+    message = tr('gameplay.predictionWrong')
+    subMessage = tr('gameplay.predictionChanged')
   } else if (hasTile) {
-    message = `Prediction set: [${predictionTile.x}, ${predictionTile.y}]`
-    subMessage = 'Now execute your program — let\'s see if you\'re right!'
+    message = tr('gameplay.predictionSet', { x: predictionTile.x, y: predictionTile.y })
+    subMessage = tr('gameplay.predictionExecute')
   } else {
-    message = 'Tap a grid tile to predict where LUMA will end up.'
-    subMessage = 'You must predict before you can run the program.'
+    message = tr('gameplay.predictionTap')
+    subMessage = tr('gameplay.predictionRequired')
   }
 
   return (
@@ -879,7 +950,7 @@ const PredictionBanner = memo(function PredictionBanner({ predictionTile, predic
       }}
     >
       <p style={{ fontSize: 10, color: borderColor, fontFamily: 'monospace', letterSpacing: 1, margin: '0 0 3px 0', fontWeight: 800 }}>
-        🎯  PREDICTION CHALLENGE
+        {'\u{1f3af}'} {tr('gameplay.predictionTitle')}
       </p>
       <p style={{ fontSize: 12, color: borderColor, fontFamily: 'monospace', margin: '0 0 2px 0', fontWeight: 700 }}>
         {message}
@@ -893,6 +964,7 @@ const PredictionBanner = memo(function PredictionBanner({ predictionTile, predic
 
 // ── Missed Fragments Alert ────────────────────────────────────────────────────
 function MissedFragmentsAlert({ onDismiss }) {
+  const { t: tr } = useTranslation()
   const theme = useTheme()
   const t = THEMES[theme]
   return (
@@ -922,13 +994,13 @@ function MissedFragmentsAlert({ onDismiss }) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <h2 style={{ fontSize: 19, color: '#f59e0b', fontFamily: 'monospace', letterSpacing: 2, margin: 0, fontWeight: 800 }}>
-            MISSING FRAGMENTS
+            {tr('gameplay.missingFragments')}
           </h2>
           <p style={{ fontSize: 14, color: t.textPrimary, lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
-            LUMA reached the ship core, but there are still ship fragments scattered on the planet!
+            {tr('gameplay.missingFragmentsBody')}
           </p>
           <p style={{ fontSize: 13, color: t.textSecondary, margin: 0, fontStyle: 'italic' }}>
-            Collect all fragments before returning to the ship core.
+            {tr('gameplay.missingFragmentsHint')}
           </p>
         </div>
 
@@ -945,7 +1017,7 @@ function MissedFragmentsAlert({ onDismiss }) {
             fontWeight: 800,
           }}
         >
-          GOT IT — RESET &amp; RETRY
+          {tr('gameplay.resetRetry')}
         </motion.button>
       </div>
     </motion.div>
@@ -954,6 +1026,7 @@ function MissedFragmentsAlert({ onDismiss }) {
 
 // ── Success Screen ────────────────────────────────────────────────────────────
 function SuccessScreen({ levelId, onNext, onHome, isFinalLevel = false }) {
+  const { t: tr } = useTranslation()
   const theme = useTheme()
   const t = THEMES[theme]
   const particles = useMemo(() => [
@@ -1078,7 +1151,7 @@ function SuccessScreen({ levelId, onNext, onHome, isFinalLevel = false }) {
             margin: 0,
             fontWeight: 900,
           }}>
-            MISSION SYNC COMPLETE
+            {tr('success.missionComplete')}
           </p>
           <h2 style={{
             fontSize: 24,
@@ -1086,12 +1159,12 @@ function SuccessScreen({ levelId, onNext, onHome, isFinalLevel = false }) {
             fontFamily: 'monospace', letterSpacing: 2.5, margin: 0, fontWeight: 900,
             textShadow: isLight ? '0 1px 0 rgba(255,255,255,0.9)' : `0 0 16px ${success}44`,
           }}>
-            LEVEL {levelId} COMPLETE
+            {tr('success.levelComplete', { level: levelId })}
           </h2>
           <p style={{ fontSize: 14, color: t.textPrimary, lineHeight: 1.65, margin: 0, fontWeight: 600 }}>
             {isFinalLevel
-              ? 'Launch pad reached! LUMA is ready to fly home.'
-              : 'LUMA made it back to the ship core! Great navigating.'}
+              ? tr('success.launchPadReached')
+              : tr('success.shipCoreReached')}
           </p>
         </div>
 
@@ -1113,7 +1186,7 @@ function SuccessScreen({ levelId, onNext, onHome, isFinalLevel = false }) {
                   : `0 0 22px ${success}1f, inset 0 1px 0 rgba(255,255,255,0.10)`,
               }}
             >
-              HOME
+              {tr('common.home')}
             </motion.button>
           )}
 
@@ -1134,7 +1207,7 @@ function SuccessScreen({ levelId, onNext, onHome, isFinalLevel = false }) {
               : `0 0 22px ${accent}22, inset 0 1px 0 rgba(255,255,255,0.11)`,
           }}
         >
-          {isFinalLevel ? 'HOME' : 'NEXT LEVEL →'}
+          {isFinalLevel ? tr('common.home') : tr('success.nextLevel')}
         </motion.button>
         </div>
       </motion.div>
@@ -1199,6 +1272,7 @@ function FloatingStar({ emoji, delay, x, duration }) {
 }
 
 function StrategyCard({ card, selected, onSelect }) {
+  const { t: tr } = useTranslation()
   const isSelected = selected === card.id
   const theme = useTheme()
   const t = THEMES[theme]
@@ -1254,16 +1328,16 @@ function StrategyCard({ card, selected, onSelect }) {
         color: isSelected ? card.color : t.textMuted,
         fontWeight: 800, position: 'relative', zIndex: 1, transition: 'all 0.2s',
       }}>
-        {card.subtitle.toUpperCase()}
+        {tr(`strategy.cards.${card.id}.subtitle`, card.subtitle).toUpperCase()}
       </div>
       <p style={{ fontSize: 16, fontWeight: 800, color: isSelected ? card.color : t.textPrimary, lineHeight: 1.3, margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s' }}>
-        {card.title}
+        {tr(`strategy.cards.${card.id}.title`, card.title)}
       </p>
       <p style={{ fontSize: 13, color: isSelected ? (theme === 'light' ? '#1f4266' : '#c8d8e8') : t.textSecondary, lineHeight: 1.55, margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s', fontWeight: 500 }}>
-        {card.description}
+        {tr(`strategy.cards.${card.id}.description`, card.description)}
       </p>
       <p style={{ fontSize: 12, color: isSelected ? card.color : t.textMuted, fontFamily: 'monospace', fontStyle: 'italic', margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s', fontWeight: isSelected ? 700 : 500 }}>
-        {card.quote}
+        {tr(`strategy.cards.${card.id}.quote`, card.quote)}
       </p>
       <motion.div
         initial={{ opacity: 0, scale: 0 }}
@@ -1283,6 +1357,7 @@ function StrategyCard({ card, selected, onSelect }) {
 }
 
 function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER_H }) {
+  const { t: tr } = useTranslation()
   const [selected, setSelected] = useState(null)
   const [confirmed, setConfirmed] = useState(false)
   const theme = useTheme()
@@ -1368,13 +1443,12 @@ function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER
             color: theme === 'light' ? '#1579ac' : '#2dd4bf',
             fontFamily: 'monospace', letterSpacing: 2, margin: '0 0 6px 0', fontWeight: 800,
           }}>
-            LUMA SAYS
+            {tr('strategy.lumaSays')}
           </p>
           <p style={{ fontSize: 16, color: t.textPrimary, lineHeight: 1.5, margin: 0, fontWeight: 800 }}>
-            Awesome work on Level {levelId}! 🎉
-          </p>
+            {tr('strategy.promptTitle', { level: levelId })}</p>
           <p style={{ fontSize: 14, color: t.textSecondary, lineHeight: 1.5, margin: '6px 0 0 0', fontWeight: 500 }}>
-            How did you figure out which way I was facing? Pick the card that matches how <em>you</em> thought about it!
+            {tr('strategy.promptBody')}
           </p>
         </div>
       </motion.div>
@@ -1420,7 +1494,7 @@ function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER
                 fontWeight: 800,
               }}
             >
-              {selected ? '✓  THAT\'S MY STRATEGY!' : 'PICK A CARD TO CONTINUE'}
+              {selected ? `${'\u2713'}  ${tr('strategy.confirm')}` : tr('strategy.pickCard')}
             </motion.button>
           ) : (
             <motion.div
@@ -1431,7 +1505,7 @@ function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER
               style={{ fontSize: 40, display: 'flex', alignItems: 'center', gap: 12 }}
             >
               <span>🎊</span>
-              <span style={{ fontSize: 19, color: '#10b981', fontFamily: 'monospace', letterSpacing: 2, fontWeight: 800 }}>GREAT CHOICE!</span>
+              <span style={{ fontSize: 19, color: '#10b981', fontFamily: 'monospace', letterSpacing: 2, fontWeight: 800 }}>{tr('strategy.greatChoice')}</span>
               <span>🎊</span>
             </motion.div>
           )}
@@ -1448,8 +1522,7 @@ function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER
             cursor: 'pointer', letterSpacing: 1, fontWeight: 600,
           }}
         >
-          skip →
-        </button>
+          {tr('strategy.skip')}</button>
       )}
     </motion.div>
   )
@@ -1620,6 +1693,7 @@ function LevelScreen({
   cancelLumaRadioSpeech,
   onPlaySfx,
 }) {
+  const { t: tr } = useTranslation()
   const [tutorialSteps, setTutorialSteps] = useState([])
   const [tutorialIndex, setTutorialIndex] = useState(0)
   const [radioRetryNonce, setRadioRetryNonce] = useState(0)
@@ -2098,10 +2172,10 @@ function LevelScreen({
   }, [finishSuccessfulLevel])
   const phaseBadgeText =
     phase === 'identify'
-      ? 'PHASE 1 - IDENTIFY'
+      ? tr('gameplay.phaseIdentify')
       : phase === 'develop'
-        ? (levelConfig.traceMode ? 'PHASE 2 - TRACE' : 'PHASE 2 - DEVELOP')
-        : 'COMPLETE'
+        ? (levelConfig.traceMode ? tr('gameplay.phaseTrace') : tr('gameplay.phaseDevelop'))
+        : tr('gameplay.phaseComplete')
   const panelInitial = fastEntry ? false : { opacity: 0, x: 20 }
   const sptPanelInitial = fastEntry ? false : { opacity: 0, x: 20, y: 12 }
   const panelTransition = fastEntry ? { duration: 0 } : undefined
@@ -2159,7 +2233,7 @@ function LevelScreen({
               fontFamily: 'monospace', letterSpacing: 3, margin: 0,
               fontWeight: 800,
             }}>
-              LEVEL {levelConfig.id} — {getDisplayWorldName(levelConfig).toUpperCase()}
+              {tr('gameplay.levelTitle', { level: levelConfig.id, world: getDisplayWorldName(levelConfig, tr).toUpperCase() })}
             </p>
           </div>
           {!levelConfig.skipIdentify && (
@@ -2357,6 +2431,7 @@ function LevelScreen({
 
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function App() {
+  const { t: tr, i18n } = useTranslation()
   const stage = useScaledStage()
   const bgMusicRef = useRef(null)
   const musicUnlockedRef = useRef(false)
@@ -2433,10 +2508,12 @@ export default function App() {
       synth.cancel()
       const speechToken = lumaSpeechTokenRef.current + 1
       lumaSpeechTokenRef.current = speechToken
+      const activeLanguage = (i18n.resolvedLanguage || i18n.language || 'en').toLowerCase()
+      const isGerman = activeLanguage.startsWith('de')
       const utterance = new SpeechSynthesisUtterance(speechText)
-      const preferredVoice = getPreferredLumaVoice(synth)
+      const preferredVoice = getPreferredLumaVoice(synth, activeLanguage)
       if (preferredVoice) utterance.voice = preferredVoice
-      utterance.lang = preferredVoice?.lang || 'en-US'
+      utterance.lang = isGerman ? 'de-DE' : (preferredVoice?.lang || 'en-US')
       utterance.pitch = 1.32
       utterance.rate = 0.94
       utterance.volume = 0.9
@@ -2455,7 +2532,7 @@ export default function App() {
       restoreBgMusicVolume()
       return false
     }
-  }, [restoreBgMusicVolume])
+  }, [i18n.language, i18n.resolvedLanguage, restoreBgMusicVolume])
 
   const unlockAndPlayMusic = useCallback(() => {
     const audio = bgMusicRef.current
@@ -2528,7 +2605,8 @@ export default function App() {
     if (!supported) return undefined
 
     const handleVoicesChanged = () => {
-      setVoiceSupported(Boolean(getPreferredLumaVoice(synth) || synth.getVoices?.().length))
+      const activeLanguage = i18n.resolvedLanguage || i18n.language || 'en'
+      setVoiceSupported(Boolean(getPreferredLumaVoice(synth, activeLanguage) || synth.getVoices?.().length))
     }
 
     synth.addEventListener?.('voiceschanged', handleVoicesChanged)
@@ -2536,7 +2614,7 @@ export default function App() {
       synth.removeEventListener?.('voiceschanged', handleVoicesChanged)
       cancelLumaRadioSpeech()
     }
-  }, [cancelLumaRadioSpeech])
+  }, [cancelLumaRadioSpeech, i18n.language, i18n.resolvedLanguage])
 
   const toggleTheme = useCallback(() => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light')
@@ -2819,7 +2897,7 @@ export default function App() {
                     cursor: 'pointer',
                   }}
                 >
-                  Home
+                  {tr('common.home')}
                 </button>
                 <button
                   onClick={levelHeaderControls.onReplayTutorial}
@@ -2840,7 +2918,7 @@ export default function App() {
                     opacity: levelHeaderControls.canReplayTutorial ? 1 : 0.6,
                   }}
                 >
-                  Replay Tutorial
+                  {tr('gameplay.replayTutorial')}
                 </button>
               </div>
             )}
@@ -2856,10 +2934,11 @@ export default function App() {
             transform: 'translateX(-50%)',
             textAlign: 'center',
           }}>
-            {appPhase === 'playing' ? 'Lost in space. Guided by you.' : 'Help LUMA find the way home.'}
+            {appPhase === 'playing' ? tr('gameplay.headerPlaying') : tr('gameplay.headerMenu')}
           </p>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <HeaderLanguageSelect theme={theme} />
             <LevelSoundButton
               theme={theme}
               muted={muted}
@@ -2970,7 +3049,7 @@ export default function App() {
                     cursor: 'pointer',
                   }}
                 >
-                  Home
+                  {tr('common.home')}
                 </button>
                 <button
                   onClick={levelHeaderControls.onReplayTutorial}
@@ -2991,7 +3070,7 @@ export default function App() {
                     opacity: levelHeaderControls.canReplayTutorial ? 1 : 0.6,
                   }}
                 >
-                  Replay Tutorial
+                  {tr('gameplay.replayTutorial')}
                 </button>
               </div>
             )}
@@ -3008,11 +3087,12 @@ export default function App() {
             transform: 'translateX(-50%)',
             textAlign: 'center',
           }}>
-            {appPhase === 'playing' ? 'Lost in space. Guided by you.' : 'Help LUMA find the way home.'}
+            {appPhase === 'playing' ? tr('gameplay.headerPlaying') : tr('gameplay.headerMenu')}
           </p>
 
           {/* Header controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <HeaderLanguageSelect theme={theme} />
             <LevelSoundButton
               theme={theme}
               muted={muted}

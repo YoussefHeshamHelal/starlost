@@ -1,14 +1,674 @@
 {
-  "luma.radio.l1":       "Rock to my left... energy crystal two tiles ahead.",
-  "luma.tutorial.step1": "Hi! I'm LUMA. I can only see what's directly ahead.",
-  "luma.tutorial.step2": "You have the orbital scan. Tell me where I am.",
-  "luma.tutorial.step3": "Build me a block sequence. Let's try!",
-  "spt.prompt":          "Which object is directly ahead of LUMA?",
-  "decomp.prompt":       "Tap the grid to mark a midpoint waypoint.",
-  "strategy.embody":     "I imagined standing where you stood",
-  "strategy.rotate":     "I rotated the scan in my head",
-  "strategy.landmarks":  "I used the landmarks around you",
-  "luma.emotion.l1":     "I'm okay… I think. Can you see where I am?",
-  "luma.emotion.l8":     "I'm really turned around in here...",
-  "luma.emotion.l12":    "We're almost home. Guide me through this!"
+  "common": {
+    "back": "Back",
+    "close": "Close",
+    "home": "Home",
+    "next": "Next",
+    "done": "Done",
+    "ok": "OK",
+    "level": "Level",
+    "blocks": "blocks",
+    "block": "block",
+    "gold": "Gold",
+    "silver": "Silver",
+    "bronze": "Bronze",
+    "completed": "Completed: {{completedCount}} / {{totalLevels}}",
+    "muteMusic": "Mute background music",
+    "unmuteMusic": "Unmute background music",
+    "aboutStarlost": "About STARLOST",
+    "languageEnglish": "English",
+    "languageGerman": "Deutsch"
+  },
+  "blocks": {
+    "moveForward": "MOVE FORWARD",
+    "turnLeft": "TURN LEFT",
+    "turnRight": "TURN RIGHT",
+    "collect": "COLLECT",
+    "repeat": "REPEAT",
+    "ifPath": "IF PATH",
+    "if": "IF",
+    "else": "ELSE",
+    "ifElse": "IF/ELSE",
+    "ahead": "ahead",
+    "left": "to the left",
+    "right": "to the right",
+    "pathAhead": "PATH ahead",
+    "pathLeft": "PATH to the left",
+    "pathRight": "PATH to the right",
+    "repeatTimes": "REPEAT ({{times}}) TIMES",
+    "ifCondition": "IF {{condition}}",
+    "do": "do:",
+    "elseLower": "else:",
+    "doBranch": "DO",
+    "elseBranch": "ELSE"
+  },
+  "start": {
+    "ariaLabel": "STARLOST start page",
+    "tagline": "Lost in space. Guided by you.",
+    "startGame": "Start Game",
+    "continue": "Continue",
+    "achievements": "Achievements",
+    "achievementsTitle": "ACHIEVEMENTS",
+    "achievementTotals": "Achievement totals",
+    "language": "Language",
+    "english": "English",
+    "german": "Deutsch",
+    "aboutBody": "STARLOST is a child-friendly educational space adventure where players help LUMA find her way home by solving grid-world puzzle levels.",
+    "aboutThesis": "The game is designed to support and assess children's spatial perspective-taking and computational thinking through movement blocks, path planning, perspective clues, and problem-solving challenges.",
+    "aboutCredit": "STARLOST was created as part of a bachelor thesis project by Youssef Hesham Helal.",
+    "achievementsList": {
+      "firstMission": {
+        "title": "First Mission",
+        "description": "Complete a level."
+      },
+      "goldExplorer": {
+        "title": "Gold Explorer",
+        "description": "Earn a gold medal."
+      },
+      "risingStar": {
+        "title": "Rising Star",
+        "description": "Complete 5 levels."
+      },
+      "spaceNavigator": {
+        "title": "Space Navigator",
+        "description": "Complete 10 levels."
+      },
+      "deepExplorer": {
+        "title": "Deep Explorer",
+        "description": "Complete all 23 levels."
+      },
+      "bronzeMaster": {
+        "title": "Bronze Master",
+        "description": "Earn bronze medals on all levels."
+      },
+      "silverMaster": {
+        "title": "Silver Master",
+        "description": "Earn silver medals on all levels."
+      },
+      "goldMaster": {
+        "title": "Gold Master",
+        "description": "Earn gold medals on all levels."
+      }
+    }
+  },
+  "mission": {
+    "ariaLabel": "STAR Code Station",
+    "speechStart": "Let's create your",
+    "speechAccent": "STARLOST",
+    "speechEnd": "code!",
+    "saving": "Saving...",
+    "invalid": "Fill every box and pick a number.",
+    "duplicate": "This STARLOST code is already used. Please try another code.",
+    "saveError": "Star Code Station could not save this code. Please try again.",
+    "preview": "Your STARLOST Code",
+    "helper": "Type only one letter in each box.",
+    "create": "Create My Code",
+    "currentCode": "Current STARLOST code {{code}}",
+    "pickDigit": "Pick one number from 0 to 9",
+    "pickNumber": "Pick number {{digit}}",
+    "fields": {
+      "firstInitial": "First letter of your first name",
+      "secondInitial": "First letter of your second name",
+      "colorInitial": "First letter of your favorite color",
+      "animalInitial": "First letter of your favorite animal"
+    }
+  },
+  "starMap": {
+    "ariaLabel": "Star map level select",
+    "title": "STAR MAP",
+    "crashSite": "Crash Site",
+    "forestEntrance": "Forest Entrance",
+    "deepForest": "Deep Forest",
+    "repairSite": "Repair Site",
+    "launchSite": "Launch Site",
+    "progress": "PROGRESS",
+    "levelWithMedal": "Level {{level}}, {{medal}} medal",
+    "level": "Level {{level}}"
+  },
+  "gameplay": {
+    "headerPlaying": "Lost in space. Guided by you.",
+    "headerMenu": "Help LUMA find the way home.",
+    "replayTutorial": "Replay Tutorial",
+    "themeMode": "{{theme}} Mode",
+    "levelTitle": "LEVEL {{level}} - {{world}}",
+    "phaseIdentify": "IDENTIFY",
+    "phaseDevelop": "BUILD PROGRAM",
+    "radioTitle": "LUMA HELMET RADIO",
+    "replayRadioVoice": "Replay LUMA radio voice",
+    "replayRadioTitle": "Replay radio voice",
+    "visorFlip": "VISOR FLIP",
+    "tryIt": "Try it!",
+    "sptUnsureHint": "LUMA seems unsure... maybe peek through her helmet?",
+    "sptPrompt": "Which direction is LUMA facing?",
+    "chooseFacing": "Choose LUMA facing {{direction}}",
+    "notQuiteFacing": "Not quite - use the radio clue to find LUMA's facing.",
+    "correctFacing": "Correct! Now guide LUMA home.",
+    "directions": {
+      "up": "Up",
+      "right": "Right",
+      "down": "Down",
+      "left": "Left"
+    },
+    "predictionTitle": "PREDICTION CHALLENGE",
+    "predictionPerfect": "Perfect prediction!",
+    "predictionExact": "You knew exactly where LUMA would end up.",
+    "predictionWrong": "Not quite...",
+    "predictionChanged": "LUMA ended up at a different tile. What changed your plan?",
+    "predictionSet": "Prediction set: [{{x}}, {{y}}]",
+    "predictionExecute": "Now execute your program - let's see if you're right!",
+    "predictionTap": "Tap a grid tile to predict where LUMA will end up.",
+    "predictionRequired": "You must predict before you can run the program.",
+    "missingFragments": "MISSING FRAGMENTS",
+    "missingFragmentsBody": "LUMA reached the ship core, but there are still ship fragments scattered on the planet!",
+    "missingFragmentsHint": "Collect all fragments before returning to the ship core.",
+    "resetRetry": "GOT IT - RESET & RETRY",
+    "phaseTrace": "TRACE",
+    "phaseComplete": "COMPLETE"
+  },
+  "commandBuilder": {
+    "speed": "LUMA SPEED",
+    "instructions": "INSTRUCTIONS",
+    "tapOrDrag": "Tap or drag from here",
+    "program": "PROGRAM",
+    "topToBottom": "Top to bottom order",
+    "dragBlocksHere": "Drag blocks here",
+    "delete": "Delete",
+    "clear": "Clear",
+    "showCode": "Show Code",
+    "closeShowCode": "Close Show Code",
+    "resetLuma": "RESET LUMA",
+    "running": "RUNNING",
+    "addElseBlock": "ADD ELSE BLOCK",
+    "setPredictionFirst": "SET PREDICTION FIRST",
+    "executeProgram": "EXECUTE PROGRAM",
+    "warningFlipped": "WARNING: LEFT / RIGHT FLIPPED",
+    "shortestPath": "Shortest Path: {{count}} Blocks",
+    "launchProgram": "LAUNCH PROGRAM",
+    "traceInstruction": "Read it, trace it, then choose LUMA's ending tile.",
+    "programBlockCount": "({{count}} {{unit}})",
+    "showCodeIntroPrefix": "Even top universities teach block-based coding (e.g., ",
+    "showCodeIntroSuffix": "). But behind the scenes, the blocks you have assembled can also be shown in Python, one of the world's most widely used programming languages:",
+    "slow": "SLOW",
+    "medium": "MED",
+    "fast": "FAST",
+    "times": "TIMES",
+    "emptyPython": "# Add blocks to the Program box to see Python here."
+  },
+  "tutorial": {
+    "step": "STEP {{current}} / {{total}}",
+    "doThisNow": "Do this now: {{action}}",
+    "skip": "Skip Tutorial"
+  },
+  "success": {
+    "missionComplete": "MISSION SYNC COMPLETE",
+    "levelComplete": "LEVEL {{level}} COMPLETE",
+    "launchPadReached": "Launch pad reached! LUMA is ready to fly home.",
+    "shipCoreReached": "LUMA made it back to the ship core! Great navigating.",
+    "nextLevel": "NEXT LEVEL ->"
+  },
+  "strategy": {
+    "lumaSays": "LUMA SAYS",
+    "promptTitle": "Awesome work on Level {{level}}!",
+    "promptBody": "How did you figure out which way I was facing? Pick the card that matches how you thought about it!",
+    "confirm": "THAT'S MY STRATEGY!",
+    "pickCard": "PICK A CARD TO CONTINUE",
+    "greatChoice": "GREAT CHOICE!",
+    "skip": "skip ->",
+    "cards": {
+      "embody": {
+        "title": "I Imagined Being LUMA",
+        "subtitle": "Embody",
+        "description": "I pictured myself standing right where LUMA was, and felt which way I was facing.",
+        "quote": "\"I thought about your view.\""
+      },
+      "rotate": {
+        "title": "I Rotated the Map",
+        "subtitle": "Rotate",
+        "description": "I spun the map around in my head until it matched the way LUMA was looking.",
+        "quote": "\"I turned the map.\""
+      },
+      "landmarks": {
+        "title": "I Used the Rocks",
+        "subtitle": "Landmarks",
+        "description": "I found the rocks and ship parts nearby to figure out which direction LUMA was facing.",
+        "quote": "\"I saw the tall rock.\""
+      }
+    }
+  },
+  "radio": {
+    "relative": {
+      "front": "in front of me",
+      "right": "to my right",
+      "back": "behind me",
+      "left": "to my left"
+    },
+    "obstacles": {
+      "rock": "rock",
+      "tree": "tree",
+      "box": "box",
+      "aRock": "a rock",
+      "aTree": "a tree",
+      "aBox": "a box",
+      "edge": "the edge of the map"
+    },
+    "canYouSee": "Can you see where I am? ",
+    "wall": "{{opener}}There is {{obstacle}} {{relative}}.",
+    "fragment": "{{opener}}I can sense a ship fragment {{relative}}.",
+    "goal": "{{opener}}I can detect the ship core {{relative}}!",
+    "clear": "{{opener}}The path around me looks clear... but I can't tell which way I'm facing.",
+    "fixed": {
+      "openFrontRightBlockedBackLeft": "There's open path in front of me and on my right, but there's no path behind me or to my left.",
+      "treeLeft": "There is a tree on my left.",
+      "treeRightFragmentFront": "There is a tree to my right and a ship fragment in front of me.",
+      "level15": "Can you tell where I am? There is a box behind me and a box on my right.",
+      "level17": "Can you see where I am? There is a box on my right and a box on my left, and a ship fragment in front of me.",
+      "level21": "Can you see where I am? There's open path in front of me and on my right, but there's no path behind me or to my left.",
+      "level23": "Can you see where I am? There is no path behind me."
+    },
+    "collectionOpen": "Got it! I found a ship fragment!",
+    "collectionWall": "{{opener}} There is {{obstacle}} {{relative}} from here.",
+    "collectionMore": "{{opener}} I can sense another fragment nearby - keep going!",
+    "collectionGoal": "{{opener}} I can detect the ship core {{relative}}!",
+    "collectionClear": "{{opener}} The area looks clear. Guide me to the next fragment!",
+    "blocked": "I can't move forward! There's {{blockedText}} in front of me. My path is blocked.",
+    "successLaunch": "Launch pad reached! LUMA is ready to fly home.",
+    "successCore": "I made it! The ship core is right here - we did it!",
+    "missing": "I'm at the ship core, but I'm missing {{count}} fragment{{plural}}... Reset and try a different path!",
+    "traceRetry": "Not quite. Trace the code again and try another ending tile.",
+    "traceLaunch": "Correct! The launch pad is appearing. Watch LUMA run the launch code!",
+    "traceCore": "Correct! The ship core is appearing. Watch LUMA run the program!",
+    "uncertainMessages": [
+      "Umm... I think there's a rock in front of me... or maybe to my side? Hard to tell...",
+      "I'm not totally sure... but something feels close on my left? The signal's a bit fuzzy.",
+      "Wait... is that a rock? I think I see something, but I can't tell exactly which way I'm facing.",
+      "Hmm... I feel like something is blocking my path... I just can't tell from which direction."
+    ],
+    "visorReactions": [
+      "Ohhh! Now I can see it clearly! That helps so much!",
+      "Yes! That's exactly what's in front of me! Good thinking!",
+      "Thanks! This helps! Now I know exactly where I am!",
+      "Wow, I can see everything now! You're really smart!"
+    ],
+    "uncertain": {
+      "wallFront": "Umm... I think there's {{obstacle}} in front of me? I'm not totally sure...",
+      "wallRight": "I'm not totally sure... but I think something is on my right.",
+      "wallLeft": "Wait... I think I sense {{obstacle}} to my left? Hard to tell with all this dust.",
+      "wallBack": "Something feels close behind me... but my sensors are a bit fuzzy.",
+      "partFront": "I think... I can sense a ship piece in front of me? Maybe? The signal keeps breaking up.",
+      "partRight": "Hmm... something's on my right? It might be a ship fragment, I'm not sure.",
+      "partLeft": "Wait... is that a ship part to my left? I can barely tell from here.",
+      "partBack": "Something's nearby... behind me? I can't quite figure it out.",
+      "goal": "I think... I can detect the ship core somewhere {{relative}}? The signal is weak though.",
+      "clear": "Hmm... I can't tell which way I'm facing. My sensors are acting up. Can you help?",
+      "level13": "I sense a tree beside me, but my visor is blurry. It might be on my left or my right.",
+      "level13Confirm": "Yes, that's right! The tree is {{sideTree}}, the ship core is to my left, and the fragments are straight ahead.",
+      "level13ConfirmFallback": "Yes, that's right! Now I know where the tree line is."
+    },
+    "hintOpeners": [
+      "Can you see where I am?",
+      "Can you tell where I am?",
+      "Can you figure out where I am?",
+      "Can you spot where I am?"
+    ],
+    "identifySuccessMessages": [
+      "Yes! You figured out which way I am facing!",
+      "That is right! You got my direction correct!",
+      "Yes! You guessed my direction correctly!",
+      "Great job! You knew which way I was facing!"
+    ]
+  },
+  "levelNames": {
+    "1": "Guided Start",
+    "2": "First Turn",
+    "3": "First Identify",
+    "4": "Identify Practice",
+    "5": "Fragment Route",
+    "6": "Pattern Pressure",
+    "7": "Repeat Forward",
+    "8": "Repeat Then Turn",
+    "9": "Pattern Inside Repeat",
+    "10": "Repeat to a Fragment",
+    "11": "Repeat Intro",
+    "12": "Repeat Builder",
+    "13": "Uncertain Radio + First Visor Flip",
+    "14": "Loop + Fragment Mastery",
+    "15": "IF Turn Helper",
+    "16": "IF U-Turn Path",
+    "17": "Repair Site Logic",
+    "18": "IF/ELSE Turn Choice",
+    "19": "IF/ELSE Fragment Corridor",
+    "20": "Nested IF/ELSE Trail",
+    "21": "Launch Trace Intro",
+    "22": "Nested Launch Trace",
+    "23": "Final Launch Trace"
+  },
+  "spt": {
+    "prompt": "Which object is directly ahead of LUMA?"
+  },
+  "decomp": {
+    "prompt": "Tap the grid to mark a midpoint waypoint."
+  },
+  "grid": {
+    "predictionPrompt": "TAP A TILE TO SET YOUR PREDICTION",
+    "forestTree": "FOREST TREE!",
+    "bigRock": "BIG ROCK!",
+    "repairBox": "REPAIR BOX!",
+    "wall": "WALL!",
+    "boundary": "BOUNDARY",
+    "launchPad": "LAUNCH PAD",
+    "shipCore": "SHIP CORE!",
+    "shipPiece": "SHIP PIECE!",
+    "allClear": "ALL CLEAR!",
+    "myRight": "MY RIGHT",
+    "myLeft": "MY LEFT",
+    "inFrontOfMe": "IN FRONT OF ME",
+    "helmetCam": "LUMA'S HELMET CAM",
+    "tapToClose": "TAP TO CLOSE"
+  },
+  "homePage": {
+    "missionControl": "MISSION CONTROL",
+    "chooseMission": "Choose a mission and guide LUMA through the stars.",
+    "liveSummary": "Crash Site, Forest Entrance, Deep Forest, Repair Site, and the final Launch Site mission are live now.",
+    "liveNow": "LIVE NOW",
+    "levelsReady": "Levels 1-23 ready to play",
+    "missionZone": "MISSION ZONE",
+    "comingSoon": "COMING SOON",
+    "play": "PLAY",
+    "locked": "LOCKED",
+    "descriptions": {
+      "crashSite": "Explore the crash site and learn how to guide LUMA.",
+      "forestEntrance": "Follow the glowing forest entrance and start using repeat routes.",
+      "deepForest": "Push deeper through forest paths with visor help and fragment routes.",
+      "repairSite": "Reach the repair bay, learn IF PATH, and collect every fragment.",
+      "launchSite": "Trace the final launch code and help LUMA lift off for home.",
+      "future": "New worlds are still powering up for future rescue missions."
+    }
+  },
+  "tutorials": {
+    "level-1-welcome": {
+      "title": "Meet LUMA",
+      "body": "This is LUMA. We help her get home.",
+      "nextLabel": "Let's go"
+    },
+    "level-1-grid": {
+      "title": "This is the map",
+      "body": "The map shows where LUMA can move."
+    },
+    "level-1-luma": {
+      "title": "Here is LUMA",
+      "body": "She starts on this tile."
+    },
+    "level-1-goal": {
+      "title": "Here is home",
+      "body": "Guide LUMA to the glowing ship core."
+    },
+    "level-1-palette": {
+      "title": "These are blocks",
+      "body": "Blocks build LUMA's plan."
+    },
+    "level-1-forward": {
+      "title": "MOVE FORWARD",
+      "body": "This block makes LUMA move forward one step in the direction she is facing.",
+      "actionLabel": "Tap MOVE FORWARD"
+    },
+    "level-1-sequence": {
+      "title": "Your plan goes here",
+      "body": "Each block joins LUMA's path."
+    },
+    "level-1-build-three": {
+      "title": "Add three MOVE FORWARD blocks",
+      "body": "This level needs three tiny moves.",
+      "actionLabel": "Add 3 MOVE FORWARD blocks"
+    },
+    "level-1-run": {
+      "title": "Press Execute Program",
+      "body": "Now let LUMA follow your plan.",
+      "actionLabel": "Press Execute Program"
+    },
+    "level-1-success": {
+      "title": "You did it!",
+      "body": "Nice job helping LUMA.",
+      "nextLabel": "Yay!"
+    },
+    "level-6-trees-block-path": {
+      "title": "Trees block the path",
+      "body": "Trees now replace rocks. They block LUMA's path too.",
+      "nextLabel": "Got it"
+    },
+    "level-7-repeat-forward": {
+      "title": "Use Repeat for long repeated paths",
+      "body": "Instead of adding four MOVE FORWARD blocks, use REPEAT 4 with MOVE FORWARD inside. This makes the program more efficient.",
+      "nextLabel": "Got it"
+    },
+    "level-7-blocks-inside-repeat": {
+      "title": "Blocks go inside Repeat",
+      "body": "The blocks you want to repeat are added inside the Repeat block.",
+      "nextLabel": "Got it"
+    },
+    "level-8-repeat-then-turn": {
+      "title": "Turns can stay outside",
+      "body": "Some blocks stay outside Repeat when the path changes.",
+      "nextLabel": "Okay"
+    },
+    "level-9-repeat-pattern": {
+      "title": "Repeat a pattern",
+      "body": "Repeat can hold more than one block. Everything inside repeats in order.",
+      "nextLabel": "I see"
+    },
+    "level-10-repeat-fragment": {
+      "title": "Repeat to the fragment",
+      "body": "Use Repeat to reach the fragment, then Collect.",
+      "nextLabel": "Ready"
+    },
+    "level-11-repeat-collect-turn": {
+      "title": "Two small Repeat blocks",
+      "body": "Now use two small Repeat blocks: one before collecting and one after turning.",
+      "nextLabel": "Ready"
+    },
+    "level-15-boxes-block-path": {
+      "title": "Boxes block the path",
+      "body": "Boxes now replace trees. They block LUMA's path too.",
+      "nextLabel": "Got it"
+    },
+    "level-15-meet-if-path": {
+      "title": "Meet IF PATH",
+      "body": "IF PATH checks whether LUMA can move in a chosen direction. You can choose ahead, to the left, or to the right.",
+      "nextLabel": "Got it"
+    },
+    "level-15-if-repeat": {
+      "title": "Use Repeat with IF PATH",
+      "body": "Put IF PATH inside Repeat so LUMA can check a direction again and again. The dropdown helps you choose which direction LUMA checks.",
+      "nextLabel": "Ready"
+    },
+    "level-16-same-rule-two-turns": {
+      "title": "Same rule, two turns",
+      "body": "This path bends twice. Use Repeat with IF PATH to the right so LUMA turns when a side path opens.",
+      "nextLabel": "Got it"
+    },
+    "level-17-collect-after-moving": {
+      "title": "Collect after moving",
+      "body": "This path has ship fragments. Put COLLECT after MOVE FORWARD inside the Repeat block so LUMA collects each fragment she lands on.",
+      "nextLabel": "Got it"
+    },
+    "level-18-if-else-command": {
+      "title": "New block: IF/ELSE",
+      "body": "IF/ELSE helps LUMA choose between two actions. IF means \"do this when the path is open.\" ELSE means \"otherwise, do this instead.\"",
+      "nextLabel": "Got it"
+    },
+    "level-18-two-places": {
+      "title": "Two parts in one block",
+      "body": "This block has two spaces. Use the top part for what LUMA should do when the path is open. Use ELSE for what LUMA should do otherwise.",
+      "nextLabel": "I see"
+    },
+    "level-18-else-needed": {
+      "title": "ELSE needs a block",
+      "body": "ELSE cannot stay empty in this level. Add a block there so LUMA knows what to do when the path is blocked.",
+      "nextLabel": "Ready"
+    },
+    "level-19-two-blocks-inside-if": {
+      "title": "More blocks inside IF or ELSE",
+      "body": "The IF and ELSE parts can hold more than one block. This lets LUMA do more than one action depending on whether the path check is true or false.",
+      "nextLabel": "Got it"
+    },
+    "level-20-nested-if-else": {
+      "title": "Nested IF/ELSE blocks",
+      "body": "You can put an IF/ELSE block inside another IF/ELSE block. This makes LUMA check the path in 3 directions instead of 2.",
+      "nextLabel": "Got it"
+    },
+    "level-21-trace-code": {
+      "title": "Trace the code",
+      "body": "This time, the program is already written for LUMA.",
+      "nextLabel": "Okay"
+    },
+    "level-21-read-carefully": {
+      "title": "Read carefully",
+      "body": "Look at the blocks and trace where LUMA will go.",
+      "nextLabel": "I see"
+    },
+    "level-21-choose-ending": {
+      "title": "Choose the ending tile",
+      "body": "Tap the tile where you think LUMA will finish.",
+      "nextLabel": "Ready"
+    },
+    "level-21-launch-pad": {
+      "title": "Find the correct tile",
+      "body": "If you choose the correct tile, the ship core will appear and LUMA will run the program.",
+      "nextLabel": "Run it"
+    },
+    "level-23-final-level-intro": {
+      "title": "Final level",
+      "body": "This is the final level. Solve it so LUMA can launch her fixed ship and go home.",
+      "nextLabel": "Let's finish"
+    },
+    "level-23-launch-pad": {
+      "title": "Find the correct tile",
+      "body": "If you choose the correct tile, the launch pad will appear and LUMA will go home.",
+      "nextLabel": "Launch time"
+    },
+    "level-1-reset": {
+      "title": "Need another try?",
+      "body": "If something goes wrong, use Reset and try again.",
+      "nextLabel": "Okay"
+    },
+    "luma-confused-intro": {
+      "title": "LUMA is confused",
+      "body": "She does not know which way she is facing. Help her figure it out.",
+      "nextLabel": "I can help"
+    },
+    "helmet-radio-intro": {
+      "title": "Helmet Radio",
+      "body": "LUMA sends a clue here. Read it first.",
+      "nextLabel": "Got it"
+    },
+    "identify-phase-intro": {
+      "title": "First, identify",
+      "body": "Figure out which way LUMA is facing before you plan moves.",
+      "nextLabel": "Okay"
+    },
+    "facing-question-intro": {
+      "title": "Pick LUMA's direction",
+      "body": "Listen to the clue and tap the LUMA picture that matches the way she is facing.",
+      "actionLabel": "Pick the correct LUMA picture"
+    },
+    "rock-obstacle-intro": {
+      "title": "Rocks block the path",
+      "body": "LUMA cannot walk through rocks.",
+      "nextLabel": "Okay"
+    },
+    "turn-commands-intro": {
+      "title": "Now you may need a turn",
+      "body": "MOVE FORWARD is not enough anymore. Use left or right turns too.",
+      "nextLabel": "Try yourself"
+    },
+    "uncertain-radio-intro": {
+      "title": "This clue sounds fuzzy",
+      "body": "Sometimes LUMA sounds unsure. The clue may need a closer look.",
+      "nextLabel": "Okay"
+    },
+    "visor-flip-intro": {
+      "title": "Try Visor Flip now!",
+      "body": "Tap Visor Flip so you can see what LUMA sees.",
+      "actionLabel": "Turn Visor Flip on"
+    },
+    "visor-flip-level-9-intro": {
+      "title": "Try Visor Flip now!",
+      "body": "Tap Visor Flip so you can see what LUMA sees.",
+      "actionLabel": "Turn Visor Flip on"
+    },
+    "repeat-intro": {
+      "title": "Repeat helps with patterns",
+      "body": "If you notice a path repeating, use REPEAT so LUMA can do those blocks again.",
+      "nextLabel": "Show me"
+    },
+    "repeat-add-block": {
+      "title": "Add one Repeat block",
+      "body": "Tap REPEAT first, then put the pattern you want inside the block.",
+      "actionLabel": "Add REPEAT"
+    },
+    "repeat-settings": {
+      "title": "Tune the Repeat block",
+      "body": "Change the number at the top to choose how many times LUMA repeats the blocks inside.",
+      "nextLabel": "Got it"
+    },
+    "repeat-builder-intro": {
+      "title": "Some blocks stay outside Repeat",
+      "body": "Use normal blocks before or after REPEAT when the whole path is not the same.",
+      "nextLabel": "Okay"
+    },
+    "if-path-intro": {
+      "title": "New block: IF PATH",
+      "body": "IF PATH checks whether LUMA can move in one direction.",
+      "nextLabel": "What happens?"
+    },
+    "if-path-true-false": {
+      "title": "Only runs when true",
+      "body": "If that path is open, LUMA runs the blocks inside. If that path is blocked, she skips the inside blocks.",
+      "nextLabel": "Add one"
+    },
+    "if-path-add": {
+      "title": "Add an IF block",
+      "body": "Tap IF PATH to add the conditional block to your program.",
+      "actionLabel": "Add IF PATH"
+    },
+    "if-path-block": {
+      "title": "Blocks go inside",
+      "body": "Drag blocks into the IF block just like you do with REPEAT.",
+      "nextLabel": "I see"
+    },
+    "if-path-inside": {
+      "title": "The inside can be a pattern",
+      "body": "The inside can hold many blocks, and you can move them up or down.",
+      "nextLabel": "Nice"
+    },
+    "if-path-nesting": {
+      "title": "IF and REPEAT can nest",
+      "body": "REPEAT can go inside IF, and IF can go inside REPEAT. That helps solve Repair Site paths.",
+      "nextLabel": "Ready"
+    },
+    "ship-fragments-intro": {
+      "title": "Collect ship fragments",
+      "body": "Pick up every glowing ship piece on the map.",
+      "nextLabel": "Got it"
+    },
+    "collect-command-intro": {
+      "title": "Use COLLECT on a fragment",
+      "body": "When LUMA stands on a ship fragment, add COLLECT to pick it up.",
+      "nextLabel": "I will collect it"
+    },
+    "collect-all-fragments-intro": {
+      "title": "Do not finish too early",
+      "body": "Get all ship fragments before you reach the ship core.",
+      "nextLabel": "Okay"
+    },
+    "fog-intro": {
+      "title": "Fog hides tiles",
+      "body": "Now you cannot see everything. Use clues and careful planning.",
+      "nextLabel": "I see"
+    },
+    "prediction-intro": {
+      "title": "Prediction Challenge",
+      "body": "This box asks you to guess where LUMA will stop before you run.",
+      "nextLabel": "Okay"
+    }
+  }
 }

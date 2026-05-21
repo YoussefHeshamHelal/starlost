@@ -1,85 +1,61 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { isValidParticipantId } from '../utils/participants'
 import { MEDAL_RANKS, TOTAL_LEVELS } from '../utils/progress'
 import MenuSoundIcon from './MenuSoundIcon'
 import './menuScreens.css'
 
-const COPY = {
-  tagline: 'Lost in space. Guided by you.',
-  startGame: 'Start Game',
-  continue: 'Continue',
-  achievements: 'Achievements',
-  language: 'Language',
-  aboutTitle: 'About STARLOST',
-  aboutBody: 'STARLOST is a child-friendly educational space adventure where players help LUMA find her way home by solving grid-world puzzle levels.',
-  aboutThesis: 'The game is designed to support and assess children’s spatial perspective-taking and computational thinking through movement blocks, path planning, perspective clues, and problem-solving challenges.',
-  aboutCredit: 'STARLOST was created as part of a bachelor thesis project by Youssef Hesham Helal.',
-  achievementsTitle: 'ACHIEVEMENTS',
-  languageTitle: 'Language',
-  close: 'Close',
-  english: 'English',
-  arabic: 'German',
-}
-
 const ACHIEVEMENT_ROWS = [
   {
     id: 'first-mission',
+    key: 'firstMission',
     icon: '\u{1f680}',
-    title: 'First Mission',
-    description: 'Complete a level.',
     isUnlocked: ({ completedCount }) => completedCount >= 1,
   },
   {
     id: 'gold-explorer',
+    key: 'goldExplorer',
     icon: '\u{1f947}',
-    title: 'Gold Explorer',
-    description: 'Earn a gold medal.',
     isUnlocked: ({ medalValues }) => medalValues.some(medal => medal === 'gold'),
   },
   {
     id: 'rising-star',
+    key: 'risingStar',
     icon: '\u2728',
-    title: 'Rising Star',
-    description: 'Complete 5 levels.',
     isUnlocked: ({ completedCount }) => completedCount >= 5,
   },
   {
     id: 'space-navigator',
+    key: 'spaceNavigator',
     icon: '\u{1f9ed}',
-    title: 'Space Navigator',
-    description: 'Complete 10 levels.',
     isUnlocked: ({ completedCount }) => completedCount >= 10,
   },
   {
     id: 'deep-explorer',
+    key: 'deepExplorer',
     icon: '\u{1fa90}',
-    title: 'Deep Explorer',
-    description: 'Complete all 23 levels.',
     isUnlocked: ({ completedCount }) => completedCount >= TOTAL_LEVELS,
   },
   {
     id: 'bronze-master',
+    key: 'bronzeMaster',
     icon: '',
     medal: 'bronze',
-    title: 'Bronze Master',
-    description: 'Earn bronze medals on all levels.',
     isUnlocked: ({ medalValues }) => medalValues.length >= TOTAL_LEVELS,
   },
   {
     id: 'silver-master',
+    key: 'silverMaster',
     icon: '',
     medal: 'silver',
-    title: 'Silver Master',
-    description: 'Earn silver medals on all levels.',
     isUnlocked: ({ medalValues }) => medalValues.length >= TOTAL_LEVELS && medalValues.every(medal => (MEDAL_RANKS[medal] ?? 0) >= MEDAL_RANKS.silver),
   },
   {
     id: 'gold-master',
+    key: 'goldMaster',
     icon: '',
     medal: 'gold',
-    title: 'Gold Master',
-    description: 'Earn gold medals on all levels.',
     isUnlocked: ({ medalValues }) => medalValues.length >= TOTAL_LEVELS && medalValues.every(medal => medal === 'gold'),
   },
 ]
@@ -92,7 +68,7 @@ function readSavedMissionCode() {
   return ''
 }
 
-function MenuModal({ title, children, onClose, className = '' }) {
+function MenuModal({ title, children, onClose, closeLabel, className = '' }) {
   return (
     <motion.div
       className="menu-modal-backdrop"
@@ -116,7 +92,7 @@ function MenuModal({ title, children, onClose, className = '' }) {
           whileTap={{ scale: 0.96 }}
           style={{ minHeight: 48, fontSize: 18, width: 'min(220px, 100%)', margin: '8px auto 0' }}
         >
-          {COPY.close}
+          {closeLabel}
         </motion.button>
       </motion.div>
     </motion.div>
@@ -133,8 +109,10 @@ export default function StartPage({
   medalsByLevel = {},
   achievementTotals = { gold: 0, silver: 0, bronze: 0 },
 }) {
+  const { t, i18n } = useTranslation()
   const [modal, setModal] = useState(null)
   const [savedMissionCode] = useState(readSavedMissionCode)
+  const currentLanguage = i18n.resolvedLanguage || i18n.language || 'en'
   const canContinue = Boolean(savedMissionCode)
   const completedCount = Array.isArray(completedLevels) ? completedLevels.length : 0
   const medalValues = Object.values(medalsByLevel ?? {})
@@ -149,14 +127,14 @@ export default function StartPage({
       animate={{ opacity: 1 }}
       exit={{ opacity: 1 }}
       transition={{ duration: 0 }}
-      aria-label="STARLOST start page"
+      aria-label={t('start.ariaLabel')}
     >
       <img className="starlost-menu__bg" src="/assets/ui/start-page-bg.png" alt="" />
       <div className="starlost-menu__stage">
         <motion.button
           type="button"
           className="menu-icon-button menu-icon-button--left"
-          aria-label="About STARLOST"
+          aria-label={t('common.aboutStarlost')}
           onClick={() => setModal('about')}
           whileHover={{ y: -3, scale: 1.04 }}
           whileTap={{ scale: 0.94 }}
@@ -167,8 +145,8 @@ export default function StartPage({
         <motion.button
           type="button"
           className={`menu-icon-button menu-icon-button--right ${muted ? 'menu-icon-button--muted' : ''}`}
-          aria-label={muted ? 'Unmute background music' : 'Mute background music'}
-          title={muted ? 'Unmute background music' : 'Mute background music'}
+          aria-label={muted ? t('common.unmuteMusic') : t('common.muteMusic')}
+          title={muted ? t('common.unmuteMusic') : t('common.muteMusic')}
           onClick={onToggleMuted}
           whileHover={{ y: -3, scale: 1.04 }}
           whileTap={{ scale: 0.94 }}
@@ -188,7 +166,7 @@ export default function StartPage({
             whileTap={{ scale: 0.96 }}
           >
             <span className="button-symbol" aria-hidden="true">{'\u{1f680}'}</span>
-            {COPY.startGame}
+            {t('start.startGame')}
           </motion.button>
           {canContinue && (
             <motion.button
@@ -202,7 +180,7 @@ export default function StartPage({
               whileTap={{ scale: 0.96 }}
             >
               <span className="button-symbol" aria-hidden="true">{'\u25b6'}</span>
-              {COPY.continue}
+              {t('start.continue')}
             </motion.button>
           )}
           <motion.button
@@ -213,7 +191,7 @@ export default function StartPage({
             whileTap={{ scale: 0.96 }}
           >
             <span className="button-symbol" aria-hidden="true">{'\u{1f3c6}'}</span>
-            {COPY.achievements}
+            {t('start.achievements')}
           </motion.button>
           <motion.button
             type="button"
@@ -223,25 +201,25 @@ export default function StartPage({
             whileTap={{ scale: 0.96 }}
           >
             <span className="button-symbol" aria-hidden="true">{'\u{1f30d}'}</span>
-            {COPY.language}
+            {t('start.language')}
           </motion.button>
         </div>
 
         <AnimatePresence>
           {modal === 'about' && (
-            <MenuModal title={COPY.aboutTitle} onClose={() => setModal(null)}>
-              <p>{COPY.aboutBody}</p>
-              <p>{COPY.aboutThesis}</p>
-              <p>{COPY.aboutCredit}</p>
+            <MenuModal title={t('common.aboutStarlost')} closeLabel={t('common.close')} onClose={() => setModal(null)}>
+              <p>{t('start.aboutBody')}</p>
+              <p>{t('start.aboutThesis')}</p>
+              <p>{t('start.aboutCredit')}</p>
             </MenuModal>
           )}
           {modal === 'achievements' && (
-            <MenuModal title={COPY.achievementsTitle} onClose={() => setModal(null)} className="achievements-modal">
-              <div className="achievements-summary" aria-label="Achievement totals">
-                <span>Gold: {achievementTotals.gold ?? 0}</span>
-                <span>Silver: {achievementTotals.silver ?? 0}</span>
-                <span>Bronze: {achievementTotals.bronze ?? 0}</span>
-                <span>Completed: {completedCount} / {TOTAL_LEVELS}</span>
+            <MenuModal title={t('start.achievementsTitle')} closeLabel={t('common.close')} onClose={() => setModal(null)} className="achievements-modal">
+              <div className="achievements-summary" aria-label={t('start.achievementTotals')}>
+                <span>{t('common.gold')}: {achievementTotals.gold ?? 0}</span>
+                <span>{t('common.silver')}: {achievementTotals.silver ?? 0}</span>
+                <span>{t('common.bronze')}: {achievementTotals.bronze ?? 0}</span>
+                <span>{t('common.completed', { completedCount, totalLevels: TOTAL_LEVELS })}</span>
               </div>
               <div className="achievements-list">
                 {ACHIEVEMENT_ROWS.map(row => {
@@ -260,8 +238,8 @@ export default function StartPage({
                         ) : row.icon}
                       </span>
                       <span className="achievement-row__copy">
-                        <strong>{row.title}</strong>
-                        <span>{row.description}</span>
+                        <strong>{t(`start.achievementsList.${row.key}.title`)}</strong>
+                        <span>{t(`start.achievementsList.${row.key}.description`)}</span>
                       </span>
                     </div>
                   )
@@ -270,10 +248,26 @@ export default function StartPage({
             </MenuModal>
           )}
           {modal === 'language' && (
-            <MenuModal title={COPY.languageTitle} onClose={() => setModal(null)}>
-              <div className="language-options" role="listbox" aria-label={COPY.languageTitle}>
-                <div className="language-option language-option--selected" role="option" aria-selected="true">{COPY.english}</div>
-                <div className="language-option" role="option" aria-selected="false">{COPY.arabic}</div>
+            <MenuModal title={t('start.language')} closeLabel={t('common.close')} onClose={() => setModal(null)}>
+              <div className="language-options" role="listbox" aria-label={t('start.language')}>
+                <button
+                  type="button"
+                  className={`language-option ${currentLanguage === 'en' ? 'language-option--selected' : ''}`}
+                  role="option"
+                  aria-selected={currentLanguage === 'en'}
+                  onClick={() => i18n.changeLanguage('en')}
+                >
+                  {t('common.languageEnglish')}
+                </button>
+                <button
+                  type="button"
+                  className={`language-option ${currentLanguage === 'de' ? 'language-option--selected' : ''}`}
+                  role="option"
+                  aria-selected={currentLanguage === 'de'}
+                  onClick={() => i18n.changeLanguage('de')}
+                >
+                  {t('common.languageGerman')}
+                </button>
               </div>
             </MenuModal>
           )}

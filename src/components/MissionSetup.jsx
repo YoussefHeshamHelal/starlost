@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import {
   MissionCodeAlreadyUsedError,
   createOrUpdateParticipant,
@@ -9,30 +10,12 @@ import {
 import MenuSoundIcon from './MenuSoundIcon'
 import './menuScreens.css'
 
-const COPY = {
-  speechStart: "Let's create your",
-  speechAccent: 'STARLOST',
-  speechEnd: 'code!',
-  saving: 'Saving...',
-  back: 'Back',
-  invalid: 'Fill every box and pick a number.',
-  duplicate: 'This STARLOST code is already used. Please try another code.',
-  saveError: 'Star Code Station could not save this code. Please try again.',
-  preview: 'Your STARLOST Code',
-  helper: 'Type only one letter in each box.',
-  create: 'Create My Code',
-  aboutTitle: 'About STARLOST',
-  aboutBody: 'STARLOST is a child-friendly educational space adventure where players help LUMA find her way home by solving grid-world puzzle levels.',
-  aboutThesis: 'The game is designed to support and assess children’s spatial perspective-taking and computational thinking through movement blocks, path planning, perspective clues, and problem-solving challenges.',
-  aboutCredit: 'STARLOST was created as part of a bachelor thesis project by Youssef Hesham Helal.',
-  close: 'Close',
-}
 
 const LETTER_FIELDS = [
-  { id: 'firstInitial', badge: '1', icon: 'person', label: 'First letter of your first name' },
-  { id: 'secondInitial', badge: '2', icon: 'person', label: 'First letter of your second name' },
-  { id: 'colorInitial', badge: '3', icon: 'palette', label: 'First letter of your favorite color' },
-  { id: 'animalInitial', badge: '4', icon: 'paw', label: 'First letter of your favorite animal' },
+  { id: 'firstInitial', badge: '1', icon: 'person', labelKey: 'mission.fields.firstInitial' },
+  { id: 'secondInitial', badge: '2', icon: 'person', labelKey: 'mission.fields.secondInitial' },
+  { id: 'colorInitial', badge: '3', icon: 'palette', labelKey: 'mission.fields.colorInitial' },
+  { id: 'animalInitial', badge: '4', icon: 'paw', labelKey: 'mission.fields.animalInitial' },
 ]
 
 const DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
@@ -80,6 +63,7 @@ function RowIcon({ type }) {
 }
 
 function MenuModal({ onClose }) {
+  const { t } = useTranslation()
   return (
     <motion.div
       className="menu-modal-backdrop"
@@ -93,10 +77,10 @@ function MenuModal({ onClose }) {
         animate={{ y: 0, scale: 1 }}
         exit={{ y: 12, scale: 0.96 }}
       >
-        <h2>{COPY.aboutTitle}</h2>
-        <p>{COPY.aboutBody}</p>
-        <p>{COPY.aboutThesis}</p>
-        <p>{COPY.aboutCredit}</p>
+        <h2>{t('common.aboutStarlost')}</h2>
+        <p>{t('start.aboutBody')}</p>
+        <p>{t('start.aboutThesis')}</p>
+        <p>{t('start.aboutCredit')}</p>
         <motion.button
           type="button"
           className="menu-pill-button menu-pill-button--secondary"
@@ -105,7 +89,7 @@ function MenuModal({ onClose }) {
           whileTap={{ scale: 0.96 }}
           style={{ minHeight: 48, fontSize: 18, width: 'min(220px, 100%)', margin: '8px auto 0' }}
         >
-          {COPY.close}
+          {t('common.close')}
         </motion.button>
       </motion.div>
     </motion.div>
@@ -113,6 +97,7 @@ function MenuModal({ onClose }) {
 }
 
 export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAudio, onBack, onComplete }) {
+  const { t } = useTranslation()
   const [letters, setLetters] = useState(['', '', '', ''])
   const [selectedDigit, setSelectedDigit] = useState('')
   const [error, setError] = useState('')
@@ -142,7 +127,7 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
     onUnlockAudio?.()
 
     if (!isValidParticipantId(starCode)) {
-      setError(COPY.invalid)
+      setError(t('mission.invalid'))
       focusNextEmpty()
       return
     }
@@ -160,11 +145,11 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
         stack: err?.stack,
         error: err,
       })
-      setError(err instanceof MissionCodeAlreadyUsedError ? COPY.duplicate : COPY.saveError)
+      setError(err instanceof MissionCodeAlreadyUsedError ? t('mission.duplicate') : t('mission.saveError'))
     } finally {
       setLoading(false)
     }
-  }, [focusNextEmpty, onComplete, onUnlockAudio, starCode])
+  }, [focusNextEmpty, onComplete, onUnlockAudio, starCode, t])
 
   const updateLetter = useCallback((index, value) => {
     const nextLetter = normalizeLetter(value)
@@ -206,14 +191,14 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
       animate={{ opacity: 1 }}
       exit={{ opacity: 1 }}
       transition={{ duration: 0 }}
-      aria-label="STAR Code Station"
+      aria-label={t('mission.ariaLabel')}
     >
       <img className="starlost-menu__bg" src="/assets/ui/star-code-station-bg.png" alt="" />
       <div className="starlost-menu__stage">
         <motion.button
           type="button"
           className="menu-icon-button menu-icon-button--left"
-          aria-label="About STARLOST"
+          aria-label={t('common.aboutStarlost')}
           onClick={() => setModal('about')}
           whileHover={{ y: -3, scale: 1.04 }}
           whileTap={{ scale: 0.94 }}
@@ -224,8 +209,8 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
         <motion.button
           type="button"
           className={`menu-icon-button menu-icon-button--right ${muted ? 'menu-icon-button--muted' : ''}`}
-          aria-label={muted ? 'Unmute background music' : 'Mute background music'}
-          title={muted ? 'Unmute background music' : 'Mute background music'}
+          aria-label={muted ? t('common.unmuteMusic') : t('common.muteMusic')}
+          title={muted ? t('common.unmuteMusic') : t('common.muteMusic')}
           onClick={onToggleMuted}
           whileHover={{ y: -3, scale: 1.04 }}
           whileTap={{ scale: 0.94 }}
@@ -234,9 +219,9 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
         </motion.button>
 
         <p className="star-code-bubble">
-          {COPY.speechStart}
+          {t('mission.speechStart')}
           <br />
-          <span className="star-code-bubble__accent">{COPY.speechAccent}</span> {COPY.speechEnd}
+          <span className="star-code-bubble__accent">{t('mission.speechAccent')}</span> {t('mission.speechEnd')}
         </p>
 
         <form
@@ -251,7 +236,7 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
               <span className="star-code-row__badge" aria-hidden="true">{field.badge}</span>
               <RowIcon type={field.icon} />
               <label className="star-code-row__label" htmlFor={`${field.id}-input`}>
-                {field.label}
+                {t(field.labelKey)}
               </label>
               <input
                 ref={(node) => {
@@ -270,7 +255,7 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
                 onChange={(event) => updateLetter(index, event.target.value)}
                 onPaste={(event) => handleLetterPaste(event, index)}
                 onKeyDown={(event) => handleLetterKeyDown(event, index)}
-                aria-label={field.label}
+                aria-label={t(field.labelKey)}
                 aria-invalid={Boolean(error)}
                 aria-describedby="star-code-feedback"
               />
@@ -281,7 +266,7 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
             <span className="star-code-row__badge" aria-hidden="true">5</span>
             <RowIcon type="hash" />
             <span className="star-code-row__label" id="star-code-digit-label">
-              Pick one number from 0 to 9
+              {t('mission.pickDigit')}
             </span>
             <div className="star-code-digit-buttons" role="group" aria-labelledby="star-code-digit-label">
               {DIGITS.map(digit => (
@@ -292,7 +277,7 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
                   onClick={() => handleDigitSelect(digit)}
                   disabled={loading}
                   aria-pressed={selectedDigit === digit}
-                  aria-label={`Pick number ${digit}`}
+                  aria-label={t('mission.pickNumber', { digit })}
                 >
                   {digit}
                 </button>
@@ -304,10 +289,10 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
         <section className="star-code-preview" aria-live="polite">
           <div className="star-code-preview__label">
             <span aria-hidden="true">✦</span>
-            {COPY.preview}
+            {t('mission.preview')}
             <span aria-hidden="true">✦</span>
           </div>
-          <div className="star-code-preview__box" aria-label={`Current STARLOST code ${codePreview.join(' ')}`}>
+          <div className="star-code-preview__box" aria-label={t('mission.currentCode', { code: codePreview.join(' ') })}>
             {codePreview.map((value, index) => (
               <span
                 key={`${value}-${index}`}
@@ -321,7 +306,7 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
         </section>
 
         <p id="star-code-feedback" className={error ? 'star-code-error' : 'star-code-note'}>
-          {error || COPY.helper}
+          {error || t('mission.helper')}
         </p>
 
         <motion.button
@@ -333,7 +318,7 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
           whileTap={loading ? undefined : { scale: 0.96 }}
         >
           <span className="star-code-primary-button__icon" aria-hidden="true">{'\u2726'}</span>
-          <span className="star-code-primary-button__text">{loading ? COPY.saving : COPY.create}</span>
+          <span className="star-code-primary-button__text">{loading ? t('mission.saving') : t('mission.create')}</span>
         </motion.button>
 
         <motion.button
@@ -343,7 +328,7 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
           whileHover={{ x: -2, scale: 1.01 }}
           whileTap={{ scale: 0.96 }}
         >
-          {'\u2190'} {COPY.back}
+          {'\u2190'} {t('common.back')}
         </motion.button>
 
         <AnimatePresence>
