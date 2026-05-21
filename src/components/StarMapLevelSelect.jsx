@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { isLevelCompleted, TOTAL_LEVELS } from '../utils/progress'
+import { isLevelCompleted, isLevelUnlocked, TOTAL_LEVELS } from '../utils/progress'
 import MenuSoundIcon from './MenuSoundIcon'
 import './menuScreens.css'
 
@@ -119,10 +119,13 @@ function MenuModal({ onClose }) {
 function LevelNode({ level, position, completedLevels, medalsByLevel, onSelectLevel }) {
   const { t } = useTranslation()
   const completed = isLevelCompleted(level, completedLevels)
+  const unlocked = isLevelUnlocked(level, completedLevels)
+  const locked = !unlocked
   const medal = completed ? medalsByLevel?.[String(level)]?.medal : null
   const className = [
     'star-node',
     completed ? 'star-node--completed' : '',
+    locked ? 'star-node--locked' : '',
     level >= 21 && level <= 23 ? 'star-node--launch' : '',
   ].filter(Boolean).join(' ')
 
@@ -130,11 +133,16 @@ function LevelNode({ level, position, completedLevels, medalsByLevel, onSelectLe
     <button
       type="button"
       className={className}
-      aria-label={medal ? t('starMap.levelWithMedal', { level, medal }) : t('starMap.level', { level })}
+      aria-label={locked ? `Locked level ${level}` : medal ? t('starMap.levelWithMedal', { level, medal }) : t('starMap.level', { level })}
+      aria-disabled={locked}
       style={{ left: `${position.left}%`, top: `${position.top}%` }}
-      onClick={() => onSelectLevel(level)}
+      onClick={() => {
+        if (locked) return
+        onSelectLevel(level)
+      }}
     >
       <span className="star-node__number">{level}</span>
+      {locked && <span className="star-node__lock" aria-hidden="true" />}
       {medal && (
         <span className={`star-node__medal star-node__medal--${medal}`} aria-hidden="true">
           <span className="star-node__medal-ribbon" />
@@ -170,8 +178,9 @@ function ZoneTrail({ zone }) {
 }
 
 function StarZone({ zone, completedLevels, medalsByLevel, onSelectLevel }) {
+  const zoneUnlocked = zone.path.some(level => isLevelUnlocked(level, completedLevels))
   return (
-    <section className={`star-zone ${zone.className}`} aria-label={zone.title}>
+    <section className={`star-zone ${zone.className} ${zoneUnlocked ? '' : 'star-zone--locked'}`} aria-label={zone.title}>
       <h2 className="star-zone__title">{zone.title}</h2>
       <div className="star-zone__node-layer">
         <ZoneTrail zone={zone} />
@@ -185,6 +194,7 @@ function StarZone({ zone, completedLevels, medalsByLevel, onSelectLevel }) {
             onSelectLevel={onSelectLevel}
           />
         ))}
+        {!zoneUnlocked && <span className="star-zone__lock-emblem" aria-hidden="true" />}
       </div>
     </section>
   )

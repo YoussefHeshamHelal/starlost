@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { LEVELS } from './data/levels'
-import { countProgramBlocks, hasEmptyRequiredElse } from './utils/commands'
+import { cloneNestedCommands, countProgramBlocks, hasEmptyRequiredElse } from './utils/commands'
 import {
   getFeatureTutorialSteps,
   getLevelTutorialSteps,
@@ -20,7 +20,16 @@ import LumaSprite from './components/LumaSprite'
 import { logGBI } from './logGBI'
 import { ThemeContext, useTheme, THEMES } from './context/theme'
 import { isValidParticipantId, touchParticipantSession } from './utils/participants'
-import { calculateMedal, fetchSessionProgress, updateSessionProgress } from './utils/progress'
+import {
+  calculateMedal,
+  fetchCompletedProgram,
+  fetchSessionProgress,
+  isLevelCompleted,
+  isLevelUnlocked,
+  saveCompletedProgram,
+  shouldPreserveCompletedProgram,
+  updateSessionProgress,
+} from './utils/progress'
 import { playSfx, preloadSfx } from './utils/sfx'
 
 // ── Layout constants ──────────────────────────────────────────────────────────
@@ -49,7 +58,7 @@ const SPEED_STORAGE_KEY = 'starlost:anim-speed'
 const PARTICIPANT_STORAGE_KEY = 'starlost:participantId'
 const MUTED_STORAGE_KEY = 'starlost:muted'
 const BG_MUSIC_SRC = '/assets/audio/starlost-bg-music.mp3'
-const BG_MUSIC_VOLUME = 0.22
+const BG_MUSIC_VOLUME = 0.4
 const LUMA_RADIO_DUCKED_VOLUME = 0.08
 const LUMA_VOICE_HINTS = [
   'female',
@@ -1678,6 +1687,7 @@ function hasUnseenTutorialStep(plan, levelId, participantId) {
 function LevelScreen({
   levelConfig,
   participantId,
+  completedLevels = [],
   onComplete,
   onCompleteAndGoHome,
   onStrategyCard,
@@ -1702,6 +1712,7 @@ function LevelScreen({
   const t = THEMES[theme]
   const levelStageRef = useRef(null)
   const [levelStageScale, setLevelStageScale] = useState(1)
+  const completedProgramRestoreKeyRef = useRef('')
 
   const updateLevelStageScale = useCallback(() => {
     if (typeof window === 'undefined') return
@@ -1756,6 +1767,29 @@ function LevelScreen({
     onLevelSuccess: () => onPlaySfx?.('levelSuccess'),
     onBlockedPath: () => onPlaySfx?.('blockedPath'),
   })
+
+  useEffect(() => {
+    if (!participantId) return undefined
+    if (!shouldPreserveCompletedProgram(levelConfig.id)) return undefined
+    if (!isLevelCompleted(levelConfig.id, completedLevels)) return undefined
+    const restoreKey = `${participantId}:${levelConfig.id}`
+    if (completedProgramRestoreKeyRef.current === restoreKey) return undefined
+    completedProgramRestoreKeyRef.current = restoreKey
+
+    let cancelled = false
+    fetchCompletedProgram(participantId, levelConfig.id)
+      .then(savedProgram => {
+        if (cancelled || !savedProgram) return
+        setSequence(cloneNestedCommands(savedProgram))
+      })
+      .catch(err => {
+        console.warn('[Progress] Completed program restore failed:', err)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [completedLevels, levelConfig.id, participantId, setSequence])
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
@@ -2137,13 +2171,14 @@ function LevelScreen({
       : null
   }, [levelConfig.targetCommands, sequence])
 
-  const finishSuccessfulLevel = useCallback((destination) => {
+  const finishSuccessfulLevel = useCallback(async (destination) => {
     if (successCompletionHandledRef.current) return
     successCompletionHandledRef.current = true
 
     const achievementInfo = buildSuccessAchievementInfo()
     const snapshot = getGBISnapshot()
-    logGBI(participantId, levelConfig.id, {
+    await saveCompletedProgram(participantId, levelConfig.id, sequence)
+    await logGBI(participantId, levelConfig.id, {
       ...snapshot,
       achievementMedal: achievementInfo?.medal,
       achievementBlockCount: achievementInfo?.blockCount,
@@ -2161,7 +2196,7 @@ function LevelScreen({
       return
     }
     onComplete(levelConfig.id, achievementInfo)
-  }, [buildSuccessAchievementInfo, getGBISnapshot, levelConfig.id, onComplete, onCompleteAndGoHome, onStrategyCard, participantId])
+  }, [buildSuccessAchievementInfo, getGBISnapshot, levelConfig.id, onComplete, onCompleteAndGoHome, onStrategyCard, participantId, sequence])
 
   const handleSuccessNext = useCallback(() => {
     finishSuccessfulLevel('next')
@@ -2739,12 +2774,16 @@ export default function App() {
       console.warn('[StarMap] Ignoring invalid level selection:', levelNumber)
       return
     }
+    if (!isLevelUnlocked(nextLevelNumber, completedLevels)) {
+      console.warn('[StarMap] Ignoring locked level selection:', levelNumber)
+      return
+    }
     setCurrentLevelIndex(nextLevelIndex)
     setLevelSessionKey(key => key + 1)
     setStrategyCardLevelId(null)
     setLevelHeaderControls(null)
     setAppPhase('playing')
-  }, [setAppPhase])
+  }, [completedLevels, setAppPhase])
 
   const handleGoHome = useCallback(() => {
     setAppPhase('home')
@@ -3189,6 +3228,7 @@ export default function App() {
                 key={`${level.id}-${levelSessionKey}`}
                 levelConfig={level}
                 participantId={participantId}
+                completedLevels={completedLevels}
                 onComplete={handleLevelComplete}
                 onCompleteAndGoHome={handleLevelCompleteGoHome}
                 onStrategyCard={handleShowStrategyCard}
@@ -3257,6 +3297,7 @@ export default function App() {
                     key={`${level.id}-${levelSessionKey}`}
                     levelConfig={level}
                     participantId={participantId}
+                    completedLevels={completedLevels}
                     onComplete={handleLevelComplete}
                     onCompleteAndGoHome={handleLevelCompleteGoHome}
                     onStrategyCard={handleShowStrategyCard}

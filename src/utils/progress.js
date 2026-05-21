@@ -1,7 +1,9 @@
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { db } from '../firebase'
+import { cloneNestedCommands } from './commands'
 
 export const TOTAL_LEVELS = 23
+export const COMPLETED_PROGRAM_MAX_LEVEL = 20
 export const MEDAL_RANKS = {
   bronze: 1,
   silver: 2,
@@ -37,6 +39,79 @@ export function isLevelCompleted(levelId, completedLevels) {
 export function isLevelUnlocked(levelId, completedLevels) {
   const level = Number(levelId)
   return isLevelCompleted(level, completedLevels) || level <= getUnlockedLevel(completedLevels)
+}
+
+export function shouldPreserveCompletedProgram(levelId) {
+  const level = Number(levelId)
+  return Number.isInteger(level) && level >= 1 && level <= COMPLETED_PROGRAM_MAX_LEVEL
+}
+
+function stripUndefinedDeep(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map(stripUndefinedDeep)
+      .filter(item => item !== undefined)
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([, entryValue]) => entryValue !== undefined)
+        .map(([key, entryValue]) => [key, stripUndefinedDeep(entryValue)])
+        .filter(([, entryValue]) => entryValue !== undefined)
+    )
+  }
+
+  return value
+}
+
+function getLevelDocRef(participantId, levelId, sessionId = 'session_1') {
+  return doc(
+    db,
+    'participants', String(participantId),
+    'sessions', String(sessionId),
+    'levels', String(levelId)
+  )
+}
+
+export async function fetchCompletedProgram(participantId, levelId, sessionId = 'session_1') {
+  if (!participantId || !shouldPreserveCompletedProgram(levelId)) return null
+
+  try {
+    const levelSnap = await getDoc(getLevelDocRef(participantId, levelId, sessionId))
+    if (!levelSnap.exists()) return null
+
+    const data = levelSnap.data()
+    const savedProgram = data.completedProgramBlocks ?? data.completedProgram
+    if (!Array.isArray(savedProgram) || savedProgram.length === 0) return null
+
+    return cloneNestedCommands(savedProgram)
+  } catch (err) {
+    console.warn('[Progress] Could not load completed program:', err)
+    return null
+  }
+}
+
+export async function saveCompletedProgram(participantId, levelId, sequence, sessionId = 'session_1') {
+  if (!participantId || !shouldPreserveCompletedProgram(levelId)) return false
+  if (!Array.isArray(sequence) || sequence.length === 0) return false
+
+  const completedProgramBlocks = stripUndefinedDeep(cloneNestedCommands(sequence))
+  if (!Array.isArray(completedProgramBlocks) || completedProgramBlocks.length === 0) return false
+
+  try {
+    await setDoc(getLevelDocRef(participantId, levelId, sessionId), {
+      participantId,
+      levelId: Number(levelId),
+      sessionId,
+      completedProgramBlocks,
+      completedProgramUpdatedAt: serverTimestamp(),
+    }, { merge: true })
+    return true
+  } catch (err) {
+    console.error('[Progress] Failed to save completed program:', err)
+    return false
+  }
 }
 
 export function isValidMedal(medal) {
