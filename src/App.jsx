@@ -54,6 +54,9 @@ const STRATEGY_CARD_LEVELS = new Set([5, 9, 14, 20, 23])
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
 const LEVEL_SCREEN_SAFE_X = 32
 const LEVEL_SCREEN_SAFE_Y = 22
+const TEMP_UNLOCK_ALL_LEVELS = true
+// Temporary editing flag: force area intros while preserving the original seen-state logic below.
+const TEMP_SHOW_MAP_DECLARATIONS_EVERY_OPEN = true
 const SPEED_STORAGE_KEY = 'starlost:anim-speed'
 const PARTICIPANT_STORAGE_KEY = 'starlost:participantId'
 const MUTED_STORAGE_KEY = 'starlost:muted'
@@ -1034,7 +1037,7 @@ function MissedFragmentsAlert({ onDismiss }) {
 }
 
 // ── Success Screen ────────────────────────────────────────────────────────────
-function SuccessScreen({ levelId, onNext, onHome, isFinalLevel = false }) {
+function SuccessScreen({ levelId, onNext, onHome, onTryAgain, isFinalLevel = false, totalBlocks = 0, targetCommands = null }) {
   const { t: tr } = useTranslation()
   const theme = useTheme()
   const t = THEMES[theme]
@@ -1050,6 +1053,16 @@ function SuccessScreen({ levelId, onNext, onHome, isFinalLevel = false }) {
   const accent = isLight ? '#0ea5e9' : '#67e8f9'
   const success = isLight ? '#10b981' : '#2dd4bf'
   const violet = isLight ? '#8b5cf6' : '#a78bfa'
+  const targetBlockCount = Number(targetCommands)
+  const hasTargetCommands = Number.isFinite(targetBlockCount) && targetBlockCount > 0
+  const completedAboveShortest = hasTargetCommands && Number(totalBlocks) > targetBlockCount
+  const successMessage = hasTargetCommands
+    ? completedAboveShortest
+      ? tr('success.notShortestMessage', { level: levelId, count: targetBlockCount })
+      : tr('success.shortestMessage', { level: levelId })
+    : isFinalLevel
+      ? tr('success.launchPadReached')
+      : tr('success.shipCoreReached')
   const successButtonBaseStyle = {
     position: 'relative',
     minHeight: 48,
@@ -1152,16 +1165,6 @@ function SuccessScreen({ levelId, onNext, onHome, isFinalLevel = false }) {
         >🚀</motion.div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <p style={{
-            fontSize: 10,
-            color: success,
-            fontFamily: 'monospace',
-            letterSpacing: 3,
-            margin: 0,
-            fontWeight: 900,
-          }}>
-            {tr('success.missionComplete')}
-          </p>
           <h2 style={{
             fontSize: 24,
             color: isLight ? '#0f3f5f' : '#d9fffb',
@@ -1170,10 +1173,8 @@ function SuccessScreen({ levelId, onNext, onHome, isFinalLevel = false }) {
           }}>
             {tr('success.levelComplete', { level: levelId })}
           </h2>
-          <p style={{ fontSize: 14, color: t.textPrimary, lineHeight: 1.65, margin: 0, fontWeight: 600 }}>
-            {isFinalLevel
-              ? tr('success.launchPadReached')
-              : tr('success.shipCoreReached')}
+          <p style={{ fontSize: 14, color: t.textPrimary, lineHeight: 1.65, margin: 0, fontWeight: 600, whiteSpace: 'pre-line' }}>
+            {successMessage}
           </p>
         </div>
 
@@ -1196,6 +1197,27 @@ function SuccessScreen({ levelId, onNext, onHome, isFinalLevel = false }) {
               }}
             >
               {tr('common.home')}
+            </motion.button>
+          )}
+
+          {completedAboveShortest && onTryAgain && (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.035, y: -1 }}
+              onClick={onTryAgain}
+              style={{
+                ...successButtonBaseStyle,
+                background: isLight
+                  ? 'linear-gradient(135deg, rgba(255,251,235,0.98), rgba(254,243,199,0.9))'
+                  : 'linear-gradient(135deg, rgba(30,23,8,0.86), rgba(245,158,11,0.14))',
+                border: `2px solid #f59e0b`,
+                color: isLight ? '#92400e' : '#fde68a',
+                boxShadow: isLight
+                  ? '0 12px 24px rgba(245,158,11,0.16), inset 0 1px 0 rgba(255,255,255,0.9)'
+                  : '0 0 22px rgba(245,158,11,0.22), inset 0 1px 0 rgba(255,255,255,0.10)',
+              }}
+            >
+              {tr('success.tryAgain')}
             </motion.button>
           )}
 
@@ -1267,6 +1289,97 @@ const STRATEGY_CARDS = [
   },
 ]
 
+function StrategyVisual({ id, color, selected }) {
+  const glow = selected ? `${color}55` : `${color}24`
+  const commonSvgStyle = {
+    width: 92,
+    height: 92,
+    display: 'block',
+    filter: selected ? `drop-shadow(0 0 18px ${glow}) drop-shadow(0 12px 18px rgba(2,6,23,0.22))` : `drop-shadow(0 10px 16px ${glow})`,
+  }
+
+  if (id === 'rotate') {
+    return (
+      <svg viewBox="0 0 92 92" aria-hidden="true" style={commonSvgStyle}>
+        <defs>
+          <linearGradient id="strategyMapGrad" x1="15" y1="12" x2="72" y2="74" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#ccfbf1" />
+            <stop offset="0.58" stopColor="#67e8f9" />
+            <stop offset="1" stopColor="#14b8a6" />
+          </linearGradient>
+          <radialGradient id="strategyMapGlow" cx="50%" cy="45%" r="52%">
+            <stop stopColor="#ffffff" stopOpacity="0.92" />
+            <stop offset="1" stopColor={color} stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <circle cx="46" cy="46" r="42" fill="url(#strategyMapGlow)" />
+        <circle cx="46" cy="46" r="36" fill={`${color}18`} stroke={`${color}55`} strokeWidth="1.5" />
+        <g transform="rotate(-13 46 48)">
+          <path d="M20 31 L38 23 L55 31 L72 24 L72 62 L55 70 L38 62 L20 70 Z" fill="url(#strategyMapGrad)" stroke="#083344" strokeWidth="3.2" strokeLinejoin="round" />
+          <path d="M38 23 L38 62 M55 31 L55 70" fill="none" stroke="#0f766e" strokeWidth="2.4" strokeLinecap="round" opacity="0.72" />
+          <path d="M27 49 C34 40 44 40 51 49 C58 58 65 56 70 50" fill="none" stroke="#ffffff" strokeWidth="3.4" strokeLinecap="round" opacity="0.9" />
+          <circle cx="33" cy="37" r="3" fill="#fef3c7" stroke="#0f766e" strokeWidth="1.6" />
+        </g>
+        <path d="M65 14 C78 25 82 42 77 58" fill="none" stroke="#fef3c7" strokeWidth="4.2" strokeLinecap="round" />
+        <path d="M71 57 L78 61 L82 53" fill="none" stroke="#fef3c7" strokeWidth="4.2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M25 78 C34 83 51 84 64 78" fill="none" stroke="#0f172a" strokeOpacity="0.22" strokeWidth="4" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
+  if (id === 'embody') {
+    return (
+      <svg viewBox="0 0 92 92" aria-hidden="true" style={commonSvgStyle}>
+        <defs>
+          <linearGradient id="strategyHelmetGrad" x1="18" y1="13" x2="72" y2="74" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#f5f3ff" />
+            <stop offset="0.55" stopColor="#c4b5fd" />
+            <stop offset="1" stopColor="#8b5cf6" />
+          </linearGradient>
+          <linearGradient id="strategyVisorGrad" x1="25" y1="31" x2="72" y2="57" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#0f172a" />
+            <stop offset="0.48" stopColor="#0e7490" />
+            <stop offset="1" stopColor="#020617" />
+          </linearGradient>
+        </defs>
+        <circle cx="46" cy="46" r="39" fill={`${color}18`} stroke={`${color}44`} strokeWidth="1.5" />
+        <path d="M21 50 C21 28 34 16 49 16 C66 16 76 30 76 48 C76 67 63 78 46 78 C30 78 21 66 21 50 Z" fill="url(#strategyHelmetGrad)" stroke="#312e81" strokeWidth="3.2" />
+        <path d="M27 45 C34 33 56 30 70 40 C70 55 57 64 42 62 C33 61 27 54 27 45 Z" fill="url(#strategyVisorGrad)" stroke="#a5f3fc" strokeWidth="3.2" />
+        <path d="M35 47 C43 42 56 42 64 48" fill="none" stroke="#67e8f9" strokeWidth="3.2" strokeLinecap="round" />
+        <circle cx="45" cy="49" r="4.2" fill="#fef3c7" />
+        <circle cx="59" cy="48" r="3.2" fill="#fef3c7" />
+        <path d="M18 42 L9 36 M18 53 L8 54 M72 31 L83 24" stroke="#fde68a" strokeWidth="3.2" strokeLinecap="round" />
+        <path d="M34 76 C43 82 57 82 66 75" fill="none" stroke="#0f172a" strokeOpacity="0.24" strokeWidth="4" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg viewBox="0 0 92 92" aria-hidden="true" style={commonSvgStyle}>
+      <defs>
+        <linearGradient id="strategyClueGrad" x1="14" y1="16" x2="68" y2="70" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#fef3c7" />
+          <stop offset="0.58" stopColor="#fbbf24" />
+          <stop offset="1" stopColor="#d97706" />
+        </linearGradient>
+        <linearGradient id="strategyScannerGrad" x1="52" y1="20" x2="78" y2="55" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#e0f2fe" />
+          <stop offset="1" stopColor="#38bdf8" />
+        </linearGradient>
+      </defs>
+      <circle cx="46" cy="46" r="39" fill={`${color}18`} stroke={`${color}44`} strokeWidth="1.5" />
+      <path d="M17 67 L31 38 L48 66 Z" fill="url(#strategyClueGrad)" stroke="#7c2d12" strokeWidth="3" strokeLinejoin="round" />
+      <path d="M35 69 L52 29 L72 68 Z" fill="#b45309" stroke="#7c2d12" strokeWidth="3" strokeLinejoin="round" />
+      <path d="M27 58 L38 52 M47 59 L64 53" stroke="#fff7ed" strokeWidth="2.4" strokeLinecap="round" opacity="0.78" />
+      <rect x="55" y="19" width="20" height="25" rx="5" fill="url(#strategyScannerGrad)" stroke="#075985" strokeWidth="2.5" />
+      <circle cx="65" cy="30" r="4.2" fill="#0f172a" stroke="#e0f2fe" strokeWidth="1.8" />
+      <path d="M59 45 L53 56" stroke="#075985" strokeWidth="4" strokeLinecap="round" />
+      <path d="M19 28 C29 20 43 19 54 26 M17 19 C31 8 50 8 64 19" fill="none" stroke="#7dd3fc" strokeWidth="3.4" strokeLinecap="round" opacity="0.86" />
+      <path d="M24 78 C36 83 58 84 72 77" fill="none" stroke="#0f172a" strokeOpacity="0.22" strokeWidth="4" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 function FloatingStar({ emoji, delay, x, duration }) {
   return (
     <motion.div
@@ -1287,28 +1400,69 @@ function StrategyCard({ card, selected, onSelect }) {
   const t = THEMES[theme]
   return (
     <motion.div
-      whileHover={{ y: -6, scale: 1.02 }}
+      whileHover={{ y: -7, scale: 1.025 }}
       whileTap={{ scale: 0.97 }}
       onClick={() => onSelect(card.id)}
       style={{
         flex: 1, minWidth: 0, position: 'relative',
-        background: isSelected ? card.bg : t.stratCardBg,
-        border: `2.5px solid ${isSelected ? card.border : t.stratCardBd}`,
-        borderRadius: 20,
-        padding: '28px 20px 24px',
-        cursor: 'pointer',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
-        boxShadow: isSelected
-          ? `0 0 40px ${card.glow}, 0 0 0 1px ${card.border}44`
+        background: isSelected
+          ? `linear-gradient(160deg, ${card.bg}, ${card.border}1f 52%, rgba(255,255,255,0.08))`
           : theme === 'light'
-            ? '0 16px 32px rgba(74,144,226,0.12), 0 8px 22px rgba(55,201,223,0.14)'
-            : '0 4px 24px rgba(0,0,0,0.5)',
+            ? 'linear-gradient(160deg, rgba(255,255,255,0.96), rgba(232,246,255,0.82) 58%, rgba(245,243,255,0.78))'
+            : 'linear-gradient(160deg, rgba(8,16,30,0.98), rgba(6,13,25,0.96) 58%, rgba(15,23,42,0.94))',
+        border: `2px solid ${isSelected ? card.border : t.stratCardBd}`,
+        borderRadius: 18,
+        padding: '22px 18px 20px',
+        cursor: 'pointer',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', gap: 13,
+        minHeight: 212,
+        boxShadow: isSelected
+          ? `0 18px 44px ${card.glow}, 0 0 0 1px ${card.border}55, inset 0 1px 0 rgba(255,255,255,0.26)`
+          : theme === 'light'
+            ? '0 18px 34px rgba(74,144,226,0.12), 0 8px 20px rgba(55,201,223,0.10), inset 0 1px 0 rgba(255,255,255,0.8)'
+            : '0 18px 40px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.08)',
         transition: 'border-color 0.2s, background 0.2s, box-shadow 0.2s',
         overflow: 'hidden', textAlign: 'center', userSelect: 'none',
       }}
     >
-      {isSelected && card.stars.map((s, i) => (
-        <FloatingStar key={i} emoji={s} delay={i * 0.6} x={(i - 1) * 18} duration={2.2 + i * 0.3} />
+      <div aria-hidden="true" style={{
+        position: 'absolute',
+        inset: 8,
+        borderRadius: 13,
+        border: `1px solid ${isSelected ? `${card.border}55` : (theme === 'light' ? 'rgba(14,116,144,0.12)' : 'rgba(148,163,184,0.12)')}`,
+        pointerEvents: 'none',
+      }} />
+      <div aria-hidden="true" style={{
+        position: 'absolute',
+        top: -44,
+        right: -34,
+        width: 110,
+        height: 110,
+        borderRadius: '50%',
+        background: `${card.border}${isSelected ? '2e' : '16'}`,
+        filter: 'blur(2px)',
+        pointerEvents: 'none',
+      }} />
+      {isSelected && [0, 1, 2].map((i) => (
+        <motion.span
+          key={i}
+          aria-hidden="true"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: [0, 1, 0], y: -52, x: [(i - 1) * 6, (i - 1) * 18] }}
+          transition={{ duration: 2.2 + i * 0.25, delay: i * 0.45, repeat: Infinity, repeatDelay: 0.8, ease: 'easeInOut' }}
+          style={{
+            position: 'absolute',
+            bottom: 22,
+            left: '50%',
+            width: 5 + i,
+            height: 5 + i,
+            borderRadius: '50%',
+            background: card.border,
+            boxShadow: `0 0 12px ${card.glow}`,
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        />
       ))}
       {isSelected && (
         <motion.div
@@ -1316,7 +1470,7 @@ function StrategyCard({ card, selected, onSelect }) {
           animate={{ opacity: 1, scale: 1 }}
           style={{
             position: 'absolute', inset: -1, borderRadius: 20,
-            border: `3px solid ${card.border}`,
+            border: `2.5px solid ${card.border}`,
             pointerEvents: 'none',
             boxShadow: `inset 0 0 30px ${card.glow}`,
           }}
@@ -1325,28 +1479,24 @@ function StrategyCard({ card, selected, onSelect }) {
       <motion.div
         animate={isSelected ? { rotate: [0, -8, 8, -4, 4, 0], scale: [1, 1.18, 1] } : {}}
         transition={{ duration: 0.5 }}
-        style={{ fontSize: 52, lineHeight: 1, position: 'relative', zIndex: 1 }}
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          width: 108,
+          height: 108,
+          borderRadius: 24,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: theme === 'light' ? 'rgba(255,255,255,0.58)' : 'rgba(2,6,23,0.36)',
+          border: `1px solid ${card.border}33`,
+          boxShadow: isSelected ? `0 0 26px ${card.glow}` : 'none',
+        }}
       >
-        {card.emoji}
+        <StrategyVisual id={card.id} color={card.border} selected={isSelected} />
       </motion.div>
-      <div style={{
-        background: isSelected ? `${card.border}22` : (theme === 'light' ? 'rgba(219,236,248,0.68)' : 'rgba(255,255,255,0.05)'),
-        border: `1px solid ${isSelected ? card.border : t.stratCardBd}`,
-        borderRadius: 20, padding: '3px 14px',
-        fontSize: 10, fontFamily: 'monospace', letterSpacing: 2,
-        color: isSelected ? card.color : t.textMuted,
-        fontWeight: 800, position: 'relative', zIndex: 1, transition: 'all 0.2s',
-      }}>
-        {tr(`strategy.cards.${card.id}.subtitle`, card.subtitle).toUpperCase()}
-      </div>
-      <p style={{ fontSize: 16, fontWeight: 800, color: isSelected ? card.color : t.textPrimary, lineHeight: 1.3, margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s' }}>
+      <p style={{ fontSize: 17, fontWeight: 950, color: isSelected ? card.color : t.textPrimary, lineHeight: 1.22, margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s', maxWidth: 190, minHeight: 42, display: 'flex', alignItems: 'center' }}>
         {tr(`strategy.cards.${card.id}.title`, card.title)}
-      </p>
-      <p style={{ fontSize: 13, color: isSelected ? (theme === 'light' ? '#1f4266' : '#c8d8e8') : t.textSecondary, lineHeight: 1.55, margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s', fontWeight: 500 }}>
-        {tr(`strategy.cards.${card.id}.description`, card.description)}
-      </p>
-      <p style={{ fontSize: 12, color: isSelected ? card.color : t.textMuted, fontFamily: 'monospace', fontStyle: 'italic', margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s', fontWeight: isSelected ? 700 : 500 }}>
-        {tr(`strategy.cards.${card.id}.quote`, card.quote)}
       </p>
       <motion.div
         initial={{ opacity: 0, scale: 0 }}
@@ -1354,9 +1504,9 @@ function StrategyCard({ card, selected, onSelect }) {
         transition={{ type: 'spring', stiffness: 300, damping: 18 }}
         style={{
           width: 32, height: 32, borderRadius: '50%',
-          background: card.border,
+          background: `linear-gradient(135deg, #ffffff, ${card.border})`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 16, color: theme === 'light' ? '#fff' : '#040810', fontWeight: 900,
+          fontSize: 16, color: '#07111f', fontWeight: 950,
           position: 'relative', zIndex: 1,
           boxShadow: `0 0 20px ${card.glow}`,
         }}
@@ -1541,6 +1691,46 @@ const TUTORIAL_LEVELS_KEY = 'starlost:tutorial:levels'
 const TUTORIAL_FEATURES_KEY = 'starlost:tutorial:features'
 const TUTORIAL_STORAGE_PREFIX = 'starlost:tutorial'
 const LEVEL_1_RESET_TUTORIAL_KEY = 'level-1-reset'
+const MAP_DECLARATION_STORAGE_PREFIX = 'starlost:map-intro'
+
+const MAP_DECLARATIONS_BY_LEVEL = {
+  1: { mapId: 'crashSite', accent: '#f59e0b' },
+  6: { mapId: 'forestEntrance', accent: '#22c55e' },
+  10: { mapId: 'deepForest', accent: '#14b8a6' },
+  15: { mapId: 'repairSite', accent: '#38bdf8' },
+  21: { mapId: 'launchSite', accent: '#a78bfa' },
+}
+
+function getParticipantScopedStorageKey(prefix, participantId, key) {
+  const safeParticipantId = String(participantId || 'anonymous').trim() || 'anonymous'
+  return `${prefix}:${safeParticipantId}:${key}`
+}
+
+function getMapDeclarationForLevel(levelId) {
+  return MAP_DECLARATIONS_BY_LEVEL[levelId] ?? null
+}
+
+function hasSeenMapDeclaration(participantId, mapId) {
+  try {
+    return localStorage.getItem(getParticipantScopedStorageKey(MAP_DECLARATION_STORAGE_PREFIX, participantId, mapId)) === 'seen'
+  } catch {
+    return false
+  }
+}
+
+function shouldShowMapDeclaration(participantId, declaration) {
+  if (!declaration) return false
+  if (TEMP_SHOW_MAP_DECLARATIONS_EVERY_OPEN) return true
+  return !hasSeenMapDeclaration(participantId, declaration.mapId)
+}
+
+function markMapDeclarationSeen(participantId, mapId) {
+  try {
+    localStorage.setItem(getParticipantScopedStorageKey(MAP_DECLARATION_STORAGE_PREFIX, participantId, mapId), 'seen')
+  } catch {
+    // Keep the story overlay dismissible even if storage is unavailable.
+  }
+}
 
 function getTutorialStorageKey(baseKey, participantId) {
   const safeParticipantId = String(participantId || 'anonymous').trim() || 'anonymous'
@@ -1684,6 +1874,310 @@ function hasUnseenTutorialStep(plan, levelId, participantId) {
 }
 
 // ── Level Screen ──────────────────────────────────────────────────────────────
+function MapDeclarationVisual({ accent, mapId }) {
+  const icon = (() => {
+    if (mapId === 'crashSite') {
+      return (
+        <g>
+          <path d="M24 58 L48 38 L78 47 L55 68 Z" fill="#475569" stroke="#f8fafc" strokeWidth="3" strokeLinejoin="round" />
+          <path d="M37 49 L51 43 L63 48 L49 55 Z" fill="#0f172a" stroke="#93c5fd" strokeWidth="2" />
+          <path d="M55 68 L74 75 M31 62 L18 70" stroke="#fb923c" strokeWidth="4" strokeLinecap="round" />
+          <circle cx="72" cy="42" r="8" fill="#fef3c7" stroke={accent} strokeWidth="3" />
+          <path d="M17 35 H31 M24 28 V42" stroke="#fbbf24" strokeWidth="3" strokeLinecap="round" />
+        </g>
+      )
+    }
+    if (mapId === 'forestEntrance') {
+      return (
+        <g>
+          <path d="M56 23 C49 34 45 45 45 70 H67 C67 50 63 35 56 23 Z" fill="#6b4b2a" stroke="#f8fafc" strokeWidth="2.5" />
+          <path d="M32 43 C39 25 52 18 63 28 C75 26 84 35 82 48 C75 58 44 58 32 43 Z" fill="#22c55e" stroke="#dcfce7" strokeWidth="3" />
+          <path d="M22 73 C37 63 68 64 87 74" fill="none" stroke={accent} strokeWidth="5" strokeLinecap="round" />
+          <circle cx="68" cy="40" r="4" fill="#bbf7d0" />
+        </g>
+      )
+    }
+    if (mapId === 'deepForest') {
+      return (
+        <g>
+          <path d="M28 70 C38 56 48 57 55 46 C61 36 70 32 83 28" fill="none" stroke={accent} strokeWidth="5" strokeLinecap="round" />
+          <path d="M31 62 L42 31 L53 62 Z" fill="#14532d" stroke="#bbf7d0" strokeWidth="2.5" strokeLinejoin="round" />
+          <path d="M51 66 L64 23 L78 66 Z" fill="#166534" stroke="#a7f3d0" strokeWidth="2.5" strokeLinejoin="round" />
+          <path d="M42 64 V75 M64 66 V76" stroke="#6b4b2a" strokeWidth="5" strokeLinecap="round" />
+          <circle cx="78" cy="28" r="4" fill="#fef3c7" />
+        </g>
+      )
+    }
+    if (mapId === 'repairSite') {
+      return (
+        <g>
+          <path d="M28 42 L49 29 L77 38 L56 51 Z" fill="#bae6fd" stroke="#f8fafc" strokeWidth="2.8" strokeLinejoin="round" />
+          <path d="M28 42 L56 51 V73 L28 62 Z" fill="#38bdf8" stroke="#f8fafc" strokeWidth="2.8" strokeLinejoin="round" />
+          <path d="M56 51 L77 38 V59 L56 73 Z" fill="#0ea5e9" stroke="#f8fafc" strokeWidth="2.8" strokeLinejoin="round" />
+          <path d="M36 51 L48 56 M39 38 L66 47" stroke="#0f172a" strokeWidth="2.2" strokeLinecap="round" opacity="0.75" />
+          <circle cx="76" cy="26" r="8" fill="none" stroke="#fbbf24" strokeWidth="3" />
+          <path d="M76 14 V20 M76 32 V38 M64 26 H70 M82 26 H88" stroke="#fbbf24" strokeWidth="3" strokeLinecap="round" />
+        </g>
+      )
+    }
+    return (
+      <g>
+        <path d="M56 15 C71 29 72 48 61 66 L50 61 L43 50 C44 34 49 22 56 15 Z" fill="#e0f2fe" stroke="#f8fafc" strokeWidth="3" strokeLinejoin="round" />
+        <circle cx="57" cy="35" r="7" fill="#0f172a" stroke="#67e8f9" strokeWidth="3" />
+        <path d="M44 52 L29 61 L39 40 M62 63 L57 81 L49 60" fill="#fb923c" stroke="#f8fafc" strokeWidth="2.8" strokeLinejoin="round" />
+        <path d="M34 78 H80" stroke={accent} strokeWidth="5" strokeLinecap="round" />
+        <path d="M47 75 C51 68 60 68 65 75" fill="none" stroke="#fef3c7" strokeWidth="3" strokeLinecap="round" />
+      </g>
+    )
+  })()
+
+  return (
+    <motion.svg
+      viewBox="0 0 112 92"
+      aria-hidden="true"
+      animate={{ y: [0, -5, 0], rotate: [-1, 1, -1] }}
+      transition={{ duration: 3.8, repeat: Infinity, ease: 'easeInOut' }}
+      style={{ width: 'min(31vw, 132px)', height: 'auto', display: 'block', filter: `drop-shadow(0 0 22px ${accent}66)` }}
+    >
+      <defs>
+        <linearGradient id="mapDeclarationRocket" x1="24" y1="10" x2="78" y2="78" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#ffffff" />
+          <stop offset="0.52" stopColor="#bae6fd" />
+          <stop offset="1" stopColor={accent} />
+        </linearGradient>
+        <radialGradient id="mapDeclarationBeacon" cx="50%" cy="45%" r="55%">
+          <stop stopColor="#ffffff" stopOpacity="0.98" />
+          <stop offset="0.45" stopColor={accent} stopOpacity="0.55" />
+          <stop offset="1" stopColor={accent} stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <circle cx="56" cy="46" r="42" fill="url(#mapDeclarationBeacon)" />
+      <circle cx="56" cy="46" r="35" fill={`${accent}20`} stroke={accent} strokeWidth="2.5" opacity="0.85" />
+      <path d="M20 70 C33 61 45 59 56 65 C67 71 79 70 92 60" fill="none" stroke={accent} strokeWidth="4" strokeLinecap="round" opacity="0.62" />
+      {icon}
+      <circle cx="27" cy="24" r="3.4" fill="#fef3c7" />
+      <circle cx="87" cy="28" r="2.8" fill="#bae6fd" />
+      <circle cx="90" cy="64" r="4.2" fill="#fef3c7" opacity="0.92" />
+    </motion.svg>
+  )
+}
+
+function MapDeclarationOverlay({ declaration, topOffset = HEADER_H, onDismiss }) {
+  const { t: tr } = useTranslation()
+  const theme = useTheme()
+  const isLight = theme === 'light'
+  const accent = declaration?.accent ?? '#38bdf8'
+  const mapId = declaration?.mapId
+  const buttonKey = mapId === 'crashSite'
+    ? 'mapDeclarations.common.startAdventure'
+    : 'mapDeclarations.common.continueAdventure'
+  const mapOrder = ['crashSite', 'forestEntrance', 'deepForest', 'repairSite', 'launchSite']
+  const currentMapIndex = Math.max(0, mapOrder.indexOf(mapId))
+  const starDots = [
+    { left: '11%', top: '18%', size: 3, delay: 0 },
+    { left: '23%', top: '72%', size: 2, delay: 0.8 },
+    { left: '78%', top: '20%', size: 4, delay: 0.35 },
+    { left: '87%', top: '67%', size: 2, delay: 1.1 },
+    { left: '48%', top: '12%', size: 2, delay: 1.45 },
+  ]
+  if (!mapId) return null
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      style={{
+        position: 'absolute',
+        top: topOffset,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 140,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 'clamp(18px, 4vw, 38px)',
+        boxSizing: 'border-box',
+        background: isLight
+          ? `radial-gradient(circle at 18% 16%, ${accent}44, transparent 30%), radial-gradient(circle at 82% 78%, rgba(14,165,233,0.24), transparent 34%), linear-gradient(135deg, rgba(15,23,42,0.42), rgba(8,13,28,0.58))`
+          : `radial-gradient(circle at 18% 16%, ${accent}3d, transparent 32%), radial-gradient(circle at 82% 78%, rgba(14,165,233,0.22), transparent 36%), linear-gradient(135deg, rgba(2,6,23,0.82), rgba(3,7,18,0.9))`,
+        backdropFilter: 'blur(7px)',
+        overflow: 'hidden',
+      }}
+    >
+      {starDots.map((star, index) => (
+        <motion.span
+          key={index}
+          aria-hidden="true"
+          animate={{ opacity: [0.25, 0.95, 0.25], y: [0, -10, 0], scale: [1, 1.35, 1] }}
+          transition={{ duration: 3 + index * 0.35, delay: star.delay, repeat: Infinity, ease: 'easeInOut' }}
+          style={{
+            position: 'absolute',
+            left: star.left,
+            top: star.top,
+            width: star.size,
+            height: star.size,
+            borderRadius: '50%',
+            background: '#fef3c7',
+            boxShadow: `0 0 14px ${accent}`,
+          }}
+        />
+      ))}
+      <motion.div
+        initial={{ y: 18, scale: 0.96 }}
+        animate={{ y: 0, scale: 1 }}
+        exit={{ y: 12, scale: 0.98 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+        style={{
+          width: 'min(760px, 100%)',
+          maxHeight: '100%',
+          overflow: 'auto',
+          position: 'relative',
+          borderRadius: 30,
+          border: `2px solid ${accent}e6`,
+          background: isLight
+            ? `linear-gradient(145deg, rgba(255,255,255,0.99), rgba(232,246,255,0.96) 52%, ${accent}1c), radial-gradient(circle at 50% 0%, rgba(255,255,255,0.98), transparent 34%)`
+            : `linear-gradient(145deg, rgba(15,23,42,0.99), rgba(8,18,33,0.98) 52%, ${accent}1d), radial-gradient(circle at 50% 0%, rgba(255,255,255,0.12), transparent 34%)`,
+          boxShadow: isLight
+            ? `0 34px 90px rgba(15,23,42,0.30), 0 0 0 10px ${accent}18, 0 0 48px ${accent}28, inset 0 1px 0 rgba(255,255,255,0.96)`
+            : `0 36px 100px rgba(0,0,0,0.68), 0 0 68px ${accent}3a, inset 0 1px 0 rgba(255,255,255,0.14)`,
+          padding: 'clamp(24px, 4.2vw, 42px)',
+          textAlign: 'center',
+          boxSizing: 'border-box',
+          color: isLight ? '#0f172a' : '#e5f7ff',
+        }}
+      >
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', borderRadius: 28 }}>
+          <div style={{
+            position: 'absolute',
+            inset: 10,
+            borderRadius: 22,
+            border: `1px solid ${accent}33`,
+          }} />
+          <div style={{
+            position: 'absolute',
+            left: 24,
+            right: 24,
+            top: 18,
+            height: 1,
+            background: `linear-gradient(90deg, transparent, ${accent}99, transparent)`,
+          }} />
+          <div style={{
+            position: 'absolute',
+            top: -90,
+            right: -70,
+            width: 220,
+            height: 220,
+            borderRadius: '50%',
+            background: `${accent}18`,
+            filter: 'blur(4px)',
+          }} />
+        </div>
+        <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+          <MapDeclarationVisual accent={accent} mapId={mapId} />
+        </div>
+        <p style={{
+          position: 'relative',
+          margin: '0 0 8px',
+          fontFamily: 'monospace',
+          fontSize: 12,
+          fontWeight: 900,
+          letterSpacing: 3,
+          color: accent,
+        }}>
+          {tr('mapDeclarations.common.newMap')}
+        </p>
+        <h2 style={{
+          position: 'relative',
+          margin: '0 0 14px',
+          fontSize: 'clamp(34px, 7vw, 62px)',
+          lineHeight: 1,
+          color: isLight ? '#0f172a' : '#f8fafc',
+          textShadow: isLight ? `0 8px 28px ${accent}24` : `0 0 24px ${accent}44`,
+        }}>
+          {tr(`mapDeclarations.${mapId}.title`)}
+        </h2>
+        <div style={{
+          position: 'relative',
+          display: 'grid',
+          gridTemplateColumns: `repeat(${mapOrder.length}, 1fr)`,
+          gap: 8,
+          alignItems: 'center',
+          margin: '0 auto 18px',
+          maxWidth: 430,
+        }}>
+          {mapOrder.map((stop, index) => (
+            <div key={stop} style={{
+              height: 8,
+              borderRadius: 999,
+              background: index <= currentMapIndex ? accent : (isLight ? 'rgba(148,163,184,0.32)' : 'rgba(148,163,184,0.22)'),
+              boxShadow: index === currentMapIndex ? `0 0 16px ${accent}88` : 'none',
+              position: 'relative',
+            }}>
+              {index === currentMapIndex && (
+                <motion.span
+                  aria-hidden="true"
+                  animate={{ scale: [1, 1.25, 1] }}
+                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                  style={{
+                    position: 'absolute',
+                    left: '50%',
+                    top: '50%',
+                    width: 18,
+                    height: 18,
+                    borderRadius: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    background: '#fef3c7',
+                    border: `3px solid ${accent}`,
+                    boxShadow: `0 0 18px ${accent}`,
+                  }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+        <p style={{
+          position: 'relative',
+          margin: '0 auto 24px',
+          maxWidth: 520,
+          fontSize: 'clamp(15px, 3vw, 18px)',
+          lineHeight: 1.55,
+          fontWeight: 700,
+          color: isLight ? '#334155' : '#cde7f5',
+          background: isLight ? 'rgba(255,255,255,0.58)' : 'rgba(2,6,23,0.34)',
+          border: `1px solid ${accent}2e`,
+          borderRadius: 18,
+          padding: 'clamp(14px, 3vw, 18px)',
+        }}>
+          {tr(`mapDeclarations.${mapId}.body`)}
+        </p>
+        <motion.button
+          whileHover={{ y: -2, scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={onDismiss}
+          style={{
+            position: 'relative',
+            border: 0,
+            borderRadius: 20,
+            padding: '15px 28px',
+            minWidth: 180,
+            background: `linear-gradient(135deg, ${accent}, #fef3c7)`,
+            color: '#07111f',
+            fontWeight: 950,
+            fontSize: 15,
+            letterSpacing: 1.5,
+            cursor: 'pointer',
+            boxShadow: `0 16px 34px ${accent}55, inset 0 1px 0 rgba(255,255,255,0.7)`,
+          }}
+        >
+          {tr(buttonKey)}
+        </motion.button>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 function LevelScreen({
   levelConfig,
   participantId,
@@ -1693,6 +2187,7 @@ function LevelScreen({
   onComplete,
   onCompleteAndGoHome,
   onStrategyCard,
+  onRetryLevel,
   onGoHome,
   onHeaderControls,
   topOffset = HEADER_H,
@@ -1756,7 +2251,7 @@ function LevelScreen({
     helmetReport,
     radioIsUncertain,
     visorActive, visorFlipCount, flipVisor, closeVisor,
-    sequence, setSequence, isRunning, isMirrored,
+    sequence, setSequence, restoreCompletedProgram, isRunning, isMirrored,
     addCommand, removeLastCommand, clearSequence, runSequence,
     collectedParts, collectionEffects, activeIfPathSignal,
     missedFragments, dismissMissedFragments,
@@ -1778,8 +2273,8 @@ function LevelScreen({
     const restoreKey = `${participantId}:${levelConfig.id}:local`
     if (completedProgramRestoreKeyRef.current === restoreKey) return
     completedProgramRestoreKeyRef.current = restoreKey
-    setSequence(cloneNestedCommands(completedProgram))
-  }, [completedProgram, levelConfig.id, participantId, setSequence])
+    restoreCompletedProgram(completedProgram)
+  }, [completedProgram, levelConfig.id, participantId, restoreCompletedProgram])
 
   useEffect(() => {
     if (!participantId) return undefined
@@ -1795,7 +2290,7 @@ function LevelScreen({
         if (cancelled || !savedProgram) return
         completedProgramRestoreKeyRef.current = restoreKey
         onCompletedProgramSaved?.(levelConfig.id, savedProgram)
-        setSequence(cloneNestedCommands(savedProgram))
+        restoreCompletedProgram(savedProgram)
       })
       .catch(err => {
         console.warn('[Progress] Completed program restore failed:', err)
@@ -1804,7 +2299,7 @@ function LevelScreen({
     return () => {
       cancelled = true
     }
-  }, [completedLevels, completedProgram, levelConfig.id, onCompletedProgramSaved, participantId, setSequence])
+  }, [completedLevels, completedProgram, levelConfig.id, onCompletedProgramSaved, participantId, restoreCompletedProgram])
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
@@ -1943,6 +2438,14 @@ function LevelScreen({
   )
   const firstReplayableTutorialStep = replayableTutorialSteps[0] ?? null
   const [hasReplayableTutorialTarget, setHasReplayableTutorialTarget] = useState(false)
+  const successTotalBlocks = useMemo(() => countProgramBlocks(sequence), [sequence])
+  const isCompletedProgramReview = useMemo(() => {
+    const levelId = Number(levelConfig.id)
+    return levelId >= 3 &&
+      levelId <= 20 &&
+      shouldPreserveCompletedProgram(levelId) &&
+      isLevelCompleted(levelId, completedLevels)
+  }, [completedLevels, levelConfig.id])
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -1952,6 +2455,22 @@ function LevelScreen({
   }, [firstReplayableTutorialStep, phase, sequence.length, needsReset, visorActive])
 
   const currentTutorialStep = tutorialSteps[tutorialIndex] ?? null
+  const mapDeclaration = useMemo(
+    () => getMapDeclarationForLevel(levelConfig.id),
+    [levelConfig.id]
+  )
+  const [showMapDeclaration, setShowMapDeclaration] = useState(() =>
+    shouldShowMapDeclaration(participantId, mapDeclaration)
+  )
+
+  useEffect(() => {
+    setShowMapDeclaration(shouldShowMapDeclaration(participantId, mapDeclaration))
+  }, [mapDeclaration, participantId])
+
+  const handleDismissMapDeclaration = useCallback(() => {
+    if (mapDeclaration) markMapDeclarationSeen(participantId, mapDeclaration.mapId)
+    setShowMapDeclaration(false)
+  }, [mapDeclaration, participantId])
 
   const closeTutorial = useCallback(() => {
     setTutorialSteps([])
@@ -1993,6 +2512,8 @@ function LevelScreen({
   }, [closeTutorial, startTutorial])
 
   useEffect(() => {
+    if (showMapDeclaration) return undefined
+    if (isCompletedProgramReview) return undefined
     if (tutorialSteps.length > 0) return undefined
 
     const autoTutorialReady =
@@ -2026,9 +2547,10 @@ function LevelScreen({
       window.cancelAnimationFrame(launchFrame)
       controller.abort()
     }
-  }, [currentLevelTutorialPlan, launchTutorialWhenReady, levelConfig.id, participantId, phase, tutorialSteps.length])
+  }, [currentLevelTutorialPlan, isCompletedProgramReview, launchTutorialWhenReady, levelConfig.id, participantId, phase, showMapDeclaration, tutorialSteps.length])
 
   useEffect(() => {
+    if (showMapDeclaration) return undefined
     if (levelConfig.id !== 1 || !needsReset || tutorialSteps.length > 0) return undefined
 
     const seenFeatures = readTutorialSessionSet(TUTORIAL_FEATURES_KEY, participantId)
@@ -2049,7 +2571,7 @@ function LevelScreen({
       window.cancelAnimationFrame(launchFrame)
       controller.abort()
     }
-  }, [launchTutorialWhenReady, levelConfig.id, needsReset, participantId, tutorialSteps.length])
+  }, [launchTutorialWhenReady, levelConfig.id, needsReset, participantId, showMapDeclaration, tutorialSteps.length])
 
   useEffect(() => {
     if (!currentTutorialStep) return
@@ -2245,6 +2767,7 @@ function LevelScreen({
   const scaledTitleH     = (TITLE_BAR_H + STAGE_GAP) * levelStageScale
   const OUTER_PAD_TOP    = 10
   const OUTER_PAD_BOT    = 12
+  const showHelmetRadioPanel = !levelConfig.noRadio
 
   return (
     <div style={{
@@ -2318,13 +2841,13 @@ function LevelScreen({
           gap: LEFT_COL_GAP,
           transform: levelConfig.id === 13 && phase === 'identify' ? 'translateY(-8px)' : 'none',
         }}>
-          {!levelConfig.noRadio && (
+          {showHelmetRadioPanel && (
             <div style={{ width: GRID_PX, flexShrink: 0 }}>
               <HelmetRadio
                 report={helmetReport}
                 radioIsUncertain={radioIsUncertain}
                 onReplayVoice={handleReplayRadioVoice}
-                voiceSupported={voiceSupported}
+                voiceSupported={voiceSupported && !levelConfig.noRadio}
                 isSpeaking={isLumaRadioSpeaking}
               />
             </div>
@@ -2450,6 +2973,7 @@ function LevelScreen({
                   defaultIfPathCondition={effectiveDefaultIfPathCondition}
                   lockedProgram={Boolean(levelConfig.traceMode)}
                   paletteDisabled={currentTutorialStep?.id === 'level-1-palette'}
+                  requireIfBlockBeforeRun={levelConfig.id === 15}
                 />
               </div>
             </motion.div>
@@ -2463,14 +2987,26 @@ function LevelScreen({
             levelId={levelConfig.id}
             onNext={handleSuccessNext}
             onHome={handleSuccessHome}
+            onTryAgain={onRetryLevel}
             isFinalLevel={levelConfig.id >= PLAYABLE_LEVELS}
+            totalBlocks={successTotalBlocks}
+            targetCommands={levelConfig.targetCommands ?? null}
           />
         )}
         {missedFragments && (
           <MissedFragmentsAlert onDismiss={dismissMissedFragments} />
         )}
       </AnimatePresence>
-      {currentTutorialStep && (!currentTutorialStep.showWhen || currentTutorialStep.showWhen(tutorialContext)) && (
+      <AnimatePresence>
+        {showMapDeclaration && mapDeclaration && (
+          <MapDeclarationOverlay
+            declaration={mapDeclaration}
+            topOffset={topOffset}
+            onDismiss={handleDismissMapDeclaration}
+          />
+        )}
+      </AnimatePresence>
+      {!showMapDeclaration && currentTutorialStep && (!currentTutorialStep.showWhen || currentTutorialStep.showWhen(tutorialContext)) && (
         <TutorialOverlay
           step={currentTutorialStep}
           stepIndex={tutorialIndex}
@@ -2798,7 +3334,12 @@ export default function App() {
       console.warn('[StarMap] Ignoring invalid level selection:', levelNumber)
       return
     }
-    if (!isLevelUnlocked(nextLevelNumber, completedLevels)) {
+    // Original locking guard:
+    // if (!isLevelUnlocked(nextLevelNumber, completedLevels)) {
+    //   console.warn('[StarMap] Ignoring locked level selection:', levelNumber)
+    //   return
+    // }
+    if (!TEMP_UNLOCK_ALL_LEVELS && !isLevelUnlocked(nextLevelNumber, completedLevels)) {
       console.warn('[StarMap] Ignoring locked level selection:', levelNumber)
       return
     }
@@ -2817,6 +3358,11 @@ export default function App() {
       ...previousPrograms,
       [String(Number(levelId))]: cloneNestedCommands(completedProgramBlocks),
     }))
+  }, [])
+
+  const handleRetryLevel = useCallback(() => {
+    setLevelSessionKey(key => key + 1)
+    setLevelHeaderControls(null)
   }, [])
 
   const handleGoHome = useCallback(() => {
@@ -3268,6 +3814,7 @@ export default function App() {
                 onComplete={handleLevelComplete}
                 onCompleteAndGoHome={handleLevelCompleteGoHome}
                 onStrategyCard={handleShowStrategyCard}
+                onRetryLevel={handleRetryLevel}
                 onGoHome={handleGoHome}
                 onHeaderControls={handleLevelHeaderControls}
                 topOffset={gameTopOffset}
@@ -3339,6 +3886,7 @@ export default function App() {
                     onComplete={handleLevelComplete}
                     onCompleteAndGoHome={handleLevelCompleteGoHome}
                     onStrategyCard={handleShowStrategyCard}
+                    onRetryLevel={handleRetryLevel}
                     onGoHome={handleGoHome}
                     onHeaderControls={handleLevelHeaderControls}
                     topOffset={gameTopOffset}

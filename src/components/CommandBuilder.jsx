@@ -17,6 +17,7 @@ import {
 const THUMB_R = 8
 const CHIP_HEIGHT = 34
 const ITEM_GAP = 4
+const NESTED_DROP_EDGE_GUARD = 18
 const AUTO_SCROLLERS = new WeakMap()
 
 function getDropPreviewHeight(depth = 0) {
@@ -210,6 +211,16 @@ function createCommandFromCode(code, ifPathCondition = 'ahead', repeatTimes = 2)
   return code
 }
 
+function sequenceHasIfPathCommand(commands = []) {
+  if (!Array.isArray(commands)) return false
+
+  return commands.some((command) => {
+    if (!command || typeof command !== 'object') return false
+    if (isIfPathCommand(command)) return true
+    return sequenceHasIfPathCommand(command.commands) || sequenceHasIfPathCommand(command.elseCommands)
+  })
+}
+
 function getIfPathSelectStyle({ color, fontSize, letterSpacing = 1, theme }) {
   return {
     padding: '2px 6px',
@@ -382,6 +393,11 @@ function getNestedDropInfoFromPoint(clientX, clientY) {
     ?.closest('[data-nested-drop-path]')
 
   if (!dropTarget) return null
+  const rect = dropTarget.getBoundingClientRect()
+  const edgeGuard = Math.min(NESTED_DROP_EDGE_GUARD, Math.max(6, rect.height * 0.22))
+  const pointerY = clientY - rect.top
+
+  if (pointerY < edgeGuard || pointerY > rect.height - edgeGuard) return null
 
   const pathKey = dropTarget.getAttribute('data-nested-drop-path')
   return {
@@ -428,7 +444,7 @@ function SpeedBar({ speed, onSpeedChange, theme }) {
   }, [onSpeedChange])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
+    <div data-tutorial-id="luma-speed-control" style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <p style={{ fontSize: 10, color: t.speedLabelClr, fontFamily: 'monospace', letterSpacing: 1, margin: 0, fontWeight: 800 }}>{tr('commandBuilder.speed')}</p>
         <span style={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 800, color: trackColor }}>{safeSpeed}%</span>
@@ -466,6 +482,24 @@ function SpeedBar({ speed, onSpeedChange, theme }) {
         <span style={{ position: 'absolute', right: 0 }}>{tr('commandBuilder.fast')}</span>
       </div>
     </div>
+  )
+}
+
+function DeleteLastIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style={{ display: 'block' }}>
+      <path d="M9.4 5.5h9.1c1.1 0 2 .9 2 2v9c0 1.1-.9 2-2 2H9.4c-.6 0-1.2-.3-1.6-.8L3.5 12l4.3-5.7c.4-.5 1-.8 1.6-.8Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="m11.2 9.2 5.6 5.6M16.8 9.2l-5.6 5.6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function ClearAllIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style={{ display: 'block' }}>
+      <path d="M8 8h8l-.7 11.2c-.1 1-1 1.8-2 1.8h-2.6c-1 0-1.9-.8-2-1.8L8 8Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M6 8h12M10 8V5.8c0-.5.4-.8.8-.8h2.4c.4 0 .8.3.8.8V8M10.5 11v6M13.5 11v6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
   )
 }
 
@@ -1068,7 +1102,7 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
     event.preventDefault()
     event.stopPropagation()
     stopAutoScrollContainer(scrollContainerRef?.current)
-    const dropInfo = getNestedDropInfoFromPoint(event.clientX, event.clientY) ?? activeNestedDropPath
+    const dropInfo = getNestedDropInfoFromPoint(event.clientX, event.clientY)
     const moved = sequence[dragIndex]
 
     if (dropInfo &&
@@ -1087,7 +1121,7 @@ function DraggableNestedSequence({ sequence, parentPath, depth, theme, isRunning
     }
     onNestedPaletteHoverChange?.(null)
     endDrag()
-  }, [activeNestedDropPath, dragIndex, endDrag, insertAt, onMoveCommand, onNestedPaletteHoverChange, onReorderCommands, parentPath, scrollContainerRef, sequence])
+  }, [dragIndex, endDrag, insertAt, onMoveCommand, onNestedPaletteHoverChange, onReorderCommands, parentPath, scrollContainerRef, sequence])
 
   const tops = layout.tops
   const totalHeight = layout.totalHeight
@@ -1336,7 +1370,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
   const handlePointerUp = useCallback((event, index) => {
     if (dragIndex !== index) return
     stopAutoScrollContainer(scrollContainerRef?.current)
-    const dropInfo = getNestedDropInfoFromPoint(event.clientX, event.clientY) ?? activeNestedDropPath
+    const dropInfo = getNestedDropInfoFromPoint(event.clientX, event.clientY)
 
     if (dropInfo && canMoveCommandToPath(sequence[dragIndex], [dragIndex], dropInfo.path)) {
       onReorder(moveCommandBetweenPaths(sequence, [], dragIndex, dropInfo.path, dropInfo.insertAt))
@@ -1355,7 +1389,7 @@ function DraggableProgram({ sequence, isRunning, onReorder, onInsertAt, onDelete
     setDragIndex(null)
     setInsertAt(null)
     setActiveNestedDropPath(null)
-  }, [activeNestedDropPath, dragIndex, insertAt, onReorder, scrollContainerRef, sequence])
+  }, [dragIndex, insertAt, onReorder, scrollContainerRef, sequence])
 
   const handleStripDragOver = useCallback((event) => {
     event.preventDefault()
@@ -1766,6 +1800,7 @@ export default function CommandBuilder({
   defaultIfPathCondition = 'ahead',
   lockedProgram = false,
   paletteDisabled = false,
+  requireIfBlockBeforeRun = false,
 }) {
   const { t: tr } = useTranslation()
   const theme = useContext(ThemeContext)
@@ -1775,6 +1810,7 @@ export default function CommandBuilder({
   const [repeatPaletteTimes, setRepeatPaletteTimes] = useState(2)
   const [showCodeModal, setShowCodeModal] = useState(false)
   const sequenceAreaRef = useRef(null)
+  const sequenceScrollTopRef = useRef(0)
   const programPanelRef = useRef(null)
   const palettePanelRef = useRef(null)
   const [programPanelW, setProgramPanelW] = useState(9999)
@@ -1806,7 +1842,10 @@ export default function CommandBuilder({
 
   const totalBlocks = countProgramBlocks(sequence)
   const programCode = programToPython(sequence, tr('commandBuilder.emptyPython'))
-  const isDisabled = isRunning || sequence.length === 0 || needsReset || runBlocked
+  const isMissingRequiredIfBlock = requireIfBlockBeforeRun && sequence.length > 0 && !sequenceHasIfPathCommand(sequence)
+  const isDisabled = isRunning || sequence.length === 0 || needsReset || runBlocked || isMissingRequiredIfBlock
+  const programCountWarning = targetCommands !== null && totalBlocks > targetCommands
+  const programCountWarningColor = theme === 'light' ? '#f59e0b' : '#fbbf24'
   const wrapperBg = theme === 'light' ? 'rgba(255,255,255,0.18)' : 'rgba(6,11,20,0.16)'
   const subPanelStyle = {
     flex: '1 1 0',
@@ -1850,6 +1889,38 @@ export default function CommandBuilder({
     fontWeight: 900,
     whiteSpace: 'nowrap',
   }
+  const renderProgramBlockCount = (fontSize = 11) => {
+    const unit = tr(targetCommands !== null ? 'common.blocks' : totalBlocks === 1 ? 'common.block' : 'common.blocks')
+
+    if (targetCommands === null) {
+      return (
+        <span data-tutorial-id="program-block-count" style={{ color: t.programCount, fontWeight: 600, whiteSpace: 'nowrap' }}>
+          {tr('commandBuilder.programBlockCount', { count: totalBlocks, unit })}
+        </span>
+      )
+    }
+
+    return (
+      <span
+        data-tutorial-id="program-block-count"
+        style={{ color: t.programCount, fontWeight: 600, whiteSpace: 'nowrap', fontSize }}
+      >
+        <span style={{ color: programCountWarning ? programCountWarningColor : t.programCount }}>{totalBlocks}</span>
+        <span>/{targetCommands} {unit}</span>
+      </span>
+    )
+  }
+
+  useLayoutEffect(() => {
+    const el = sequenceAreaRef.current
+    if (!el || sequence.length === 0) return
+    const maxScrollTop = Math.max(0, el.scrollHeight - el.clientHeight)
+    el.scrollTop = Math.min(sequenceScrollTopRef.current, maxScrollTop)
+  }, [totalBlocks])
+
+  const handleSequenceScroll = useCallback((event) => {
+    sequenceScrollTopRef.current = event.currentTarget.scrollTop
+  }, [])
 
   const handleTopLevelAdd = useCallback((command) => {
     onAdd(command)
@@ -1909,11 +1980,10 @@ export default function CommandBuilder({
         <div data-tutorial-id="trace-program-box" style={{ ...subPanelStyle, flex: '1 1 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, flexShrink: 0 }}>
             <div>
-            <p style={{ fontSize: 12, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 1.2, margin: 0, fontWeight: 900 }}>{tr('commandBuilder.launchProgram')}</p>
+            <p style={{ fontSize: 12, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 1.2, margin: 0, fontWeight: 900 }}>{tr('commandBuilder.launchProgram')} {renderProgramBlockCount(11)}</p>
               <p style={{ fontSize: 10, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.8, margin: '4px 0 0 0' }}>{tr('commandBuilder.traceInstruction')}</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end', flexShrink: 0 }}>
-              {targetCommands !== null && <span style={{ color: t.targetCmdColor, fontSize: 10.5, fontFamily: 'monospace', fontWeight: 900, whiteSpace: 'nowrap' }}>{tr('commandBuilder.shortestPath', { count: targetCommands })}</span>}
               <button type="button" onClick={() => setShowCodeModal(true)} style={showCodeBtn}>{'</>'} {tr('commandBuilder.showCode')}</button>
             </div>
           </div>
@@ -1992,7 +2062,7 @@ export default function CommandBuilder({
 
         {!needsReset && (
           <motion.button whileTap={{ scale: 0.97 }} onClick={onRun} disabled={isDisabled} data-tutorial-id="run-button" style={{ width: '100%', padding: '13px 0', background: isDisabled ? t.runBgDisabled : t.runBgActive, border: `2px solid ${isDisabled ? t.runBorderDisabled : t.runBorderActive}`, borderRadius: 8, color: isDisabled ? t.runColorDisabled : t.runColorActive, fontFamily: 'monospace', fontSize: 14, letterSpacing: 2, cursor: isDisabled ? 'not-allowed' : 'pointer', fontWeight: 800 }}>
-            {isRunning ? tr('commandBuilder.running') : ifElseBlocked ? tr('commandBuilder.addElseBlock') : runBlocked ? tr('commandBuilder.setPredictionFirst') : tr('commandBuilder.executeProgram')}
+            {isRunning ? tr('commandBuilder.running') : ifElseBlocked ? tr('commandBuilder.addElseBlock') : isMissingRequiredIfBlock ? tr('commandBuilder.addIfBlock') : runBlocked ? tr('commandBuilder.setPredictionFirst') : tr('commandBuilder.executeProgram')}
           </motion.button>
         )}
       </div>
@@ -2003,15 +2073,14 @@ export default function CommandBuilder({
             /* ── Normal single-row header ── */
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexShrink: 0, width: '100%' }}>
               <div style={{ minWidth: 0, flex: '1 1 auto' }}>
-                <p style={{ fontSize: 11, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 1.1, margin: 0, fontWeight: 800, whiteSpace: 'nowrap' }}>{tr('commandBuilder.program')} <span style={{ color: t.programCount, fontWeight: 600, whiteSpace: 'nowrap' }}>{tr('commandBuilder.programBlockCount', { count: totalBlocks, unit: tr(totalBlocks === 1 ? 'common.block' : 'common.blocks') })}</span></p>
+                <p style={{ fontSize: 11, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 1.1, margin: 0, fontWeight: 800, whiteSpace: 'nowrap' }}>{tr('commandBuilder.program')} {renderProgramBlockCount(11)}</p>
                 <p style={{ fontSize: 10, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.8, margin: '4px 0 0 0' }}>{tr('commandBuilder.topToBottom')}</p>
               </div>
-              <div style={{ flex: '0 1 168px', minWidth: 150, textAlign: 'right', overflow: 'hidden', marginRight: 6 }}>
-                {targetCommands !== null && <span style={{ display: 'block', fontSize: 10.5, color: t.targetCmdColor, fontFamily: 'monospace', letterSpacing: 0.2, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'clip' }}>{tr('commandBuilder.shortestPath', { count: targetCommands })}</span>}
+              <div data-tutorial-id="program-edit-buttons" style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end', flex: '0 0 auto' }}>
+                <button title={tr('commandBuilder.delete')} aria-label={tr('commandBuilder.delete')} onClick={onRemove} disabled={isRunning || sequence.length === 0} style={{ ...actionBtn(isRunning || sequence.length === 0), display: 'grid', placeItems: 'center' }}><DeleteLastIcon /></button>
+                <button title={tr('commandBuilder.clear')} aria-label={tr('commandBuilder.clear')} onClick={onClear} disabled={isRunning || sequence.length === 0} style={{ ...actionBtn(isRunning || sequence.length === 0), display: 'grid', placeItems: 'center' }}><ClearAllIcon /></button>
               </div>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end', flex: '0 0 auto' }}>
-                <button title={tr('commandBuilder.delete')} aria-label={tr('commandBuilder.delete')} onClick={onRemove} disabled={isRunning || sequence.length === 0} style={actionBtn(isRunning || sequence.length === 0)}>⌫</button>
-                <button title={tr('commandBuilder.clear')} aria-label={tr('commandBuilder.clear')} onClick={onClear} disabled={isRunning || sequence.length === 0} style={actionBtn(isRunning || sequence.length === 0)}>✕</button>
                 <button type="button" onClick={() => setShowCodeModal(true)} style={showCodeBtn}>{'</>'} {tr('commandBuilder.showCode')}</button>
               </div>
             </div>
@@ -2022,28 +2091,25 @@ export default function CommandBuilder({
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
                 <div style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
                   <p style={{ fontSize: 10, color: t.programLabel, fontFamily: 'monospace', letterSpacing: 0.8, margin: 0, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {tr('commandBuilder.program')} <span style={{ color: t.programCount, fontWeight: 600 }}>{tr('commandBuilder.programBlockCount', { count: totalBlocks, unit: tr(totalBlocks === 1 ? 'common.block' : 'common.blocks') })}</span>
+                    {tr('commandBuilder.program')} {renderProgramBlockCount(10)}
                   </p>
                   <p style={{ fontSize: 9, color: t.programCount, fontFamily: 'monospace', letterSpacing: 0.6, margin: '2px 0 0 0' }}>{tr('commandBuilder.topToBottom')}</p>
                 </div>
                 <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
-                  <button title={tr('commandBuilder.delete')} aria-label={tr('commandBuilder.delete')} onClick={onRemove} disabled={isRunning || sequence.length === 0} style={{ ...actionBtn(isRunning || sequence.length === 0), width: 26, height: 24, fontSize: 9 }}>⌫</button>
-                  <button title={tr('commandBuilder.clear')} aria-label={tr('commandBuilder.clear')} onClick={onClear} disabled={isRunning || sequence.length === 0} style={{ ...actionBtn(isRunning || sequence.length === 0), width: 26, height: 24, fontSize: 9 }}>✕</button>
+                  <div data-tutorial-id="program-edit-buttons" style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
+                    <button title={tr('commandBuilder.delete')} aria-label={tr('commandBuilder.delete')} onClick={onRemove} disabled={isRunning || sequence.length === 0} style={{ ...actionBtn(isRunning || sequence.length === 0), width: 26, height: 24, fontSize: 9, display: 'grid', placeItems: 'center' }}><DeleteLastIcon /></button>
+                    <button title={tr('commandBuilder.clear')} aria-label={tr('commandBuilder.clear')} onClick={onClear} disabled={isRunning || sequence.length === 0} style={{ ...actionBtn(isRunning || sequence.length === 0), width: 26, height: 24, fontSize: 9, display: 'grid', placeItems: 'center' }}><ClearAllIcon /></button>
+                  </div>
                   <button type="button" onClick={() => setShowCodeModal(true)} style={{ ...showCodeBtn, padding: '4px 7px', fontSize: 9, letterSpacing: 0.5 }}>{'</>'} {tr('commandBuilder.showCode')}</button>
                 </div>
               </div>
-              {/* Row 2: shortest path (if present) */}
-              {targetCommands !== null && (
-                <p style={{ fontSize: 9, color: t.targetCmdColor, fontFamily: 'monospace', letterSpacing: 0.2, fontWeight: 800, margin: 0, whiteSpace: 'nowrap' }}>
-                  {tr('commandBuilder.shortestPath', { count: targetCommands })}
-                </p>
-              )}
             </div>
           )}
 
           <div
             ref={sequenceAreaRef}
             data-tutorial-id="sequence-area"
+            onScroll={handleSequenceScroll}
             onDragOver={(event) => {
               event.preventDefault()
               autoScrollContainerNearEdge(event.currentTarget, event.clientY)

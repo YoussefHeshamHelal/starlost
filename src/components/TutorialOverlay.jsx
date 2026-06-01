@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { THEMES, useTheme } from '../context/theme'
 
 const VIEWPORT_MARGIN = 18
+const HEADER_SAFE_TOP = 72
 const FOCUS_PADDING = 10
 const DEFAULT_OVERLAY_RECT = { left: 0, top: 0, width: 1440, height: 900, scaleX: 1, scaleY: 1 }
 
@@ -52,7 +53,7 @@ function toOverlayRect(rect, overlay) {
   }
 }
 
-function getBubblePosition(rect, placement, bubbleRect, overlayRect, offsetX = 0, offsetY = 0) {
+function getBubblePosition(rect, placement, bubbleRect, overlayRect, offsetX = 0, offsetY = 0, safeTop = HEADER_SAFE_TOP) {
   const bubbleWidth = bubbleRect?.width ?? 320
   const bubbleHeight = bubbleRect?.height ?? 220
   const gap = 22
@@ -82,7 +83,7 @@ function getBubblePosition(rect, placement, bubbleRect, overlayRect, offsetX = 0
   top += offsetY
   left += offsetX
 
-  top = clamp(top, VIEWPORT_MARGIN, overlayRect.height - bubbleHeight - VIEWPORT_MARGIN)
+  top = clamp(top, safeTop, overlayRect.height - bubbleHeight - VIEWPORT_MARGIN)
   left = clamp(left, VIEWPORT_MARGIN, overlayRect.width - bubbleWidth - VIEWPORT_MARGIN)
 
   return { top, left, arrowPlacement }
@@ -214,10 +215,12 @@ export default function TutorialOverlay({
       bubbleRect,
       overlayRect,
       step?.offsetX ?? 0,
-      step?.offsetY ?? 0
+      step?.offsetY ?? 0,
+      step?.safeTop ?? HEADER_SAFE_TOP
     ),
     [bubbleRect, overlayRect, step, targetRect]
   )
+  const bubbleWidth = Math.min(step?.bubbleWidth ?? 360, Math.max(280, overlayRect.width - VIEWPORT_MARGIN * 2))
 
   if (!step) return null
 
@@ -290,7 +293,7 @@ export default function TutorialOverlay({
             position: 'fixed',
             top: bubblePosition.top,
             left: bubblePosition.left,
-            width: 360,
+            width: bubbleWidth,
             background: t.tutorialBubbleBg,
             border: `2px solid ${t.tutorialBubbleBorder}`,
             borderRadius: 22,
@@ -427,24 +430,26 @@ export default function TutorialOverlay({
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <button
-                onClick={onBack}
-                disabled={!canGoBack}
-                style={{
-                  minWidth: 88,
-                  padding: '10px 14px',
-                  borderRadius: 999,
-                  border: `1.5px solid ${canGoBack ? t.tutorialSecondaryBorder : t.tutorialSecondaryDisabled}`,
-                  background: t.tutorialSecondaryBg,
-                  color: canGoBack ? t.tutorialSecondaryText : t.tutorialSecondaryDisabled,
-                  cursor: canGoBack ? 'pointer' : 'not-allowed',
-                  fontWeight: 800,
-                }}
-              >
-                {tr('common.back')}
-              </button>
+              {!step.hideBackButton && (
+                <button
+                  onClick={onBack}
+                  disabled={!canGoBack}
+                  style={{
+                    minWidth: 88,
+                    padding: '10px 14px',
+                    borderRadius: 999,
+                    border: `1.5px solid ${canGoBack ? t.tutorialSecondaryBorder : t.tutorialSecondaryDisabled}`,
+                    background: t.tutorialSecondaryBg,
+                    color: canGoBack ? t.tutorialSecondaryText : t.tutorialSecondaryDisabled,
+                    cursor: canGoBack ? 'pointer' : 'not-allowed',
+                    fontWeight: 800,
+                  }}
+                >
+                  {tr('common.back')}
+                </button>
+              )}
 
-              {!step.requiresAction && (
+              {!step.requiresAction && !step.hidePrimaryButton && (
                 <button
                   onClick={onNext}
                   style={{

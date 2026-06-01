@@ -107,8 +107,8 @@
     "pickDigit": "Pick one number from 0 to 9",
     "pickNumber": "Pick number {{digit}}",
     "fields": {
-      "firstInitial": "First letter of your first name",
-      "secondInitial": "First letter of your second name",
+      "firstInitial": "First letter of your favorite food",
+      "secondInitial": "First letter of your favorite movie",
       "colorInitial": "First letter of your favorite color",
       "animalInitial": "First letter of your favorite animal"
     }
@@ -162,7 +162,7 @@
     "missingFragmentsBody": "LUMA reached the ship core, but there are still ship fragments scattered on the planet!",
     "missingFragmentsHint": "Collect all fragments before returning to the ship core.",
     "resetRetry": "GOT IT - RESET & RETRY",
-    "phaseTrace": "TRACE",
+    "phaseTrace": "TRACE PROGRAM",
     "phaseComplete": "COMPLETE"
   },
   "commandBuilder": {
@@ -179,6 +179,7 @@
     "resetLuma": "RESET LUMA",
     "running": "RUNNING",
     "addElseBlock": "ADD ELSE BLOCK",
+    "addIfBlock": "ADD IF BLOCK",
     "setPredictionFirst": "SET PREDICTION FIRST",
     "executeProgram": "EXECUTE PROGRAM",
     "warningFlipped": "WARNING: LEFT / RIGHT FLIPPED",
@@ -200,10 +201,12 @@
     "skip": "Skip Tutorial"
   },
   "success": {
-    "missionComplete": "MISSION SYNC COMPLETE",
     "levelComplete": "LEVEL {{level}} COMPLETE",
     "launchPadReached": "Launch pad reached! LUMA is ready to fly home.",
     "shipCoreReached": "LUMA made it back to the ship core! Great navigating.",
+    "shortestMessage": "Congratulations! You completed Level {{level}}. Great navigating.",
+    "notShortestMessage": "Congratulations! You completed Level {{level}}.\nHowever, you could have used only {{count}} blocks.",
+    "tryAgain": "Try Again",
     "nextLevel": "NEXT LEVEL ->"
   },
   "strategy": {
@@ -235,12 +238,39 @@
       }
     }
   },
+  "mapDeclarations": {
+    "common": {
+      "newMap": "NEW MAP",
+      "startAdventure": "Start Adventure",
+      "continueAdventure": "Continue Adventure"
+    },
+    "crashSite": {
+      "title": "Crash Site",
+      "body": "LUMA has crash-landed on a strange planet. Her ship core is still glowing, but she needs your help to take her first steps and find the way home."
+    },
+    "forestEntrance": {
+      "title": "Forest Entrance",
+      "body": "LUMA leaves the crash site and reaches a glowing alien forest. The paths twist between trees, so she must follow your directions carefully."
+    },
+    "deepForest": {
+      "title": "Deep Forest",
+      "body": "The forest grows darker and trickier. LUMA must use repeated patterns, clues, and careful thinking to move deeper toward the missing ship parts."
+    },
+    "repairSite": {
+      "title": "Repair Site",
+      "body": "LUMA has found the repair zone. Boxes and machinery block the way, and smarter path-checking will help her collect what the ship needs."
+    },
+    "launchSite": {
+      "title": "Launch Site",
+      "body": "The ship is almost ready. Now LUMA must trace the final launch programs, reach the last target, and prepare to fly home."
+    }
+  },
   "radio": {
     "relative": {
-      "front": "in front of me",
-      "right": "to my right",
-      "back": "behind me",
-      "left": "to my left"
+      "front": "directly in front of me",
+      "right": "directly to my right",
+      "back": "directly behind me",
+      "left": "directly to my left"
     },
     "obstacles": {
       "rock": "rock",
@@ -251,26 +281,28 @@
       "aBox": "a box",
       "edge": "the edge of the map"
     },
-    "canYouSee": "Can you see where I am? ",
+    "canYouSee": "Which direction am I facing?",
     "wall": "{{opener}}There is {{obstacle}} {{relative}}.",
     "fragment": "{{opener}}I can sense a ship fragment {{relative}}.",
     "goal": "{{opener}}I can detect the ship core {{relative}}!",
     "clear": "{{opener}}The path around me looks clear... but I can't tell which way I'm facing.",
     "fixed": {
-      "openFrontRightBlockedBackLeft": "There's open path in front of me and on my right, but there's no path behind me or to my left.",
-      "treeLeft": "There is a tree on my left.",
-      "treeRightFragmentFront": "There is a tree to my right and a ship fragment in front of me.",
-      "level15": "Can you tell where I am? There is a box behind me and a box on my right.",
-      "level17": "Can you see where I am? There is a box on my right and a box on my left, and a ship fragment in front of me.",
-      "level21": "Can you see where I am? There's open path in front of me and on my right, but there's no path behind me or to my left.",
-      "level23": "Can you see where I am? There is no path behind me."
+      "level6": "Which direction am I facing? There is a tree directly to my right.",
+      "openFrontRightBlockedBackLeft": "Which direction am I facing? There's open path directly in front of me and to my right, but there's no path directly behind me or to my left.",
+      "treeLeft": "Which direction am I facing? There is a tree directly to my left.",
+      "treeRightFragmentFront": "There is a tree directly to my right and a ship fragment directly in front of me.",
+      "level15": "Which direction am I facing? There is a box directly behind me and a box to my right.",
+      "level17": "Which direction am I facing? There is a ship fragment directly in front of me.",
+      "level21": "Which direction am I facing? There's open path directly in front of me and to my right, but there's no path directly behind me or to my left.",
+      "level23": "Which direction am I facing? There is no path directly behind me."
     },
     "collectionOpen": "Got it! I found a ship fragment!",
     "collectionWall": "{{opener}} There is {{obstacle}} {{relative}} from here.",
     "collectionMore": "{{opener}} I can sense another fragment nearby - keep going!",
     "collectionGoal": "{{opener}} I can detect the ship core {{relative}}!",
     "collectionClear": "{{opener}} The area looks clear. Guide me to the next fragment!",
-    "blocked": "I can't move forward! There's {{blockedText}} in front of me. My path is blocked.",
+    "blocked": "I can't move forward! There's {{blockedText}} directly in front of me. My path is blocked.",
+    "incompleteCode": "Keep coding! Something's not quite right yet.",
     "successLaunch": "Launch pad reached! LUMA is ready to fly home.",
     "successCore": "I made it! The ship core is right here - we did it!",
     "missing": "I'm at the ship core, but I'm missing {{count}} fragment{{plural}}... Reset and try a different path!",
@@ -278,38 +310,36 @@
     "traceLaunch": "Correct! The launch pad is appearing. Watch LUMA run the launch code!",
     "traceCore": "Correct! The ship core is appearing. Watch LUMA run the program!",
     "uncertainMessages": [
-      "Umm... I think there's a rock in front of me... or maybe to my side? Hard to tell...",
-      "I'm not totally sure... but something feels close on my left? The signal's a bit fuzzy.",
+      "Umm... I think there's a rock directly in front of me... or maybe to my side? Hard to tell...",
+      "I'm not totally sure... but something feels close directly to my left? The signal's a bit fuzzy.",
       "Wait... is that a rock? I think I see something, but I can't tell exactly which way I'm facing.",
       "Hmm... I feel like something is blocking my path... I just can't tell from which direction."
     ],
     "visorReactions": [
       "Ohhh! Now I can see it clearly! That helps so much!",
-      "Yes! That's exactly what's in front of me! Good thinking!",
+      "Yes! That's exactly what's directly in front of me! Good thinking!",
       "Thanks! This helps! Now I know exactly where I am!",
       "Wow, I can see everything now! You're really smart!"
     ],
     "uncertain": {
-      "wallFront": "Umm... I think there's {{obstacle}} in front of me? I'm not totally sure...",
-      "wallRight": "I'm not totally sure... but I think something is on my right.",
-      "wallLeft": "Wait... I think I sense {{obstacle}} to my left? Hard to tell with all this dust.",
-      "wallBack": "Something feels close behind me... but my sensors are a bit fuzzy.",
-      "partFront": "I think... I can sense a ship piece in front of me? Maybe? The signal keeps breaking up.",
-      "partRight": "Hmm... something's on my right? It might be a ship fragment, I'm not sure.",
-      "partLeft": "Wait... is that a ship part to my left? I can barely tell from here.",
-      "partBack": "Something's nearby... behind me? I can't quite figure it out.",
+      "wallFront": "Umm... I think there's {{obstacle}} directly in front of me? I'm not totally sure...",
+      "wallRight": "I'm not totally sure... but I think something is directly to my right.",
+      "wallLeft": "Wait... I think I sense {{obstacle}} directly to my left? Hard to tell with all this dust.",
+      "wallBack": "Something feels close directly behind me... but my sensors are a bit fuzzy.",
+      "partFront": "I think... I can sense a ship piece directly in front of me? Maybe? The signal keeps breaking up.",
+      "partRight": "Hmm... something's directly to my right? It might be a ship fragment, I'm not sure.",
+      "partLeft": "Wait... is that a ship part directly to my left? I can barely tell from here.",
+      "partBack": "Something's nearby... directly behind me? I can't quite figure it out.",
       "goal": "I think... I can detect the ship core somewhere {{relative}}? The signal is weak though.",
       "clear": "Hmm... I can't tell which way I'm facing. My sensors are acting up. Can you help?",
-      "level13": "I sense a tree beside me, but my visor is blurry. It might be on my left or my right.",
-      "level13Confirm": "Yes, that's right! The tree is {{sideTree}}, the ship core is to my left, and the fragments are straight ahead.",
+      "level13": "Which direction am I facing? I sense a tree beside me, but my visor is blurry. It might be directly to my left or to my right.",
+      "level13Confirm": "Yes, that's right! The tree is {{sideTree}}, the ship core is directly to my left, and the fragments are straight ahead.",
       "level13ConfirmFallback": "Yes, that's right! Now I know where the tree line is."
     },
     "hintOpeners": [
-      "Can you see where I am?",
-      "Can you tell where I am?",
-      "Can you figure out where I am?",
-      "Can you spot where I am?"
+      "Which direction am I facing?"
     ],
+    "identifySuccess": "Great job! You got my direction correct!",
     "identifySuccessMessages": [
       "Yes! You figured out which way I am facing!",
       "That is right! You got my direction correct!",
@@ -415,6 +445,21 @@
       "title": "Your plan goes here",
       "body": "Each block joins LUMA's path."
     },
+    "level-1-delete-clear": {
+      "title": "Fix your program",
+      "body": "Use Delete to remove the last block. Use Clear to remove all blocks and start again.",
+      "nextLabel": "Got it"
+    },
+    "level-1-shortest-path": {
+      "title": "Use fewer blocks",
+      "body": "This shows your blocks compared with the shortest path. The left number is how many blocks you used. The right number is the shortest path for this level. Try to match the shortest path to get the gold medal.",
+      "nextLabel": "Got it"
+    },
+    "level-1-luma-speed": {
+      "title": "Choose LUMA's speed",
+      "body": "Use this slider to make LUMA move slower or faster when the program runs.",
+      "nextLabel": "Got it"
+    },
     "level-1-build-three": {
       "title": "Add three MOVE FORWARD blocks",
       "body": "This level needs three tiny moves.",
@@ -427,8 +472,7 @@
     },
     "level-1-success": {
       "title": "You did it!",
-      "body": "Nice job helping LUMA.",
-      "nextLabel": "Yay!"
+      "body": "Nice job helping LUMA."
     },
     "level-6-trees-block-path": {
       "title": "Trees block the path",
@@ -437,7 +481,7 @@
     },
     "level-7-repeat-forward": {
       "title": "Use Repeat for long repeated paths",
-      "body": "Instead of adding four MOVE FORWARD blocks, use REPEAT 4 with MOVE FORWARD inside. This makes the program more efficient.",
+      "body": "Instead of adding 4 MOVE FORWARD blocks, use REPEAT 4 (in this level) with MOVE FORWARD inside to move forward 4 steps. This makes the program more efficient.",
       "nextLabel": "Got it"
     },
     "level-7-blocks-inside-repeat": {
@@ -568,7 +612,7 @@
     "facing-question-intro": {
       "title": "Pick LUMA's direction",
       "body": "Listen to the clue and tap the LUMA picture that matches the way she is facing.",
-      "actionLabel": "Pick the correct LUMA picture"
+      "nextLabel": "Got it"
     },
     "rock-obstacle-intro": {
       "title": "Rocks block the path",

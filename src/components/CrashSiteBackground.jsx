@@ -664,13 +664,13 @@ export default function CrashSiteBackground({ width, height, cols, rows }) {
         {Array.from({ length: cols - 1 }, (_, i) => (
           <line key={`vg${i}`}
             x1={(i+1)*tileW} y1={0} x2={(i+1)*tileW} y2={H}
-            stroke="#c07840" strokeWidth="1" opacity="0.22"
+            stroke="#c07840" strokeWidth="1.3" opacity="0.36"
           />
         ))}
         {Array.from({ length: rows - 1 }, (_, i) => (
           <line key={`hg${i}`}
             x1={0} y1={(i+1)*tileH} x2={W} y2={(i+1)*tileH}
-            stroke="#c07840" strokeWidth="1" opacity="0.22"
+            stroke="#c07840" strokeWidth="1.3" opacity="0.36"
           />
         ))}
         {/* Grid intersection dots */}
@@ -678,7 +678,7 @@ export default function CrashSiteBackground({ width, height, cols, rows }) {
           Array.from({ length: rows-1 }, (_, ri) => (
             <circle key={`gd${ci}-${ri}`}
               cx={(ci+1)*tileW} cy={(ri+1)*tileH} r={2}
-              fill="#d08040" opacity="0.30"
+              fill="#d08040" opacity="0.34"
             />
           ))
         )}

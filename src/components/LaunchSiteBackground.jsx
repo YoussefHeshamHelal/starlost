@@ -348,10 +348,10 @@ export default function LaunchSiteBackground({ width, height, cols = 5, rows = 5
 
       {/* Grid lines */}
       {Array.from({ length: cols + 1 }, (_, col) => (
-        <line key={`v-${col}`} x1={col * tileW} y1={0} x2={col * tileW} y2={H} stroke="#dbeafe" strokeOpacity="0.075" strokeWidth="1" />
+        <line key={`v-${col}`} x1={col * tileW} y1={0} x2={col * tileW} y2={H} stroke="#dbeafe" strokeOpacity="0.16" strokeWidth="1.3" />
       ))}
       {Array.from({ length: rows + 1 }, (_, row) => (
-        <line key={`h-${row}`} x1="0" y1={row * tileH} x2={W} y2={row * tileH} stroke="#dbeafe" strokeOpacity={row === 0 ? 0 : 0.075} strokeWidth="1" />
+        <line key={`h-${row}`} x1="0" y1={row * tileH} x2={W} y2={row * tileH} stroke="#dbeafe" strokeOpacity={row === 0 ? 0 : 0.16} strokeWidth="1.3" />
       ))}
 
       <rect x={W * 0.1} y={H * 0.05} width={W * 0.8} height="4" rx="2" fill="url(#ls_blueStrip)" opacity="0.25" filter="url(#ls_softGlow)" />
@@ -367,7 +367,7 @@ export default function LaunchSiteBackground({ width, height, cols = 5, rows = 5
         </g>
       ))}
 
-      <rect width={W} height={H} fill="none" stroke="#7dd3fc" strokeOpacity="0.1" strokeWidth="2" />
+      <rect width={W} height={H} fill="none" stroke="#7dd3fc" strokeOpacity="0.16" strokeWidth="2" />
       <rect width={W} height={H} fill="#020617" opacity="0.08" />
     </svg>
   )

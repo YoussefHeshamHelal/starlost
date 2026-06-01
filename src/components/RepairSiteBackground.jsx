@@ -301,10 +301,10 @@ export default function RepairSiteBackground({ width, height, cols, rows }) {
 
       <g opacity="0.44">
         {Array.from({ length: rows + 1 }, (_, row) => (
-          <line key={`grid-h-${row}`} x1="0" y1={row * cellH} x2={W} y2={row * cellH} stroke="#e0f2fe" strokeOpacity="0.18" />
+          <line key={`grid-h-${row}`} x1="0" y1={row * cellH} x2={W} y2={row * cellH} stroke="#e0f2fe" strokeOpacity="0.23" strokeWidth="1.25" />
         ))}
         {Array.from({ length: cols + 1 }, (_, col) => (
-          <line key={`grid-v-${col}`} x1={col * cellW} y1="0" x2={col * cellW} y2={H} stroke="#bae6fd" strokeOpacity="0.16" />
+          <line key={`grid-v-${col}`} x1={col * cellW} y1="0" x2={col * cellW} y2={H} stroke="#bae6fd" strokeOpacity="0.21" strokeWidth="1.25" />
         ))}
       </g>
 

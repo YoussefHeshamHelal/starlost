@@ -107,8 +107,8 @@
     "pickDigit": "Wähle eine Zahl von 0 bis 9",
     "pickNumber": "Zahl {{digit}} wählen",
     "fields": {
-      "firstInitial": "Erster Buchstabe deines Vornamens",
-      "secondInitial": "Erster Buchstabe deines zweiten Namens",
+      "firstInitial": "Erster Buchstabe deines Lieblingsessens",
+      "secondInitial": "Erster Buchstabe deines Lieblingsfilms",
       "colorInitial": "Erster Buchstabe deiner Lieblingsfarbe",
       "animalInitial": "Erster Buchstabe deines Lieblingstiers"
     }
@@ -162,7 +162,7 @@
     "missingFragmentsBody": "LUMA hat den Schiffskern erreicht, aber es liegen noch Schiffsfragmente auf dem Planeten!",
     "missingFragmentsHint": "Sammle alle Fragmente ein, bevor du zum Schiffskern zurückkehrst.",
     "resetRetry": "OK - ZURÜCKSETZEN & ERNEUT VERSUCHEN",
-    "phaseTrace": "VERFOLGEN",
+    "phaseTrace": "PROGRAMM VERFOLGEN",
     "phaseComplete": "ABGESCHLOSSEN"
   },
   "commandBuilder": {
@@ -179,6 +179,7 @@
     "resetLuma": "AUSGANGSPOSITION",
     "running": "LÄUFT",
     "addElseBlock": "sonst-BAUSTEIN HINZUFÜGEN",
+    "addIfBlock": "WENN-BAUSTEIN HINZUFÜGEN",
     "setPredictionFirst": "ZUERST VORHERSAGE SETZEN",
     "executeProgram": "PROGRAMM AUSFÜHREN",
     "warningFlipped": "WARNUNG: LINKS / RECHTS VERTAUSCHT",
@@ -200,10 +201,12 @@
     "skip": "Tutorial überspringen"
   },
   "success": {
-    "missionComplete": "GLÜCKWUNSCH!",
     "levelComplete": "LEVEL {{level}} ABGESCHLOSSEN",
     "launchPadReached": "Startrampe erreicht! LUMA ist bereit, nach Hause zu fliegen.",
     "shipCoreReached": "LUMA ist zurück beim Schiffskern! Super navigiert.",
+    "shortestMessage": "Glückwunsch! Du hast Level {{level}} abgeschlossen. Sehr gut navigiert.",
+    "notShortestMessage": "Glückwunsch! Du hast Level {{level}} abgeschlossen.\nDu hättest aber nur {{count}} Bausteine verwenden können.",
+    "tryAgain": "Erneut versuchen",
     "nextLevel": "NÄCHSTES LEVEL"
   },
   "strategy": {
@@ -235,12 +238,39 @@
       }
     }
   },
+  "mapDeclarations": {
+    "common": {
+      "newMap": "NEUE KARTE",
+      "startAdventure": "Abenteuer starten",
+      "continueAdventure": "Abenteuer fortsetzen"
+    },
+    "crashSite": {
+      "title": "Absturzstelle",
+      "body": "LUMA ist auf einem fremden Planeten abgestürzt. Der Schiffskern leuchtet noch, aber sie braucht deine Hilfe für die ersten Schritte und den Weg nach Hause."
+    },
+    "forestEntrance": {
+      "title": "Waldeingang",
+      "body": "LUMA verlässt die Absturzstelle und erreicht einen leuchtenden Alien-Wald. Die Wege schlängeln sich zwischen den Bäumen, also muss sie deinen Anweisungen genau folgen."
+    },
+    "deepForest": {
+      "title": "Tiefer Wald",
+      "body": "Der Wald wird dunkler und kniffliger. LUMA muss Muster, Hinweise und kluges Denken nutzen, um tiefer zu den fehlenden Schiffsteilen zu kommen."
+    },
+    "repairSite": {
+      "title": "Reparaturstelle",
+      "body": "LUMA hat die Reparaturzone gefunden. Kisten und Maschinen versperren den Weg, und kluges Prüfen der Pfade hilft ihr, alles für das Schiff zu sammeln."
+    },
+    "launchSite": {
+      "title": "Startplatz",
+      "body": "Das Schiff ist fast bereit. Jetzt muss LUMA die letzten Startprogramme verfolgen, das letzte Ziel erreichen und sich auf den Heimflug vorbereiten."
+    }
+  },
   "radio": {
     "relative": {
-      "front": "vor mir",
-      "right": "rechts von mir",
-      "back": "hinter mir",
-      "left": "links von mir"
+      "front": "direkt vor mir",
+      "right": "direkt rechts von mir",
+      "back": "direkt hinter mir",
+      "left": "direkt links von mir"
     },
     "obstacles": {
       "rock": "Felsen",
@@ -251,26 +281,28 @@
       "aBox": "eine Kiste",
       "edge": "der Rand der Karte"
     },
-    "canYouSee": "Kannst du sehen, wo ich bin? ",
+    "canYouSee": "In welche Richtung schaue ich?",
     "wall": "{{opener}}Da ist {{obstacle}} {{relative}}.",
     "fragment": "{{opener}}Ich spüre ein Schiffsfragment {{relative}}.",
     "goal": "{{opener}}Ich erkenne den Schiffskern {{relative}}!",
     "clear": "{{opener}}Der Weg um mich herum sieht frei aus... aber ich weiß nicht, in welche Richtung ich schaue.",
     "fixed": {
-      "openFrontRightBlockedBackLeft": "Vor mir und rechts von mir ist der Weg frei, aber hinter mir und links von mir ist kein Weg.",
-      "treeLeft": "Links von mir ist ein Baum.",
-      "treeRightFragmentFront": "Rechts von mir ist ein Baum und vor mir ist ein Schiffsfragment.",
-      "level15": "Kannst du erkennen, wo ich bin? Hinter mir ist eine Kiste und rechts von mir ist eine Kiste.",
-      "level17": "Kannst du sehen, wo ich bin? Rechts von mir ist eine Kiste, links von mir ist eine Kiste, und vor mir ist ein Schiffsfragment.",
-      "level21": "Kannst du sehen, wo ich bin? Vor mir und rechts von mir ist der Weg frei, aber hinter mir und links von mir ist kein Weg.",
-      "level23": "Kannst du sehen, wo ich bin? Hinter mir ist kein Weg."
+      "level6": "In welche Richtung schaue ich? Direkt rechts von mir ist ein Baum.",
+      "openFrontRightBlockedBackLeft": "In welche Richtung schaue ich? Direkt vor mir und rechts von mir ist der Weg frei, aber direkt hinter mir und links von mir ist kein Weg.",
+      "treeLeft": "In welche Richtung schaue ich? Direkt links von mir ist ein Baum.",
+      "treeRightFragmentFront": "Direkt rechts von mir ist ein Baum und direkt vor mir ist ein Schiffsfragment.",
+      "level15": "In welche Richtung schaue ich? Direkt hinter mir ist eine Kiste und rechts von mir ist eine Kiste.",
+      "level17": "In welche Richtung schaue ich? Direkt vor mir ist ein Schiffsfragment.",
+      "level21": "In welche Richtung schaue ich? Direkt vor mir und rechts von mir ist der Weg frei, aber direkt hinter mir und links von mir ist kein Weg.",
+      "level23": "In welche Richtung schaue ich? Direkt hinter mir ist kein Weg."
     },
     "collectionOpen": "Geschafft! Ich habe ein Schiffsfragment gefunden!",
     "collectionWall": "{{opener}} Von hier aus ist {{obstacle}} {{relative}}.",
     "collectionMore": "{{opener}} Ich spüre noch ein Fragment in der Nähe - weiter so!",
     "collectionGoal": "{{opener}} Ich erkenne den Schiffskern {{relative}}!",
     "collectionClear": "{{opener}} Der Bereich sieht frei aus. Führe mich zum nächsten Fragment!",
-    "blocked": "Ich kann nicht geradeaus gehen! Vor mir ist {{blockedText}}. Mein Weg ist blockiert.",
+    "blocked": "Ich kann nicht geradeaus gehen! Direkt vor mir ist {{blockedText}}. Mein Weg ist blockiert.",
+    "incompleteCode": "Programmiere weiter! Etwas stimmt noch nicht ganz.",
     "successLaunch": "Startrampe erreicht! LUMA ist bereit, nach Hause zu fliegen.",
     "successCore": "Ich habe es geschafft! Der Schiffskern ist genau hier - wir haben es geschafft!",
     "missing": "Ich bin beim Schiffskern, aber mir fehlen {{count}} Fragment{{plural}}... Setze zurück und versuche einen anderen Weg!",
@@ -278,38 +310,36 @@
     "traceLaunch": "Richtig! Die Startrampe erscheint. Sieh zu, wie LUMA den Startcode ausführt!",
     "traceCore": "Richtig! Der Schiffskern erscheint. Sieh zu, wie LUMA das Programm ausführt!",
     "uncertainMessages": [
-      "Ähm... ich glaube, vor mir ist ein Felsen... oder vielleicht seitlich? Schwer zu sagen...",
-      "Ich bin nicht ganz sicher... aber links von mir fühlt sich etwas nah an. Das Signal ist etwas verschwommen.",
+      "Ähm... ich glaube, direkt vor mir ist ein Felsen... oder vielleicht seitlich? Schwer zu sagen...",
+      "Ich bin nicht ganz sicher... aber direkt links von mir fühlt sich etwas nah an. Das Signal ist etwas verschwommen.",
       "Warte... ist das ein Felsen? Ich glaube, ich sehe etwas, aber ich weiß nicht genau, in welche Richtung ich schaue.",
       "Hmm... ich glaube, etwas blockiert meinen Weg... ich weiß nur nicht, aus welcher Richtung."
     ],
     "visorReactions": [
       "Ohhh! Jetzt kann ich es klar sehen! Das hilft sehr!",
-      "Ja! Genau das ist vor mir! Gut gedacht!",
+      "Ja! Genau das ist direkt vor mir! Gut gedacht!",
       "Danke! Das hilft! Jetzt weiß ich genau, wo ich bin!",
       "Wow, jetzt kann ich alles sehen! Du bist richtig schlau!"
     ],
     "uncertain": {
-      "wallFront": "Ähm... ich glaube, vor mir ist {{obstacle}}? Ich bin nicht ganz sicher...",
-      "wallRight": "Ich bin nicht ganz sicher... aber ich glaube, rechts von mir ist etwas.",
-      "wallLeft": "Warte... ich glaube, links von mir spüre ich {{obstacle}}? Wegen all dem Staub ist es schwer zu sagen.",
-      "wallBack": "Hinter mir fühlt sich etwas nah an... aber meine Sensoren sind etwas verschwommen.",
-      "partFront": "Ich glaube... vor mir spüre ich ein Schiffsteil? Vielleicht? Das Signal bricht immer wieder ab.",
-      "partRight": "Hmm... rechts von mir ist etwas? Es könnte ein Schiffsfragment sein, ich bin nicht sicher.",
-      "partLeft": "Warte... ist da ein Schiffsteil links von mir? Ich kann es von hier kaum erkennen.",
-      "partBack": "Etwas ist in der Nähe... hinter mir? Ich kann es nicht ganz herausfinden.",
+      "wallFront": "Ähm... ich glaube, direkt vor mir ist {{obstacle}}? Ich bin nicht ganz sicher...",
+      "wallRight": "Ich bin nicht ganz sicher... aber ich glaube, direkt rechts von mir ist etwas.",
+      "wallLeft": "Warte... ich glaube, direkt links von mir spüre ich {{obstacle}}? Wegen all dem Staub ist es schwer zu sagen.",
+      "wallBack": "Direkt hinter mir fühlt sich etwas nah an... aber meine Sensoren sind etwas verschwommen.",
+      "partFront": "Ich glaube... direkt vor mir spüre ich ein Schiffsteil? Vielleicht? Das Signal bricht immer wieder ab.",
+      "partRight": "Hmm... direkt rechts von mir ist etwas? Es könnte ein Schiffsfragment sein, ich bin nicht sicher.",
+      "partLeft": "Warte... ist da ein Schiffsteil direkt links von mir? Ich kann es von hier kaum erkennen.",
+      "partBack": "Etwas ist in der Nähe... direkt hinter mir? Ich kann es nicht ganz herausfinden.",
       "goal": "Ich glaube... ich erkenne den Schiffskern irgendwo {{relative}}? Das Signal ist aber schwach.",
       "clear": "Hmm... ich weiß nicht, in welche Richtung ich schaue. Meine Sensoren spielen verrückt. Kannst du helfen?",
-      "level13": "Ich spüre einen Baum neben mir, aber mein Visor ist unscharf. Er könnte links oder rechts von mir sein.",
-      "level13Confirm": "Ja, das stimmt! Der Baum ist {{sideTree}}, der Schiffskern ist links von mir, und die Fragmente sind geradeaus.",
+      "level13": "In welche Richtung schaue ich? Ich spüre einen Baum neben mir, aber mein Visor ist unscharf. Er könnte direkt links oder rechts von mir sein.",
+      "level13Confirm": "Ja, das stimmt! Der Baum ist {{sideTree}}, der Schiffskern ist direkt links von mir, und die Fragmente sind geradeaus.",
       "level13ConfirmFallback": "Ja, das stimmt! Jetzt weiß ich, wo die Baumreihe ist."
     },
     "hintOpeners": [
-      "Kannst du sehen, wo ich bin?",
-      "Kannst du erkennen, wo ich bin?",
-      "Kannst du herausfinden, wo ich bin?",
-      "Kannst du entdecken, wo ich bin?"
+      "In welche Richtung schaue ich?"
     ],
+    "identifySuccess": "Super gemacht! Du hast meine Richtung richtig erkannt!",
     "identifySuccessMessages": [
       "Ja! Du hast herausgefunden, in welche Richtung ich schaue!",
       "Das stimmt! Du hast meine Richtung richtig erkannt!",
@@ -415,6 +445,21 @@
       "title": "Dein Plan kommt hierhin",
       "body": "Jeder Baustein wird Teil von LUMAs Weg."
     },
+    "level-1-delete-clear": {
+      "title": "Dein Programm verbessern",
+      "body": "Mit Löschen entfernst du den letzten Baustein. Mit Leeren entfernst du alle Bausteine und beginnst neu.",
+      "nextLabel": "Verstanden"
+    },
+    "level-1-shortest-path": {
+      "title": "Nutze weniger Bausteine",
+      "body": "Hier siehst du deine Bausteine im Vergleich zum kürzesten Weg. Die linke Zahl zeigt, wie viele Bausteine du benutzt hast. Die rechte Zahl zeigt den kürzesten Weg für dieses Level. Versuche, den kürzesten Weg zu erreichen, um die Goldmedaille zu bekommen.",
+      "nextLabel": "Verstanden"
+    },
+    "level-1-luma-speed": {
+      "title": "Wähle LUMAs Geschwindigkeit",
+      "body": "Mit diesem Regler bewegt sich LUMA langsamer oder schneller, wenn das Programm läuft.",
+      "nextLabel": "Verstanden"
+    },
     "level-1-build-three": {
       "title": "Füge drei GERADEAUS-Bausteine hinzu",
       "body": "Dieses Level braucht drei kleine Schritte.",
@@ -427,8 +472,7 @@
     },
     "level-1-success": {
       "title": "Du hast es geschafft!",
-      "body": "Gut gemacht, du hast LUMA geholfen.",
-      "nextLabel": "Juhu!"
+      "body": "Gut gemacht, du hast LUMA geholfen."
     },
     "level-6-trees-block-path": {
       "title": "Bäume blockieren den Weg",
@@ -437,7 +481,7 @@
     },
     "level-7-repeat-forward": {
       "title": "Nutze Wiederholen für lange Wege",
-      "body": "Statt vier GERADEAUS-Bausteine einzufügen, nutze WIEDERHOLEN 4 mit GERADEAUS darin. So wird das Programm kürzer.",
+      "body": "Statt 4 GERADEAUS BEWEGEN-Bausteine einzufügen, nutze in diesem Level WIEDERHOLEN 4 mit GERADEAUS BEWEGEN darin, um 4 Schritte geradeaus zu gehen. So wird das Programm effizienter.",
       "nextLabel": "Verstanden"
     },
     "level-7-blocks-inside-repeat": {
@@ -568,7 +612,7 @@
     "facing-question-intro": {
       "title": "Wähle LUMAs Richtung",
       "body": "Höre auf den Hinweis und tippe auf das LUMA-Bild, das zu ihrer Blickrichtung passt.",
-      "actionLabel": "Wähle das richtige LUMA-Bild"
+      "nextLabel": "Verstanden"
     },
     "rock-obstacle-intro": {
       "title": "Felsen blockieren den Weg",

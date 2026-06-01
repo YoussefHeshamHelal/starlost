@@ -196,10 +196,10 @@ export default function ForestTrailBackground({ width, height, cols, rows }) {
       ))}
 
       {Array.from({ length: rows + 1 }, (_, row) => (
-        <line key={`grid-h-${row}`} x1="0" y1={row * cellH} x2={W} y2={row * cellH} stroke="#d9f99d" strokeOpacity="0.09" />
+        <line key={`grid-h-${row}`} x1="0" y1={row * cellH} x2={W} y2={row * cellH} stroke="#d9f99d" strokeOpacity="0.16" strokeWidth="1.25" />
       ))}
       {Array.from({ length: cols + 1 }, (_, col) => (
-        <line key={`grid-v-${col}`} x1={col * cellW} y1="0" x2={col * cellW} y2={H} stroke="#7dd3fc" strokeOpacity="0.065" />
+        <line key={`grid-v-${col}`} x1={col * cellW} y1="0" x2={col * cellW} y2={H} stroke="#7dd3fc" strokeOpacity="0.15" strokeWidth="1.25" />
       ))}
     </svg>
   )

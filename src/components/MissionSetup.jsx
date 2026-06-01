@@ -12,8 +12,8 @@ import './menuScreens.css'
 
 
 const LETTER_FIELDS = [
-  { id: 'firstInitial', badge: '1', icon: 'person', labelKey: 'mission.fields.firstInitial' },
-  { id: 'secondInitial', badge: '2', icon: 'person', labelKey: 'mission.fields.secondInitial' },
+  { id: 'firstInitial', badge: '1', icon: 'food', labelKey: 'mission.fields.firstInitial' },
+  { id: 'secondInitial', badge: '2', icon: 'movie', labelKey: 'mission.fields.secondInitial' },
   { id: 'colorInitial', badge: '3', icon: 'palette', labelKey: 'mission.fields.colorInitial' },
   { id: 'animalInitial', badge: '4', icon: 'paw', labelKey: 'mission.fields.animalInitial' },
 ]
@@ -25,6 +25,24 @@ function normalizeLetter(value) {
 }
 
 function RowIcon({ type }) {
+  if (type === 'food') {
+    return (
+      <svg className="star-code-row__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M7.2 3.4c.4 0 .7.3.7.7v5.2h1.3V4.1c0-.4.3-.7.7-.7s.7.3.7.7v5.2h1.2V4.1c0-.4.3-.7.7-.7s.7.3.7.7v5.8c0 1.7-1.1 3.1-2.8 3.6v6.4c0 .5-.4.9-.9.9s-.9-.4-.9-.9v-6.4c-1.7-.4-2.8-1.8-2.8-3.6V4.1c0-.4.3-.7.7-.7Z" />
+        <path d="M17 3.5c1.4.8 2.2 2.7 2.2 5.1v11.3c0 .5-.4.9-.9.9s-.9-.4-.9-.9v-5.6h-1.8c-.6 0-1-.5-.9-1.1l1.1-8.8c.1-.8.6-1.2 1.2-.9Z" />
+      </svg>
+    )
+  }
+
+  if (type === 'movie') {
+    return (
+      <svg className="star-code-row__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M4.2 6.2c0-1.1.9-2 2-2h11.6c1.1 0 2 .9 2 2v11.6c0 1.1-.9 2-2 2H6.2c-1.1 0-2-.9-2-2V6.2Zm4.1-.4H6.2c-.2 0-.4.2-.4.4v2.1h2.5V5.8Zm1.6 0v2.5h4.2V5.8H9.9Zm5.8 0v2.5h2.5V6.2c0-.2-.2-.4-.4-.4h-2.1Zm2.5 9.9h-2.5v2.5h2.1c.2 0 .4-.2.4-.4v-2.1Zm-4.1 2.5v-2.5H9.9v2.5h4.2Zm-5.8 0v-2.5H5.8v2.1c0 .2.2.4.4.4h2.1Zm-2.5-4.1h12.4V9.9H5.8v4.2Z" />
+        <path d="M10.5 11.1 14 12l-3.5.9v-1.8Z" />
+      </svg>
+    )
+  }
+
   if (type === 'palette') {
     return (
       <svg className="star-code-row__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">

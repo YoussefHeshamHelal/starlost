@@ -19,7 +19,7 @@ import {
   generateLevel20Layout,
   generateLevel21Layout,
 } from '../data/levels'
-import { clampRepeatTimes, countProgramBlocks, hasEmptyRequiredElse, isIfPathCommand, isRepeatCommand } from '../utils/commands'
+import { clampRepeatTimes, cloneNestedCommands, countProgramBlocks, hasEmptyRequiredElse, isIfPathCommand, isRepeatCommand } from '../utils/commands'
 import i18n from '../i18n/index.js'
 
 const DIRECTIONS = ['north', 'east', 'south', 'west']
@@ -32,10 +32,10 @@ const MOVE_DELTAS = {
 }
 
 const RELATIVE_LABEL = {
-  front: 'in front of me',
-  right: 'to my right',
-  back:  'behind me',
-  left:  'to my left',
+  front: 'directly in front of me',
+  right: 'directly to my right',
+  back:  'directly behind me',
+  left:  'directly to my left',
 }
 
 function tr(key, options) {
@@ -72,8 +72,8 @@ function getRelativeDirection(luma, tile) {
 // These replace the normal clear message for Level 2 only.
 // They introduce gentle doubt without being confusing.
 const UNCERTAIN_RADIO_MESSAGES = [
-  "Umm… I think there's a rock in front of me… or maybe to my side? Hard to tell…",
-  "I'm not totally sure… but something feels close on my left? The signal's a bit fuzzy.",
+  "Umm… I think there's a rock directly in front of me… or maybe to my side? Hard to tell…",
+  "I'm not totally sure… but something feels close directly to my left? The signal's a bit fuzzy.",
   "Wait… is that a rock? I think I see something, but I can't tell exactly which way I'm facing.",
   "Hmm… I feel like something is blocking my path… I just can't tell from which direction.",
 ]
@@ -81,7 +81,7 @@ const UNCERTAIN_RADIO_MESSAGES = [
 // Level 2 reaction messages when the child flips the visor
 const VISOR_FLIP_REACTIONS = [
   "Ohhh! Now I can see it clearly! That helps so much!",
-  "Yes! That's exactly what's in front of me! Good thinking!",
+  "Yes! That's exactly what's directly in front of me! Good thinking!",
   "Thanks! This helps! Now I know exactly where I am!",
   "Wow, I can see everything now! You're really smart!",
 ]
@@ -113,7 +113,7 @@ function isLaunchPadGoal(level) {
 function buildRadioReport(lumaPos, facing, walls = [], objects = [], goal, collectedIndices = new Set(), world = 'crash-site', includeOpener = false) {
   const lumaCtx = { x: lumaPos.x, y: lumaPos.y, facing }
   const priority = ['front', 'right', 'left', 'back']
-  const opener = includeOpener ? tr('radio.canYouSee') : ''
+  const opener = includeOpener ? `${tr('radio.canYouSee')} ` : ''
   const obstacleText = getObstacleArticle(world)
 
   const adjacentWalls = walls.filter(w => getRelativeDirection(lumaCtx, w) !== null)
@@ -267,12 +267,7 @@ const FACING_TO_ANSWER = {
   west:  '← Left',
 }
 
-const RADIO_HINT_OPENERS = [
-  "Can you see where I am?",
-  "Can you tell where I am?",
-  "Can you figure out where I am?",
-  "Can you spot where I am?",
-]
+const RADIO_HINT_OPENER = "Which direction am I facing?"
 
 const IDENTIFY_SUCCESS_RADIO_MESSAGES = [
   "Yes! You figured out which way I’m facing!",
@@ -415,15 +410,27 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
   // ── Level 2/3/4 uncertain radio ───────────────────────────────────────────
   // Pick a fixed uncertain message for this session (so it doesn't change on re-renders)
   const [initialRadioHint] = useState(() => {
-    const opener = getRandomFrom(getTranslatedList('radio.hintOpeners', RADIO_HINT_OPENERS))
+    const opener = tr('radio.canYouSee', RADIO_HINT_OPENER)
     const withOpener = (hint) => `${opener} ${hint}`
 
     if (levelConfig.noRadio) {
       return null
     }
 
+    if (levelConfig.id === 6) {
+      return tr('radio.fixed.level6')
+    }
+
+    if (levelConfig.id === 12) {
+      return tr('radio.fixed.openFrontRightBlockedBackLeft')
+    }
+
     if (levelConfig.id === 13 && levelConfig.uncertainRadio) {
-      return withOpener(buildLevel9UncertainRadioReport())
+      return tr('radio.uncertain.level13')
+    }
+
+    if (levelConfig.id === 14) {
+      return tr('radio.fixed.treeLeft')
     }
 
     if (levelConfig.uncertainRadio) {
@@ -436,14 +443,6 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
         new Set(),
         effectiveLevel.world ?? levelConfig.world,
       ))
-    }
-
-    if (levelConfig.id === 12) {
-      return withOpener(tr('radio.fixed.openFrontRightBlockedBackLeft'))
-    }
-
-    if (levelConfig.id === 14) {
-      return withOpener(tr('radio.fixed.treeLeft'))
     }
 
     if (levelConfig.id === 15) {
@@ -460,10 +459,6 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
 
     if (levelConfig.id === 23) {
       return tr('radio.fixed.level23')
-    }
-
-    if (levelConfig.id === 6) {
-      return withOpener(tr('radio.fixed.treeRightFragmentFront'))
     }
 
     return withOpener(buildRadioReport(
@@ -483,8 +478,6 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
 
   // ── Reactive helmet report ────────────────────────────────────────────────
   const [reportOverride, setReportOverride] = useState(null)
-  const [successRadioMessageIndex] = useState(() => Math.floor(Math.random() * IDENTIFY_SUCCESS_RADIO_MESSAGES.length))
-  const successRadioMessage = getTranslatedList('radio.identifySuccessMessages', IDENTIFY_SUCCESS_RADIO_MESSAGES)[successRadioMessageIndex] ?? IDENTIFY_SUCCESS_RADIO_MESSAGES[successRadioMessageIndex]
   const uncertainMessage = initialRadioHint
 
   const liveReport = useMemo(() => {
@@ -526,7 +519,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
       luma.facing === resolvedFacing &&
       collectedParts.size === 0
     ) {
-      return tr('radio.fixed.treeRightFragmentFront')
+      return tr('radio.fixed.level6')
     }
     return buildRadioReport(
       luma,
@@ -547,10 +540,10 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
 
   const helmetReport = levelConfig.noRadio
     ? reportOverride ?? liveReport
-    : levelConfig.traceMode && reportOverride
+    : reportOverride
       ? reportOverride
       : sptCorrect
-      ? successRadioMessage
+      ? tr('radio.identifySuccess')
       : liveReport
 
   const [predictionTile, setPredictionTile] = useState(null)
@@ -579,6 +572,20 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
   const traceRunStartedRef = useRef(false)
 
   const isMirrored = levelConfig.mirrorControls && luma.facing === 'south'
+  const levelUsesIncompleteCodeRadio = Number(levelConfig.id) >= 3
+  const incompleteCodeRadioMessage = tr('radio.incompleteCode')
+  const preserveLockedIncompleteCodeRadio = useCallback((nextMessage = null) => {
+    setReportOverride(previous => (
+      levelUsesIncompleteCodeRadio && previous === incompleteCodeRadioMessage
+        ? previous
+        : nextMessage
+    ))
+  }, [levelUsesIncompleteCodeRadio, incompleteCodeRadioMessage])
+  const setIncompleteCodeRadio = useCallback(() => {
+    if (levelUsesIncompleteCodeRadio) {
+      setReportOverride(incompleteCodeRadioMessage)
+    }
+  }, [levelUsesIncompleteCodeRadio, incompleteCodeRadioMessage])
 
   const animSpeedRef = useRef(animSpeed)
   useEffect(() => {
@@ -608,20 +615,11 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     const correct = answer === sptCorrectAnswer
     setSptCorrect(correct)
     if (correct) {
-      if (levelConfig.id === 13) {
-        setReportOverride(buildLevel9IdentifyConfirmation(
-          { x: resolvedStart.x, y: resolvedStart.y },
-          resolvedFacing,
-          effectiveLevel.walls,
-        ))
-      }
-      if (levelConfig.traceMode) {
-        setReportOverride("Yes! Now I know which way I'm facing. Let's trace the code.")
-      }
+      preserveLockedIncompleteCodeRadio(tr('radio.identifySuccess'))
       setPhase('develop')
     }
     return correct
-  }, [effectiveLevel.walls, levelConfig.id, levelConfig.traceMode, resolvedFacing, resolvedStart.x, resolvedStart.y, sptCorrectAnswer])
+  }, [sptCorrectAnswer, preserveLockedIncompleteCodeRadio, tr])
 
   // ── VISOR FLIP ───────────────────────────────────────────────────────────
   const openVisor = useCallback(() => {
@@ -643,11 +641,11 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     setVisorActive(false)
     // After closing visor on Level 2, the reaction replaces the radio briefly
     if (visorFlipReaction && levelConfig.uncertainRadio) {
-      setReportOverride(visorFlipReaction)
+      preserveLockedIncompleteCodeRadio(visorFlipReaction)
       // Clear after 3 seconds, letting the normal clear report take over
-      setTimeout(() => setReportOverride(null), 3000)
+      setTimeout(() => preserveLockedIncompleteCodeRadio(null), 3000)
     }
-  }, [visorFlipReaction, levelConfig.uncertainRadio])
+  }, [visorFlipReaction, levelConfig.uncertainRadio, preserveLockedIncompleteCodeRadio])
 
   const flipVisor = useCallback(() => {
     if (visorActive) closeVisor()
@@ -659,6 +657,19 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
   const updateSequence = useCallback((nextSequence) => {
     setSequence(nextSequence)
   }, [])
+
+  const restoreCompletedProgram = useCallback((completedProgram) => {
+    if (!Array.isArray(completedProgram) || completedProgram.length === 0) return
+    setSequence(cloneNestedCommands(completedProgram))
+
+    const levelId = Number(levelConfig.id)
+    if (Number.isInteger(levelId) && levelId >= 3 && levelId <= 20) {
+      setPhase('develop')
+      setSptAnswer(sptCorrectAnswer)
+      setSptCorrect(true)
+      setReportOverride(null)
+    }
+  }, [levelConfig.id, sptCorrectAnswer])
 
   const addCommand = useCallback((cmd) => {
     if (isRunning) return
@@ -691,8 +702,9 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     setCollectionEffects([])
     setNeedsReset(false)
     setPredictionResult(null)
+    preserveLockedIncompleteCodeRadio(null)
     clearIfPathSignal()
-  }, [isRunning, resolvedStart, clearIfPathSignal])
+  }, [isRunning, resolvedStart, clearIfPathSignal, preserveLockedIncompleteCodeRadio])
 
 
 
@@ -715,7 +727,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     setIsRunning(true)
     setAttemptCount(c => c + 1)
     setNeedsReset(false)
-    setReportOverride(null)
+    preserveLockedIncompleteCodeRadio(null)
     setCollectionEffects([])
     clearIfPathSignal()
 
@@ -834,6 +846,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
         if (!firstFailTime) setFirstFailTime(Date.now())
         setSelfCorrected(true)
         setNeedsReset(true)
+        setIncompleteCodeRadio()
         return
       }
 
@@ -861,9 +874,6 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
           onLevelSuccess?.()
           setPhase('success')
           setNeedsReset(false)
-          setReportOverride(isLaunchPadGoal(levelConfig)
-              ? tr('radio.successLaunch')
-              : tr('radio.successCore'))
         } else if (onIncomplete?.({
           luma: currentLuma,
           collectedParts: localCollected,
@@ -886,6 +896,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
           if (!firstFailTime) setFirstFailTime(Date.now())
           setSelfCorrected(true)
           setNeedsReset(true)
+          setIncompleteCodeRadio()
         }
         return
       }
@@ -911,8 +922,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
           stoppedEarly = true
           onBlockedPath?.()
 
-          const blockedMsg = buildBlockedReport(currentLuma, currentLuma.facing, blockedType, world)
-          setReportOverride(blockedMsg)
+          setIncompleteCodeRadio()
           setLuma({ ...currentLuma })
 
           setIsRunning(false)
@@ -957,16 +967,6 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
       if (justCollectedIndex !== null) {
         onCollectFragment?.()
         setCollectedParts(new Set(localCollected))
-        const collectionMsg = buildCollectionReport(
-          currentLuma,
-          currentLuma.facing,
-          walls,
-          effectiveLevel.objects ?? [],
-          goal,
-          localCollected,
-          world,
-        )
-        setReportOverride(collectionMsg)
       }
 
       if (!blocked) {
@@ -981,6 +981,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     firstFailTime, collectedParts, shipPartObjects,
     predictionTile, missedFragmentsShown, clearIfPathSignal,
     onBlockedPath, onCollectFragment, onLevelSuccess,
+    preserveLockedIncompleteCodeRadio, setIncompleteCodeRadio,
   ])
 
   // ── DISMISS MISSED-FRAGMENTS HINT ─────────────────────────────────────────
@@ -1070,7 +1071,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     // Level 2 specific: whether the radio is currently uncertain
     radioIsUncertain: levelConfig.uncertainRadio && !sptCorrect,
     visorActive, visorFlipCount, flipVisor, closeVisor,
-    sequence, setSequence: updateSequence, isRunning, isMirrored,
+    sequence, setSequence: updateSequence, restoreCompletedProgram, isRunning, isMirrored,
     addCommand, removeLastCommand, clearSequence, runSequence,
     attemptCount, editCount,
     collectedParts, collectionEffects, activeIfPathSignal,
