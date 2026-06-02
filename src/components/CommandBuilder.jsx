@@ -221,13 +221,13 @@ function sequenceHasIfPathCommand(commands = []) {
   })
 }
 
-function sequenceHasIfElseCommand(commands = []) {
+function sequenceHasIfElseCommand(commands = [], treatIfPathAsIfElse = false) {
   if (!Array.isArray(commands)) return false
 
   return commands.some((command) => {
     if (!command || typeof command !== 'object') return false
-    if (isIfPathCommand(command) && (command.elseCommands?.length ?? 0) > 0) return true
-    return sequenceHasIfElseCommand(command.commands) || sequenceHasIfElseCommand(command.elseCommands)
+    if (isIfPathCommand(command) && (treatIfPathAsIfElse || (command.elseCommands?.length ?? 0) > 0)) return true
+    return sequenceHasIfElseCommand(command.commands, treatIfPathAsIfElse) || sequenceHasIfElseCommand(command.elseCommands, treatIfPathAsIfElse)
   })
 }
 
@@ -567,8 +567,9 @@ function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathConditi
       aria-label={`${remainingLimit} remaining`}
       style={{
         position: 'absolute',
-        top: 4,
+        top: '50%',
         left: 4,
+        transform: 'translateY(-50%)',
         minWidth: 16,
         height: 16,
         padding: '0 4px',
@@ -1915,7 +1916,7 @@ export default function CommandBuilder({
     return remaining === null || remaining > 0
   }, [getRemainingLimit])
   const isMissingRequiredIfBlock = requireIfBlockBeforeRun && sequence.length > 0 && !sequenceHasIfPathCommand(sequence)
-  const isMissingRequiredIfElseBlock = requireIfElseBlockBeforeRun && sequence.length > 0 && !sequenceHasIfElseCommand(sequence)
+  const isMissingRequiredIfElseBlock = requireIfElseBlockBeforeRun && sequence.length > 0 && !sequenceHasIfElseCommand(sequence, showIfElse)
   const isDisabled = isRunning || sequence.length === 0 || needsReset || runBlocked || isMissingRequiredIfBlock || isMissingRequiredIfElseBlock
   const programCountWarning = targetCommands !== null && totalBlocks > targetCommands
   const programCountWarningColor = theme === 'light' ? '#f59e0b' : '#fbbf24'

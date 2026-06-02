@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { LEVELS } from './data/levels'
-import { cloneNestedCommands, countProgramBlocks, hasEmptyRequiredElse } from './utils/commands'
+import { cloneNestedCommands, countProgramBlocks } from './utils/commands'
 import {
   getFeatureTutorialSteps,
   getLevelTutorialSteps,
@@ -2680,10 +2680,9 @@ function LevelScreen({
     setPrediction({ x: col, y: row })
   }, [predictionModeActive, setPrediction])
 
-  const ifElseBlocked = Boolean(levelConfig.requireElse) && hasEmptyRequiredElse(sequence)
+  const ifElseBlocked = false
   const runBlocked =
-    (levelConfig.predictionPrompt && predictionTile === null && predictionResult === null) ||
-    ifElseBlocked
+    (levelConfig.predictionPrompt && predictionTile === null && predictionResult === null)
   const handleRunSequence = useCallback(() => {
     if (isRunning || needsReset || runBlocked || sequence.length === 0) return
     onPlaySfx?.('executeProgram')

@@ -219,7 +219,7 @@ export const LEVEL_TUTORIALS = {
     }),
     levelStep('level-15-one-turn-right', {
       targetId: 'command-turn-right',
-      placement: 'top',
+      placement: 'bottom',
       title: 'Use your one TURN RIGHT wisely',
       body: 'In this level, you can only use one TURN RIGHT block. Put it inside IF PATH so LUMA can turn whenever the right path opens.',
       waitForTarget: true,

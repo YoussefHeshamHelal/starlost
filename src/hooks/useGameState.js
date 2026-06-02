@@ -18,7 +18,7 @@ import {
   generateLevel20Layout,
   generateLevel21Layout,
 } from '../data/levels'
-import { clampRepeatTimes, cloneNestedCommands, countProgramBlocks, hasEmptyRequiredElse, isIfPathCommand, isRepeatCommand } from '../utils/commands'
+import { clampRepeatTimes, cloneNestedCommands, countProgramBlocks, isIfPathCommand, isRepeatCommand } from '../utils/commands'
 import i18n from '../i18n/index.js'
 
 const DIRECTIONS = ['north', 'east', 'south', 'west']
@@ -180,59 +180,6 @@ function buildUncertainRadioReport(lumaPos, facing, walls = [], objects = [], go
   }
 
   return tr('radio.uncertain.clear')
-}
-
-// ── Old Level 9 / new Level 13 radio helpers ──────────────────────────────────
-function buildLevel9UncertainRadioReport() {
-  return tr('radio.uncertain.level13')
-}
-
-function buildLevel9IdentifyConfirmation(lumaPos, facing, walls = []) {
-  const lumaCtx = { x: lumaPos.x, y: lumaPos.y, facing }
-  const sideTree = walls
-    .map(w => getRelativeDirection(lumaCtx, w))
-    .find(rel => rel === 'left' || rel === 'right')
-
-  if (sideTree) {
-    return tr('radio.uncertain.level13Confirm', { sideTree: getRelativeLabel(sideTree) })
-  }
-
-  return tr('radio.uncertain.level13ConfirmFallback')
-}
-
-// ── Collection report ─────────────────────────────────────────────────────────
-function buildCollectionReport(lumaPos, facing, walls = [], objects = [], goal, collectedIndices = new Set(), world = 'crash-site') {
-  const opener = tr('radio.collectionOpen')
-  const lumaCtx = { x: lumaPos.x, y: lumaPos.y, facing }
-  const priority = ['front', 'right', 'left', 'back']
-  const obstacleText = getObstacleArticle(world)
-
-  const adjacentWalls = walls.filter(w => getRelativeDirection(lumaCtx, w) !== null)
-  if (adjacentWalls.length > 0) {
-    const relDirs = adjacentWalls.map(w => getRelativeDirection(lumaCtx, w)).filter(Boolean)
-    const chosen  = priority.find(p => relDirs.includes(p)) ?? relDirs[0]
-    return tr('radio.collectionWall', { opener, obstacle: obstacleText, relative: getRelativeLabel(chosen) })
-  }
-
-  const remainingParts = objects.filter(
-    (o, i) => o.type === 'ship_part' && !collectedIndices.has(i) && getRelativeDirection(lumaCtx, o) !== null
-  )
-  if (remainingParts.length > 0) {
-    return tr('radio.collectionMore', { opener })
-  }
-
-  if (goal) {
-    const rel = getRelativeDirection(lumaCtx, goal)
-    if (rel) return tr('radio.collectionGoal', { opener, relative: getRelativeLabel(rel) })
-  }
-
-  return tr('radio.collectionClear', { opener })
-}
-
-// ── Blocked report ────────────────────────────────────────────────────────────
-function buildBlockedReport(lumaPos, facing, blockedType, world = 'crash-site') {
-  const blockedText = blockedType === 'rock' ? getObstacleArticle(world) : tr('radio.obstacles.edge')
-  return tr('radio.blocked', { blockedText })
 }
 
 function getRelativeFacing(facing, condition = 'ahead') {
@@ -617,7 +564,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
       setPhase('develop')
     }
     return correct
-  }, [sptCorrectAnswer, preserveLockedIncompleteCodeRadio, tr])
+  }, [sptCorrectAnswer, preserveLockedIncompleteCodeRadio])
 
   // ── VISOR FLIP ───────────────────────────────────────────────────────────
   const openVisor = useCallback(() => {
@@ -721,7 +668,6 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     const commandsToRun = continueStartIndex > 0 ? sequence.slice(continueStartIndex) : sequence
     if (commandsToRun.length === 0) return
     if (levelConfig.predictionPrompt && !predictionTile) return
-    if (levelConfig.requireElse && hasEmptyRequiredElse(sequence)) return
     setIsRunning(true)
     setAttemptCount(c => c + 1)
     setNeedsReset(false)
@@ -748,7 +694,6 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     }]
 
     let stoppedEarly = false
-    let blockedType = null
 
     const triggerIfPathSignal = (command, result, target) => {
       if (!shouldShowIfPathSignal) return
@@ -916,7 +861,6 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
 
         if (hitWall || outOfBounds) {
           blocked = true
-          blockedType = hitWall ? 'rock' : 'boundary'
           stoppedEarly = true
           onBlockedPath?.()
 
