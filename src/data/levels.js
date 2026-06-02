@@ -338,31 +338,6 @@ export function generateLevel15Layout() {
   return {
     walls: [
       { x: 0, y: 4 },
-      { x: 0, y: 0 },
-      { x: 1, y: 2 },
-      { x: 1, y: 3 },
-      { x: 2, y: 2 },
-      { x: 3, y: 2 },
-      { x: 2, y: 3 },
-      { x: 3, y: 3 },
-    ],
-    objects: [],
-    solution: [
-      createRepeatCommand(6, [
-        'F',
-        createIfPathCommand('right', ['TR']),
-      ]),
-    ],
-    lumaStart: { x: 0, y: 3 },
-    goal: { x: 4, y: 1 },
-    lumaFacing: 'north',
-  }
-}
-
-export function generateLevel16Layout() {
-  return {
-    walls: [
-      { x: 0, y: 4 },
       { x: 1, y: 1 },
       { x: 0, y: 0 },
       { x: 4, y: 0 },
@@ -973,39 +948,6 @@ export const LEVELS = [
   },
   {
     id: 15,
-    name: 'IF Turn Helper',
-    world: 'repair-site',
-    tutorial: false,
-    grid: { cols: COLS, rows: ROWS },
-    lumaStart: { x: 0, y: 3 },
-    lumaFacing: 'north',
-    goal: { x: 4, y: 1 },
-    walls: [],
-    objects: [],
-    fog: false,
-    sptQuestion: {
-      prompt: 'Which direction is LUMA facing?',
-      options: ['â†‘ Up', 'â†’ Right', 'â†“ Down', 'â† Left'],
-      correct: null,
-    },
-    solution: null,
-    predictionPrompt: false,
-    mirrorControls: false,
-    strategyCardAfter: false,
-    noVisorFlip: false,
-    skipIdentify: false,
-    noRadio: false,
-    layoutGenerator: 'level15',
-    targetCommands: 4,
-    uncertainRadio: false,
-    allowRepeat: true,
-    allowIfPath: true,
-    allowCollect: false,
-    defaultIfPathCondition: 'right',
-    repeatDefaults: { times: 6 },
-  },
-  {
-    id: 16,
     name: 'IF U-Turn Path',
     world: 'repair-site',
     tutorial: false,
@@ -1028,7 +970,7 @@ export const LEVELS = [
     noVisorFlip: false,
     skipIdentify: false,
     noRadio: false,
-    layoutGenerator: 'level16',
+    layoutGenerator: 'level15',
     targetCommands: 4,
     uncertainRadio: false,
     allowRepeat: true,
@@ -1036,9 +978,11 @@ export const LEVELS = [
     allowCollect: false,
     defaultIfPathCondition: 'right',
     repeatDefaults: { times: 8 },
+    requiresIfBlock: true,
+    blockLimits: { TR: 1 },
   },
   {
-    id: 17,
+    id: 16,
     name: 'Repair Site Logic',
     world: 'repair-site',
     tutorial: false,
@@ -1051,7 +995,7 @@ export const LEVELS = [
     fog: false,
     sptQuestion: {
       prompt: 'Which direction is LUMA facing?',
-      options: ['↑ Up', '→ Right', '↓ Down', '← Left'],
+      options: ['â†‘ Up', 'â†’ Right', 'â†“ Down', 'â† Left'],
       correct: null,
     },
     solution: null,
@@ -1068,9 +1012,11 @@ export const LEVELS = [
     allowIfPath: true,
     allowCollect: true,
     repeatDefaults: { times: 2 },
+    requiresIfBlock: true,
+    blockLimits: { TL: 1 },
   },
   {
-    id: 18,
+    id: 17,
     name: 'IF/ELSE Turn Choice',
     world: 'repair-site',
     tutorial: true,
@@ -1103,9 +1049,11 @@ export const LEVELS = [
     repeatDefaults: { times: 2 },
     useIfElse: true,
     requireElse: true,
+    requiresIfElseBlock: true,
+    blockLimits: { TR: 1 },
   },
   {
-    id: 19,
+    id: 18,
     name: 'IF/ELSE Fragment Corridor',
     world: 'repair-site',
     tutorial: true,
@@ -1118,7 +1066,7 @@ export const LEVELS = [
     fog: false,
     sptQuestion: {
       prompt: 'Which direction is LUMA facing?',
-      options: ['â†‘ Up', 'â†’ Right', 'â†“ Down', 'â† Left'],
+      options: ['? Up', '? Right', '? Down', '? Left'],
       correct: null,
     },
     solution: null,
@@ -1138,9 +1086,11 @@ export const LEVELS = [
     repeatDefaults: { times: 2 },
     useIfElse: true,
     requireElse: true,
+    requiresIfElseBlock: true,
+    blockLimits: { TR: 1 },
   },
   {
-    id: 20,
+    id: 19,
     name: 'Nested IF/ELSE Trail',
     world: 'repair-site',
     tutorial: true,
@@ -1153,13 +1103,13 @@ export const LEVELS = [
     fog: false,
     sptQuestion: {
       prompt: 'Which direction is LUMA facing?',
-      options: ['â†‘ Up', 'â†’ Right', 'â†“ Down', 'â† Left'],
+      options: ['? Up', '? Right', '? Down', '? Left'],
       correct: null,
     },
     solution: null,
     predictionPrompt: false,
     mirrorControls: false,
-    strategyCardAfter: false,
+    strategyCardAfter: true,
     noVisorFlip: false,
     skipIdentify: false,
     noRadio: false,
@@ -1173,9 +1123,11 @@ export const LEVELS = [
     repeatDefaults: { times: 2 },
     useIfElse: true,
     requireElse: true,
+    requiresIfElseBlock: true,
+    blockLimits: { TR: 1, TL: 1 },
   },
   {
-    id: 21,
+    id: 20,
     name: 'Launch Trace Intro',
     world: 'launch-site',
     tutorial: true,
@@ -1193,7 +1145,7 @@ export const LEVELS = [
     fog: false,
     sptQuestion: {
       prompt: 'Which direction is LUMA facing?',
-      options: ['↑ Up', '→ Right', '↓ Down', '← Left'],
+      options: ['? Up', '? Right', '? Down', '? Left'],
       correct: null,
     },
     solution: [
@@ -1225,7 +1177,7 @@ export const LEVELS = [
     tracingCorrectCell: { x: 3, y: 1 },
   },
   {
-    id: 22,
+    id: 21,
     name: 'Nested Launch Trace',
     world: 'launch-site',
     tutorial: false,
@@ -1244,7 +1196,7 @@ export const LEVELS = [
     fog: false,
     sptQuestion: {
       prompt: 'Which direction is LUMA facing?',
-      options: ['\u2191 Up', '\u2192 Right', '\u2193 Down', '\u2190 Left'],
+      options: ['? Up', '? Right', '? Down', '? Left'],
       correct: null,
     },
     solution: [
@@ -1292,7 +1244,7 @@ export const LEVELS = [
     tracingCorrectCell: { x: 1, y: 2 },
   },
   {
-    id: 23,
+    id: 22,
     name: 'Final Launch Trace',
     world: 'launch-site',
     tutorial: true,
@@ -1310,7 +1262,7 @@ export const LEVELS = [
     fog: false,
     sptQuestion: {
       prompt: 'Which direction is LUMA facing?',
-      options: ['\u2191 Up', '\u2192 Right', '\u2193 Down', '\u2190 Left'],
+      options: ['? Up', '? Right', '? Down', '? Left'],
       correct: null,
     },
     solution: [

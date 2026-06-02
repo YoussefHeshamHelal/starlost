@@ -221,6 +221,29 @@ function sequenceHasIfPathCommand(commands = []) {
   })
 }
 
+function sequenceHasIfElseCommand(commands = []) {
+  if (!Array.isArray(commands)) return false
+
+  return commands.some((command) => {
+    if (!command || typeof command !== 'object') return false
+    if (isIfPathCommand(command) && (command.elseCommands?.length ?? 0) > 0) return true
+    return sequenceHasIfElseCommand(command.commands) || sequenceHasIfElseCommand(command.elseCommands)
+  })
+}
+
+function countCommandInstances(commands = [], code) {
+  if (!Array.isArray(commands)) return 0
+
+  return commands.reduce((total, command) => {
+    if (typeof command === 'string') return total + (command === code ? 1 : 0)
+    if (!command || typeof command !== 'object') return total
+    return total +
+      (command.type === code ? 1 : 0) +
+      countCommandInstances(command.commands, code) +
+      countCommandInstances(command.elseCommands, code)
+  }, 0)
+}
+
 function getIfPathSelectStyle({ color, fontSize, letterSpacing = 1, theme }) {
   return {
     padding: '2px 6px',
@@ -503,7 +526,7 @@ function ClearAllIcon() {
   )
 }
 
-function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathCondition, onIfPathConditionChange, repeatTimes = 2, onRepeatTimesChange, showIfElse = false, panelWidth = 9999 }) {
+function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathCondition, onIfPathConditionChange, repeatTimes = 2, onRepeatTimesChange, showIfElse = false, panelWidth = 9999, remainingLimit = null }) {
   const compact = panelWidth < 220
   const btnPadV = compact ? 6 : 10
   const btnPadH = compact ? 10 : 12
@@ -539,6 +562,35 @@ function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathConditi
     borderRadius: 6,
     boxShadow: theme === 'light' ? 'inset 0 1px 2px rgba(70,142,204,0.08)' : 'inset 0 1px 2px rgba(0,0,0,0.22)',
   }
+  const badge = remainingLimit === null ? null : (
+    <span
+      aria-label={`${remainingLimit} remaining`}
+      style={{
+        position: 'absolute',
+        top: 4,
+        left: 4,
+        minWidth: 16,
+        height: 16,
+        padding: '0 4px',
+        borderRadius: 999,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: theme === 'light' ? 'rgba(255,255,255,0.96)' : 'rgba(2,6,14,0.92)',
+        border: `1px solid ${meta.color}`,
+        color: meta.color,
+        fontFamily: 'monospace',
+        fontSize: 9,
+        fontWeight: 900,
+        lineHeight: 1,
+        boxShadow: theme === 'light' ? '0 2px 6px rgba(15,23,42,0.12)' : '0 0 8px rgba(0,0,0,0.35)',
+        pointerEvents: 'none',
+        boxSizing: 'border-box',
+      }}
+    >
+      {remainingLimit}
+    </span>
+  )
   const stopSelectDrag = (event) => {
     event.preventDefault()
     event.stopPropagation()
@@ -604,9 +656,10 @@ function PaletteButton({ code, disabled, onAdd, theme, tutorialId, ifPathConditi
       }}
       data-tutorial-id={tutorialId}
       style={isIfPath
-        ? { width: '100%', padding: `${ifPadV}px ${ifPadH}px`, background: ifElsePreviewBg, border: `1.5px solid ${ifElsePreviewColor}`, borderRadius: 10, color: ifElsePreviewColor, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 5, fontFamily: 'monospace', opacity: disabled ? 0.35 : 1, overflow: 'hidden' }
-        : { width: '100%', padding: `${btnPadV}px ${btnPadH}px`, background: meta.bg, border: `1.5px solid ${meta.color}`, borderRadius: 10, color: meta.color, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'monospace', opacity: disabled ? 0.35 : 1 }}
+        ? { position: 'relative', width: '100%', padding: `${ifPadV}px ${ifPadH}px`, background: ifElsePreviewBg, border: `1.5px solid ${ifElsePreviewColor}`, borderRadius: 10, color: ifElsePreviewColor, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 5, fontFamily: 'monospace', opacity: disabled ? 0.35 : 1, overflow: 'hidden' }
+        : { position: 'relative', width: '100%', padding: `${btnPadV}px ${btnPadH}px`, paddingLeft: remainingLimit === null ? btnPadH : btnPadH + 14, background: meta.bg, border: `1.5px solid ${meta.color}`, borderRadius: 10, color: meta.color, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'monospace', opacity: disabled ? 0.35 : 1 }}
     >
+      {badge}
       {isIfPath ? (
         <>
           <div
@@ -1801,6 +1854,8 @@ export default function CommandBuilder({
   lockedProgram = false,
   paletteDisabled = false,
   requireIfBlockBeforeRun = false,
+  requireIfElseBlockBeforeRun = false,
+  blockLimits = {},
 }) {
   const { t: tr } = useTranslation()
   const theme = useContext(ThemeContext)
@@ -1842,8 +1897,26 @@ export default function CommandBuilder({
 
   const totalBlocks = countProgramBlocks(sequence)
   const programCode = programToPython(sequence, tr('commandBuilder.emptyPython'))
+  const blockLimitEntries = Object.entries(blockLimits ?? {}).filter(([, limit]) => Number.isFinite(Number(limit)))
+  const blockUsage = blockLimitEntries.reduce((usage, [code, limit]) => ({
+    ...usage,
+    [code]: {
+      limit: Number(limit),
+      used: countCommandInstances(sequence, code),
+    },
+  }), {})
+  const getRemainingLimit = useCallback((code) => {
+    const usage = blockUsage[code]
+    if (!usage) return null
+    return Math.max(0, usage.limit - usage.used)
+  }, [blockUsage])
+  const canAddCommandCode = useCallback((code) => {
+    const remaining = getRemainingLimit(code)
+    return remaining === null || remaining > 0
+  }, [getRemainingLimit])
   const isMissingRequiredIfBlock = requireIfBlockBeforeRun && sequence.length > 0 && !sequenceHasIfPathCommand(sequence)
-  const isDisabled = isRunning || sequence.length === 0 || needsReset || runBlocked || isMissingRequiredIfBlock
+  const isMissingRequiredIfElseBlock = requireIfElseBlockBeforeRun && sequence.length > 0 && !sequenceHasIfElseCommand(sequence)
+  const isDisabled = isRunning || sequence.length === 0 || needsReset || runBlocked || isMissingRequiredIfBlock || isMissingRequiredIfElseBlock
   const programCountWarning = targetCommands !== null && totalBlocks > targetCommands
   const programCountWarningColor = theme === 'light' ? '#f59e0b' : '#fbbf24'
   const wrapperBg = theme === 'light' ? 'rgba(255,255,255,0.18)' : 'rgba(6,11,20,0.16)'
@@ -1923,8 +1996,10 @@ export default function CommandBuilder({
   }, [])
 
   const handleTopLevelAdd = useCallback((command) => {
+    const code = typeof command === 'string' ? command : command?.type
+    if (!canAddCommandCode(code)) return
     onAdd(command)
-  }, [onAdd])
+  }, [canAddCommandCode, onAdd])
 
   const handleDelete = useCallback((path) => {
     onReorder(removeCommandAtPath(sequence, path))
@@ -1945,14 +2020,16 @@ export default function CommandBuilder({
   }, [onReorder, sequence])
 
   const handleDropIntoBlock = useCallback((path, raw, index = Number.MAX_SAFE_INTEGER, ifPathCondition = 'ahead', repeatTimes = 2) => {
+    if (!canAddCommandCode(raw)) return
     const dropped = createCommandFromCode(raw, ifPathCondition, repeatTimes)
     onReorder(insertCommandAtPath(sequence, path, index, dropped))
-  }, [onReorder, sequence])
+  }, [canAddCommandCode, onReorder, sequence])
 
   const handleInsertAt = useCallback((rawCommand, index, ifPathCondition = 'ahead', repeatTimes = 2) => {
+    if (!canAddCommandCode(rawCommand)) return
     const inserted = createCommandFromCode(rawCommand, ifPathCondition, repeatTimes)
     onReorder(insertCommandAtPath(sequence, [], index, inserted))
-  }, [onReorder, sequence])
+  }, [canAddCommandCode, onReorder, sequence])
 
   const visibleCommands = PALETTE_ORDER.filter((code) => {
     if (code === 'REPEAT') return showRepeat
@@ -2042,16 +2119,17 @@ export default function CommandBuilder({
                 <PaletteButton
                   key={code}
                   code={code}
-                  disabled={isRunning || paletteDisabled}
+                  disabled={isRunning || paletteDisabled || !canAddCommandCode(code)}
                   onAdd={handleTopLevelAdd}
                   theme={theme}
                   panelWidth={palettePanelW}
-                  tutorialId={code === 'F' ? 'command-forward' : code === 'C' ? 'command-collect' : code === 'TR' || code === 'TL' ? 'command-turn' : code === 'IF_PATH' ? (showIfElse ? 'command-if-else-path' : 'command-if-path') : 'command-repeat'}
+                  tutorialId={code === 'F' ? 'command-forward' : code === 'C' ? 'command-collect' : code === 'TR' ? 'command-turn-right' : code === 'TL' ? 'command-turn-left' : code === 'IF_PATH' ? (showIfElse ? 'command-if-else-path' : 'command-if-path') : 'command-repeat'}
                   ifPathCondition={ifPathPaletteCondition}
                   onIfPathConditionChange={setIfPathPaletteCondition}
                   repeatTimes={repeatPaletteTimes}
                   onRepeatTimesChange={setRepeatPaletteTimes}
                   showIfElse={showIfElse}
+                  remainingLimit={getRemainingLimit(code)}
                 />
               ))}
             </div>
@@ -2062,7 +2140,7 @@ export default function CommandBuilder({
 
         {!needsReset && (
           <motion.button whileTap={{ scale: 0.97 }} onClick={onRun} disabled={isDisabled} data-tutorial-id="run-button" style={{ width: '100%', padding: '13px 0', background: isDisabled ? t.runBgDisabled : t.runBgActive, border: `2px solid ${isDisabled ? t.runBorderDisabled : t.runBorderActive}`, borderRadius: 8, color: isDisabled ? t.runColorDisabled : t.runColorActive, fontFamily: 'monospace', fontSize: 14, letterSpacing: 2, cursor: isDisabled ? 'not-allowed' : 'pointer', fontWeight: 800 }}>
-            {isRunning ? tr('commandBuilder.running') : ifElseBlocked ? tr('commandBuilder.addElseBlock') : isMissingRequiredIfBlock ? tr('commandBuilder.addIfBlock') : runBlocked ? tr('commandBuilder.setPredictionFirst') : tr('commandBuilder.executeProgram')}
+            {isRunning ? tr('commandBuilder.running') : isMissingRequiredIfElseBlock ? tr('commandBuilder.useIfElseBlock') : ifElseBlocked ? tr('commandBuilder.addElseBlock') : isMissingRequiredIfBlock ? tr('commandBuilder.useIfBlock') : runBlocked ? tr('commandBuilder.setPredictionFirst') : tr('commandBuilder.executeProgram')}
           </motion.button>
         )}
       </div>
@@ -2129,6 +2207,7 @@ export default function CommandBuilder({
               setDragOver(false)
               const rawCommand = event.dataTransfer.getData('cmd')
               if (!rawCommand) return
+              if (!canAddCommandCode(rawCommand)) return
               onReorder(insertCommandAtPath(sequence, [], sequence.length, createCommandFromCode(
                 rawCommand,
                 event.dataTransfer.getData('ifPathCondition') || 'ahead',

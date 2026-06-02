@@ -49,8 +49,8 @@ const STAGE_GAP     = 10  // gap between title bar and play area
 const PLAY_AREA_H   = RADIO_PANEL_H + LEFT_COL_GAP + GRID_PX
 // Total stage design height used for scale calculation
 const LEVEL_STAGE_DESIGN_H = TITLE_BAR_H + STAGE_GAP + PLAY_AREA_H
-const PLAYABLE_LEVELS = 23
-const STRATEGY_CARD_LEVELS = new Set([5, 9, 14, 20, 23])
+const PLAYABLE_LEVELS = 22
+const STRATEGY_CARD_LEVELS = new Set([5, 9, 14, 19, 22])
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
 const LEVEL_SCREEN_SAFE_X = 32
 const LEVEL_SCREEN_SAFE_Y = 22
@@ -1291,7 +1291,7 @@ const STRATEGY_CARDS = [
 
 function getLandmarkStrategyVariant(levelId) {
   if ([9, 14].includes(levelId)) return 'trees'
-  if ([20, 23].includes(levelId)) return 'boxes'
+  if ([19, 22].includes(levelId)) return 'boxes'
   return 'rocks'
 }
 
@@ -1709,7 +1709,7 @@ const MAP_DECLARATIONS_BY_LEVEL = {
   6: { mapId: 'forestEntrance', accent: '#22c55e' },
   10: { mapId: 'deepForest', accent: '#14b8a6' },
   15: { mapId: 'repairSite', accent: '#38bdf8' },
-  21: { mapId: 'launchSite', accent: '#a78bfa' },
+  20: { mapId: 'launchSite', accent: '#a78bfa' },
 }
 
 function getParticipantScopedStorageKey(prefix, participantId, key) {
@@ -2443,7 +2443,7 @@ function LevelScreen({
   const isCompletedProgramReview = useMemo(() => {
     const levelId = Number(levelConfig.id)
     return levelId >= 3 &&
-      levelId <= 20 &&
+      levelId <= 19 &&
       shouldPreserveCompletedProgram(levelId) &&
       isLevelCompleted(levelId, completedLevels)
   }, [completedLevels, levelConfig.id])
@@ -2970,11 +2970,13 @@ function LevelScreen({
                   showRepeat={Boolean(levelConfig.allowRepeat)}
                   showCollect={levelConfig.allowCollect ?? levelConfig.id >= 5}
                   showIfPath={Boolean(levelConfig.allowIfPath)}
-                  showIfElse={Boolean(levelConfig.useIfElse) || levelConfig.id >= 18}
+                  showIfElse={Boolean(levelConfig.useIfElse)}
                   defaultIfPathCondition={effectiveDefaultIfPathCondition}
                   lockedProgram={Boolean(levelConfig.traceMode)}
                   paletteDisabled={currentTutorialStep?.id === 'level-1-palette'}
-                  requireIfBlockBeforeRun={levelConfig.id === 15}
+                  requireIfBlockBeforeRun={Boolean(levelConfig.requiresIfBlock)}
+                  requireIfElseBlockBeforeRun={Boolean(levelConfig.requiresIfElseBlock)}
+                  blockLimits={levelConfig.blockLimits}
                 />
               </div>
             </motion.div>

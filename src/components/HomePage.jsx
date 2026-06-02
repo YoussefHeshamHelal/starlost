@@ -2,13 +2,13 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useTheme, THEMES } from '../context/theme'
 
-const PLAYABLE_LEVELS = 23
+const PLAYABLE_LEVELS = 22
 const HOME_MAPS = [
   { id: 'crash-site', titleKey: 'starMap.crashSite', descriptionKey: 'homePage.descriptions.crashSite', levels: [1, 2, 3, 4, 5], accent: 'teal' },
   { id: 'forest-entrance', titleKey: 'starMap.forestEntrance', descriptionKey: 'homePage.descriptions.forestEntrance', levels: [6, 7, 8, 9], accent: 'amber' },
   { id: 'deep-forest', titleKey: 'starMap.deepForest', descriptionKey: 'homePage.descriptions.deepForest', levels: [10, 11, 12, 13, 14], accent: 'emerald' },
-  { id: 'repair-site', titleKey: 'starMap.repairSite', descriptionKey: 'homePage.descriptions.repairSite', levels: [15, 16, 17, 18, 19, 20], accent: 'violet' },
-  { id: 'launch-site', titleKey: 'starMap.launchSite', descriptionKey: 'homePage.descriptions.launchSite', levels: [21, 22, 23], accent: 'cyan' },
+  { id: 'repair-site', titleKey: 'starMap.repairSite', descriptionKey: 'homePage.descriptions.repairSite', levels: [15, 16, 17, 18, 19], accent: 'violet' },
+  { id: 'launch-site', titleKey: 'starMap.launchSite', descriptionKey: 'homePage.descriptions.launchSite', levels: [20, 21, 22], accent: 'cyan' },
 ]
 
 export default function HomePage({ headerHeight, onSelectLevel }) {

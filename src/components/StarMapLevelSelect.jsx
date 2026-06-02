@@ -52,25 +52,24 @@ function getZones(t) {
     id: 'repair',
     className: 'star-zone--repair',
     title: t('starMap.repairSite'),
-    path: [15, 16, 17, 18, 19, 20],
+    path: [15, 16, 17, 18, 19],
     positions: {
-      15: { left: 15, top: 77 },
-      16: { left: 27, top: 58 },
-      17: { left: 40, top: 41 },
-      18: { left: 56, top: 41 },
-      19: { left: 69, top: 58 },
-      20: { left: 81, top: 77 },
+      15: { left: 15, top: 67 },
+      16: { left: 31, top: 51 },
+      17: { left: 50, top: 45 },
+      18: { left: 69, top: 51 },
+      19: { left: 85, top: 67 },
     },
   },
   {
     id: 'launch',
     className: 'star-zone--launch',
     title: t('starMap.launchSite'),
-    path: [21, 22, 23],
+    path: [20, 21, 22],
     positions: {
-      21: { left: 26, top: 62 },
-      22: { left: 49, top: 48 },
-      23: { left: 72, top: 62 },
+      20: { left: 26, top: 62 },
+      21: { left: 49, top: 48 },
+      22: { left: 72, top: 62 },
     },
   },
   ]
@@ -131,7 +130,7 @@ function LevelNode({ level, position, completedLevels, medalsByLevel, onSelectLe
     'star-node',
     completed ? 'star-node--completed' : '',
     locked ? 'star-node--locked' : '',
-    level >= 21 && level <= 23 ? 'star-node--launch' : '',
+    level >= 20 && level <= 22 ? 'star-node--launch' : '',
   ].filter(Boolean).join(' ')
 
   return (

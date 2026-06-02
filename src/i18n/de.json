@@ -75,7 +75,7 @@
       },
       "deepExplorer": {
         "title": "Tiefen-Entdecker",
-        "description": "Schließe alle 23 Level ab."
+        "description": "Schlie?e alle 22 Level ab."
       },
       "bronzeMaster": {
         "title": "Bronze-Meister",
@@ -179,7 +179,7 @@
     "resetLuma": "AUSGANGSPOSITION",
     "running": "LÄUFT",
     "addElseBlock": "sonst-BAUSTEIN HINZUFÜGEN",
-    "addIfBlock": "WENN-BAUSTEIN HINZUFÜGEN",
+    "addIfBlock": "WENN-BAUSTEIN BENUTZEN",
     "setPredictionFirst": "ZUERST VORHERSAGE SETZEN",
     "executeProgram": "PROGRAMM AUSFÜHREN",
     "warningFlipped": "WARNUNG: LINKS / RECHTS VERTAUSCHT",
@@ -193,7 +193,9 @@
     "medium": "MITTEL",
     "fast": "SCHNELL",
     "times": "MAL",
-    "emptyPython": "# Füge Bausteine in das Programmfeld ein, um hier Python zu sehen."
+    "emptyPython": "# Füge Bausteine in das Programmfeld ein, um hier Python zu sehen.",
+    "useIfBlock": "WENN-BAUSTEIN BENUTZEN",
+    "useIfElseBlock": "WENN/SONST-BAUSTEIN BENUTZEN"
   },
   "tutorial": {
     "step": "SCHRITT {{current}} / {{total}}",
@@ -296,8 +298,8 @@
       "treeRightFragmentFront": "Direkt rechts von mir ist ein Baum und direkt vor mir ist ein Schiffsfragment.",
       "level15": "In welche Richtung schaue ich? Direkt hinter mir ist eine Kiste und rechts von mir ist eine Kiste.",
       "level17": "In welche Richtung schaue ich? Direkt vor mir ist ein Schiffsfragment.",
-      "level21": "In welche Richtung schaue ich? Direkt vor mir und rechts von mir ist der Weg frei, aber direkt hinter mir und links von mir ist kein Weg.",
-      "level23": "In welche Richtung schaue ich? Direkt hinter mir ist kein Weg."
+      "level20": "In welche Richtung schaue ich? Direkt vor mir und rechts von mir ist der Weg frei, aber direkt hinter mir und links von mir ist kein Weg.",
+      "level22": "In welche Richtung schaue ich? Direkt hinter mir ist kein Weg."
     },
     "collectionOpen": "Geschafft! Ich habe ein Schiffsfragment gefunden!",
     "collectionWall": "{{opener}} Von hier aus ist {{obstacle}} {{relative}}.",
@@ -365,15 +367,14 @@
     "12": "Nebelpfad",
     "13": "Verwirrter Visor",
     "14": "Tiefer Wald",
-    "15": "Kistenpfad",
-    "16": "Zwei Drehungen",
-    "17": "Logik an der Reparaturstelle",
-    "18": "WENN/sonst-Start",
-    "19": "Mehrere Aktionen",
-    "20": "Verschachtelte Logik",
-    "21": "Code verfolgen",
-    "22": "Startcode",
-    "23": "Letzter Start"
+    "15": "Zwei Drehungen",
+    "16": "Logik an der Reparaturstelle",
+    "17": "WENN/sonst-Start",
+    "18": "Mehrere Aktionen",
+    "19": "Verschachtelte Logik",
+    "20": "Code verfolgen",
+    "21": "Startcode",
+    "22": "Letzter Start"
   },
   "spt": {
     "prompt": "Tippe auf die Karte, um einen Mittelpunkt zu markieren."
@@ -403,7 +404,7 @@
     "chooseMission": "Wähle eine Mission und führe LUMA durch die Sterne.",
     "liveSummary": "Absturzstelle, Waldeingang, Tiefer Wald, Reparaturstelle und die letzte Mission am Startplatz sind jetzt spielbar.",
     "liveNow": "JETZT LIVE",
-    "levelsReady": "Level 1-23 bereit zum Spielen",
+    "levelsReady": "Level 1-22 bereit zum Spielen",
     "missionZone": "MISSIONSZONE",
     "comingSoon": "KOMMT BALD",
     "play": "SPIELEN",
@@ -526,71 +527,6 @@
       "title": "Nutze Wiederholen mit WENN PFAD",
       "body": "Setze WENN PFAD in Wiederholen, damit LUMA eine Richtung immer wieder prüfen kann. Das Auswahlfeld hilft dir, die Prüfrichtung auszuwählen.",
       "nextLabel": "Bereit"
-    },
-    "level-16-same-rule-two-turns": {
-      "title": "Gleiche Regel, zwei Drehungen",
-      "body": "Dieser Weg biegt zweimal ab. Nutze Wiederholen mit WENN PFAD nach rechts, damit LUMA dreht, wenn ein Seitenweg offen ist.",
-      "nextLabel": "Verstanden"
-    },
-    "level-17-collect-after-moving": {
-      "title": "Nach dem Bewegen einsammeln",
-      "body": "Dieser Weg hat Schiffsfragmente. Setze EINSAMMELN nach GERADEAUS BEWEGEN in den Wiederholen-Baustein, damit LUMA jedes Fragment einsammelt, auf dem sie landet.",
-      "nextLabel": "Verstanden"
-    },
-    "level-18-if-else-command": {
-      "title": "Neuer Baustein: WENN/sonst",
-      "body": "WENN/sonst hilft LUMA, zwischen zwei Aktionen zu wählen. WENN heißt: Tu dies, wenn der Pfad offen ist. sonst heißt: Tu stattdessen dies.",
-      "nextLabel": "Verstanden"
-    },
-    "level-18-two-places": {
-      "title": "Zwei Teile in einem Baustein",
-      "body": "Dieser Baustein hat zwei Plätze. Nutze den oberen Teil für das, was LUMA tun soll, wenn der Pfad offen ist. Nutze sonst für das, was LUMA sonst tun soll.",
-      "nextLabel": "Ich sehe es"
-    },
-    "level-18-else-needed": {
-      "title": "sonst braucht einen Baustein",
-      "body": "sonst darf in diesem Level nicht leer bleiben. Füge dort einen Baustein ein, damit LUMA weiß, was sie tun soll, wenn der Pfad blockiert ist.",
-      "nextLabel": "Bereit"
-    },
-    "level-19-two-blocks-inside-if": {
-      "title": "Mehr Bausteine in WENN oder sonst",
-      "body": "Die WENN- und sonst-Teile können mehr als einen Baustein enthalten. So kann LUMA je nach Pfadprüfung mehrere Aktionen ausführen.",
-      "nextLabel": "Verstanden"
-    },
-    "level-20-nested-if-else": {
-      "title": "Verschachtelte WENN/sonst-Bausteine",
-      "body": "Du kannst einen WENN/sonst-Baustein in einen anderen WENN/sonst-Baustein setzen. So prüft LUMA den Pfad in 3 Richtungen statt in 2.",
-      "nextLabel": "Verstanden"
-    },
-    "level-21-trace-code": {
-      "title": "Verfolge den Code",
-      "body": "Diesmal ist das Programm für LUMA schon geschrieben.",
-      "nextLabel": "Okay"
-    },
-    "level-21-read-carefully": {
-      "title": "Lies genau",
-      "body": "Schau dir die Bausteine an und verfolge, wohin LUMA geht.",
-      "nextLabel": "Ich sehe es"
-    },
-    "level-21-choose-ending": {
-      "title": "Wähle das Zielfeld",
-      "body": "Tippe auf das Feld, auf dem LUMA am Ende stehen wird.",
-      "nextLabel": "Bereit"
-    },
-    "level-21-launch-pad": {
-      "title": "Finde das richtige Feld",
-      "body": "Wenn du das richtige Feld wählst, erscheint der Schiffskern und LUMA führt das Programm aus.",
-      "nextLabel": "Ausführen"
-    },
-    "level-23-final-level-intro": {
-      "title": "Letztes Level",
-      "body": "Das ist das letzte Level. Löse es, damit LUMA ihr repariertes Schiff starten und nach Hause fliegen kann.",
-      "nextLabel": "Fertig machen"
-    },
-    "level-23-launch-pad": {
-      "title": "Finde das richtige Feld",
-      "body": "Wenn du das richtige Feld wählst, erscheint die Startrampe und LUMA fliegt nach Hause.",
-      "nextLabel": "Startzeit"
     },
     "level-1-reset": {
       "title": "Noch ein Versuch?",
@@ -716,6 +652,71 @@
       "title": "Vorhersage-Aufgabe",
       "body": "Dieses Feld fragt dich, wo LUMA anhalten wird, bevor du das Programm ausführst.",
       "nextLabel": "Okay"
+    },
+    "level-15-one-turn-right": {
+      "title": "Nutze deinen einen RECHTS DREHEN-Baustein klug",
+      "body": "In diesem Level kannst du den RECHTS DREHEN-Baustein nur einmal benutzen. Setze ihn in WENN PFAD, damit LUMA immer dann rechts abbiegt, wenn sich rechts ein Weg öffnet.",
+      "nextLabel": "Verstanden"
+    },
+    "level-16-collect-after-moving": {
+      "title": "Nach dem Bewegen einsammeln",
+      "body": "Dieser Weg hat Schiffsfragmente. Setze EINSAMMELN nach GERADEAUS BEWEGEN in den Wiederholen-Baustein, damit LUMA jedes Fragment einsammelt, auf dem sie landet.",
+      "nextLabel": "Verstanden"
+    },
+    "level-17-if-else-command": {
+      "title": "Neuer Baustein: WENN/sonst",
+      "body": "WENN/sonst hilft LUMA, zwischen zwei Aktionen zu wählen. WENN heißt: Tu dies, wenn der Pfad offen ist. sonst heißt: Tu stattdessen dies.",
+      "nextLabel": "Verstanden"
+    },
+    "level-17-two-places": {
+      "title": "Zwei Teile in einem Baustein",
+      "body": "Dieser Baustein hat zwei Plätze. Nutze den oberen Teil für das, was LUMA tun soll, wenn der Pfad offen ist. Nutze sonst für das, was LUMA sonst tun soll.",
+      "nextLabel": "Ich sehe es"
+    },
+    "level-17-else-needed": {
+      "title": "sonst braucht einen Baustein",
+      "body": "sonst darf in diesem Level nicht leer bleiben. Füge dort einen Baustein ein, damit LUMA weiß, was sie tun soll, wenn der Pfad blockiert ist.",
+      "nextLabel": "Bereit"
+    },
+    "level-18-two-blocks-inside-if": {
+      "title": "Mehr Bausteine in WENN oder sonst",
+      "body": "Die WENN- und sonst-Teile können mehr als einen Baustein enthalten. So kann LUMA je nach Pfadprüfung mehrere Aktionen ausführen.",
+      "nextLabel": "Verstanden"
+    },
+    "level-19-nested-if-else": {
+      "title": "Verschachtelte WENN/sonst-Bausteine",
+      "body": "Du kannst einen WENN/sonst-Baustein in einen anderen WENN/sonst-Baustein setzen. So prüft LUMA den Pfad in 3 Richtungen statt in 2.",
+      "nextLabel": "Verstanden"
+    },
+    "level-20-trace-code": {
+      "title": "Verfolge den Code",
+      "body": "Diesmal ist das Programm für LUMA schon geschrieben.",
+      "nextLabel": "Okay"
+    },
+    "level-20-read-carefully": {
+      "title": "Lies genau",
+      "body": "Schau dir die Bausteine an und verfolge, wohin LUMA geht.",
+      "nextLabel": "Ich sehe es"
+    },
+    "level-20-choose-ending": {
+      "title": "Wähle das Zielfeld",
+      "body": "Tippe auf das Feld, auf dem LUMA am Ende stehen wird.",
+      "nextLabel": "Bereit"
+    },
+    "level-20-launch-pad": {
+      "title": "Finde das richtige Feld",
+      "body": "Wenn du das richtige Feld wählst, erscheint der Schiffskern und LUMA führt das Programm aus.",
+      "nextLabel": "Ausführen"
+    },
+    "level-22-final-level-intro": {
+      "title": "Letztes Level",
+      "body": "Das ist das letzte Level. Löse es, damit LUMA ihr repariertes Schiff starten und nach Hause fliegen kann.",
+      "nextLabel": "Fertig machen"
+    },
+    "level-22-launch-pad": {
+      "title": "Finde das richtige Feld",
+      "body": "Wenn du das richtige Feld wählst, erscheint die Startrampe und LUMA fliegt nach Hause.",
+      "nextLabel": "Startzeit"
     }
   }
 }

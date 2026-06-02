@@ -75,7 +75,7 @@
       },
       "deepExplorer": {
         "title": "Deep Explorer",
-        "description": "Complete all 23 levels."
+        "description": "Complete all 22 levels."
       },
       "bronzeMaster": {
         "title": "Bronze Master",
@@ -179,7 +179,7 @@
     "resetLuma": "RESET LUMA",
     "running": "RUNNING",
     "addElseBlock": "ADD ELSE BLOCK",
-    "addIfBlock": "ADD IF BLOCK",
+    "addIfBlock": "USE IF BLOCK",
     "setPredictionFirst": "SET PREDICTION FIRST",
     "executeProgram": "EXECUTE PROGRAM",
     "warningFlipped": "WARNING: LEFT / RIGHT FLIPPED",
@@ -193,7 +193,9 @@
     "medium": "MED",
     "fast": "FAST",
     "times": "TIMES",
-    "emptyPython": "# Add blocks to the Program box to see Python here."
+    "emptyPython": "# Add blocks to the Program box to see Python here.",
+    "useIfBlock": "USE IF BLOCK",
+    "useIfElseBlock": "USE IF/ELSE BLOCK"
   },
   "tutorial": {
     "step": "STEP {{current}} / {{total}}",
@@ -296,8 +298,8 @@
       "treeRightFragmentFront": "There is a tree directly to my right and a ship fragment directly in front of me.",
       "level15": "Which direction am I facing? There is a box directly behind me and a box to my right.",
       "level17": "Which direction am I facing? There is a ship fragment directly in front of me.",
-      "level21": "Which direction am I facing? There's open path directly in front of me and to my right, but there's no path directly behind me or to my left.",
-      "level23": "Which direction am I facing? There is no path directly behind me."
+      "level20": "Which direction am I facing? There's open path directly in front of me and to my right, but there's no path directly behind me or to my left.",
+      "level22": "Which direction am I facing? There is no path directly behind me."
     },
     "collectionOpen": "Got it! I found a ship fragment!",
     "collectionWall": "{{opener}} There is {{obstacle}} {{relative}} from here.",
@@ -365,15 +367,14 @@
     "12": "Repeat Builder",
     "13": "Uncertain Radio + First Visor Flip",
     "14": "Loop + Fragment Mastery",
-    "15": "IF Turn Helper",
-    "16": "IF U-Turn Path",
-    "17": "Repair Site Logic",
-    "18": "IF/ELSE Turn Choice",
-    "19": "IF/ELSE Fragment Corridor",
-    "20": "Nested IF/ELSE Trail",
-    "21": "Launch Trace Intro",
-    "22": "Nested Launch Trace",
-    "23": "Final Launch Trace"
+    "15": "IF U-Turn Path",
+    "16": "Repair Site Logic",
+    "17": "IF/ELSE Turn Choice",
+    "18": "IF/ELSE Fragment Corridor",
+    "19": "Nested IF/ELSE Trail",
+    "20": "Launch Trace Intro",
+    "21": "Nested Launch Trace",
+    "22": "Final Launch Trace"
   },
   "spt": {
     "prompt": "Which object is directly ahead of LUMA?"
@@ -403,7 +404,7 @@
     "chooseMission": "Choose a mission and guide LUMA through the stars.",
     "liveSummary": "Crash Site, Forest Entrance, Deep Forest, Repair Site, and the final Launch Site mission are live now.",
     "liveNow": "LIVE NOW",
-    "levelsReady": "Levels 1-23 ready to play",
+    "levelsReady": "Levels 1-22 ready to play",
     "missionZone": "MISSION ZONE",
     "comingSoon": "COMING SOON",
     "play": "PLAY",
@@ -526,71 +527,6 @@
       "title": "Use Repeat with IF PATH",
       "body": "Put IF PATH inside Repeat so LUMA can check a direction again and again. The dropdown helps you choose which direction LUMA checks.",
       "nextLabel": "Ready"
-    },
-    "level-16-same-rule-two-turns": {
-      "title": "Same rule, two turns",
-      "body": "This path bends twice. Use Repeat with IF PATH to the right so LUMA turns when a side path opens.",
-      "nextLabel": "Got it"
-    },
-    "level-17-collect-after-moving": {
-      "title": "Collect after moving",
-      "body": "This path has ship fragments. Put COLLECT after MOVE FORWARD inside the Repeat block so LUMA collects each fragment she lands on.",
-      "nextLabel": "Got it"
-    },
-    "level-18-if-else-command": {
-      "title": "New block: IF/ELSE",
-      "body": "IF/ELSE helps LUMA choose between two actions. IF means \"do this when the path is open.\" ELSE means \"otherwise, do this instead.\"",
-      "nextLabel": "Got it"
-    },
-    "level-18-two-places": {
-      "title": "Two parts in one block",
-      "body": "This block has two spaces. Use the top part for what LUMA should do when the path is open. Use ELSE for what LUMA should do otherwise.",
-      "nextLabel": "I see"
-    },
-    "level-18-else-needed": {
-      "title": "ELSE needs a block",
-      "body": "ELSE cannot stay empty in this level. Add a block there so LUMA knows what to do when the path is blocked.",
-      "nextLabel": "Ready"
-    },
-    "level-19-two-blocks-inside-if": {
-      "title": "More blocks inside IF or ELSE",
-      "body": "The IF and ELSE parts can hold more than one block. This lets LUMA do more than one action depending on whether the path check is true or false.",
-      "nextLabel": "Got it"
-    },
-    "level-20-nested-if-else": {
-      "title": "Nested IF/ELSE blocks",
-      "body": "You can put an IF/ELSE block inside another IF/ELSE block. This makes LUMA check the path in 3 directions instead of 2.",
-      "nextLabel": "Got it"
-    },
-    "level-21-trace-code": {
-      "title": "Trace the code",
-      "body": "This time, the program is already written for LUMA.",
-      "nextLabel": "Okay"
-    },
-    "level-21-read-carefully": {
-      "title": "Read carefully",
-      "body": "Look at the blocks and trace where LUMA will go.",
-      "nextLabel": "I see"
-    },
-    "level-21-choose-ending": {
-      "title": "Choose the ending tile",
-      "body": "Tap the tile where you think LUMA will finish.",
-      "nextLabel": "Ready"
-    },
-    "level-21-launch-pad": {
-      "title": "Find the correct tile",
-      "body": "If you choose the correct tile, the ship core will appear and LUMA will run the program.",
-      "nextLabel": "Run it"
-    },
-    "level-23-final-level-intro": {
-      "title": "Final level",
-      "body": "This is the final level. Solve it so LUMA can launch her fixed ship and go home.",
-      "nextLabel": "Let's finish"
-    },
-    "level-23-launch-pad": {
-      "title": "Find the correct tile",
-      "body": "If you choose the correct tile, the launch pad will appear and LUMA will go home.",
-      "nextLabel": "Launch time"
     },
     "level-1-reset": {
       "title": "Need another try?",
@@ -716,6 +652,71 @@
       "title": "Prediction Challenge",
       "body": "This box asks you to guess where LUMA will stop before you run.",
       "nextLabel": "Okay"
+    },
+    "level-15-one-turn-right": {
+      "title": "Use your one TURN RIGHT wisely",
+      "body": "In this level, you can only use one TURN RIGHT block. Put it inside IF PATH so LUMA can turn whenever the right path opens.",
+      "nextLabel": "Got it"
+    },
+    "level-16-collect-after-moving": {
+      "title": "Collect after moving",
+      "body": "This path has ship fragments. Put COLLECT after MOVE FORWARD inside the Repeat block so LUMA collects each fragment she lands on.",
+      "nextLabel": "Got it"
+    },
+    "level-17-if-else-command": {
+      "title": "New block: IF/ELSE",
+      "body": "IF/ELSE helps LUMA choose between two actions. IF means \"do this when the path is open.\" ELSE means \"otherwise, do this instead.\"",
+      "nextLabel": "Got it"
+    },
+    "level-17-two-places": {
+      "title": "Two parts in one block",
+      "body": "This block has two spaces. Use the top part for what LUMA should do when the path is open. Use ELSE for what LUMA should do otherwise.",
+      "nextLabel": "I see"
+    },
+    "level-17-else-needed": {
+      "title": "ELSE needs a block",
+      "body": "ELSE cannot stay empty in this level. Add a block there so LUMA knows what to do when the path is blocked.",
+      "nextLabel": "Ready"
+    },
+    "level-18-two-blocks-inside-if": {
+      "title": "More blocks inside IF or ELSE",
+      "body": "The IF and ELSE parts can hold more than one block. This lets LUMA do more than one action depending on whether the path check is true or false.",
+      "nextLabel": "Got it"
+    },
+    "level-19-nested-if-else": {
+      "title": "Nested IF/ELSE blocks",
+      "body": "You can put an IF/ELSE block inside another IF/ELSE block. This makes LUMA check the path in 3 directions instead of 2.",
+      "nextLabel": "Got it"
+    },
+    "level-20-trace-code": {
+      "title": "Trace the code",
+      "body": "This time, the program is already written for LUMA.",
+      "nextLabel": "Okay"
+    },
+    "level-20-read-carefully": {
+      "title": "Read carefully",
+      "body": "Look at the blocks and trace where LUMA will go.",
+      "nextLabel": "I see"
+    },
+    "level-20-choose-ending": {
+      "title": "Choose the ending tile",
+      "body": "Tap the tile where you think LUMA will finish.",
+      "nextLabel": "Ready"
+    },
+    "level-20-launch-pad": {
+      "title": "Find the correct tile",
+      "body": "If you choose the correct tile, the ship core will appear and LUMA will run the program.",
+      "nextLabel": "Run it"
+    },
+    "level-22-final-level-intro": {
+      "title": "Final level",
+      "body": "This is the final level. Solve it so LUMA can launch her fixed ship and go home.",
+      "nextLabel": "Let's finish"
+    },
+    "level-22-launch-pad": {
+      "title": "Find the correct tile",
+      "body": "If you choose the correct tile, the launch pad will appear and LUMA will go home.",
+      "nextLabel": "Launch time"
     }
   }
 }

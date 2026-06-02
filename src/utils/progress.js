@@ -2,8 +2,8 @@ import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 import { cloneNestedCommands } from './commands'
 
-export const TOTAL_LEVELS = 23
-export const COMPLETED_PROGRAM_MAX_LEVEL = 20
+export const TOTAL_LEVELS = 22
+export const COMPLETED_PROGRAM_MAX_LEVEL = 19
 export const MEDAL_RANKS = {
   bronze: 1,
   silver: 2,

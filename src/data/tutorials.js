@@ -208,9 +208,7 @@ export const LEVEL_TUTORIALS = {
       waitForTarget: true,
       nextLabel: 'Ready',
     }),
-  ],
-  16: [
-    levelStep('level-16-same-rule-two-turns', {
+    levelStep('level-15-same-rule-two-turns', {
       targetId: 'sequence-area',
       placement: 'left',
       title: 'Same rule, two turns',
@@ -219,9 +217,17 @@ export const LEVEL_TUTORIALS = {
       hideProgress: true,
       nextLabel: 'Got it',
     }),
+    levelStep('level-15-one-turn-right', {
+      targetId: 'command-turn-right',
+      placement: 'top',
+      title: 'Use your one TURN RIGHT wisely',
+      body: 'In this level, you can only use one TURN RIGHT block. Put it inside IF PATH so LUMA can turn whenever the right path opens.',
+      waitForTarget: true,
+      nextLabel: 'Got it',
+    }),
   ],
-  17: [
-    levelStep('level-17-collect-after-moving', {
+  16: [
+    levelStep('level-16-collect-after-moving', {
       targetId: 'command-collect',
       placement: 'left',
       title: 'Collect after moving',
@@ -231,8 +237,8 @@ export const LEVEL_TUTORIALS = {
       nextLabel: 'Got it',
     }),
   ],
-  18: [
-    levelStep('level-18-if-else-command', {
+  17: [
+    levelStep('level-17-if-else-command', {
       targetId: 'command-if-else-path',
       placement: 'top',
       title: 'New block: IF/ELSE',
@@ -240,7 +246,7 @@ export const LEVEL_TUTORIALS = {
       waitForTarget: true,
       nextLabel: 'Got it',
     }),
-    levelStep('level-18-two-places', {
+    levelStep('level-17-two-places', {
       targetId: 'command-if-else-path',
       placement: 'left',
       title: 'Two parts in one block',
@@ -248,7 +254,7 @@ export const LEVEL_TUTORIALS = {
       waitForTarget: true,
       nextLabel: 'I see',
     }),
-    levelStep('level-18-else-needed', {
+    levelStep('level-17-else-needed', {
       targetId: 'command-if-else-path',
       placement: 'left',
       title: 'ELSE needs a block',
@@ -258,8 +264,8 @@ export const LEVEL_TUTORIALS = {
       nextLabel: 'Ready',
     }),
   ],
-  19: [
-    levelStep('level-19-two-blocks-inside-if', {
+  18: [
+    levelStep('level-18-two-blocks-inside-if', {
       targetId: 'command-if-else-path',
       placement: 'left',
       title: 'More blocks inside IF or ELSE',
@@ -270,8 +276,8 @@ export const LEVEL_TUTORIALS = {
       showWhen: ({ phase }) => phase === 'develop',
     }),
   ],
-  20: [
-    levelStep('level-20-nested-if-else', {
+  19: [
+    levelStep('level-19-nested-if-else', {
       targetId: 'command-if-else-path',
       placement: 'top',
       title: 'Nested IF/ELSE blocks',
@@ -282,8 +288,8 @@ export const LEVEL_TUTORIALS = {
       nextLabel: 'Got it',
     }),
   ],
-  21: [
-    levelStep('level-21-trace-code', {
+  20: [
+    levelStep('level-20-trace-code', {
       targetId: 'trace-program-box',
       placement: 'left',
       title: 'Trace the code',
@@ -292,7 +298,7 @@ export const LEVEL_TUTORIALS = {
       showWhen: ({ phase }) => phase === 'develop',
       nextLabel: 'Okay',
     }),
-    levelStep('level-21-read-carefully', {
+    levelStep('level-20-read-carefully', {
       targetId: 'trace-program-box',
       placement: 'left',
       title: 'Read carefully',
@@ -301,7 +307,7 @@ export const LEVEL_TUTORIALS = {
       showWhen: ({ phase }) => phase === 'develop',
       nextLabel: 'I see',
     }),
-    levelStep('level-21-choose-ending', {
+    levelStep('level-20-choose-ending', {
       targetId: 'grid-panel',
       placement: 'right',
       title: 'Choose the ending tile',
@@ -310,7 +316,7 @@ export const LEVEL_TUTORIALS = {
       showWhen: ({ phase }) => phase === 'develop',
       nextLabel: 'Ready',
     }),
-    levelStep('level-21-launch-pad', {
+    levelStep('level-20-launch-pad', {
       targetId: 'grid-panel',
       placement: 'right',
       title: 'Find the correct tile',
@@ -320,8 +326,8 @@ export const LEVEL_TUTORIALS = {
       nextLabel: 'Run it',
     }),
   ],
-  23: [
-    levelStep('level-23-final-level-intro', {
+  22: [
+    levelStep('level-22-final-level-intro', {
       targetId: 'grid-panel',
       placement: 'right',
       title: 'Final level',
@@ -330,7 +336,7 @@ export const LEVEL_TUTORIALS = {
       showWhen: ({ phase }) => phase === 'develop',
       nextLabel: "Let's finish",
     }),
-    levelStep('level-23-launch-pad', {
+    levelStep('level-22-launch-pad', {
       targetId: 'grid-panel',
       placement: 'right',
       title: 'Find the correct tile',

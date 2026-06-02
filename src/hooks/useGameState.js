@@ -13,7 +13,6 @@ import {
   generateLevel12Layout,
   generateLevel13Layout,
   generateLevel15Layout,
-  generateLevel16Layout,
   generateLevel18Layout,
   generateLevel19Layout,
   generateLevel20Layout,
@@ -326,7 +325,6 @@ function generateLayout(generatorKey, facing) {
     case 'level12': return generateLevel12Layout(facing)
     case 'level13': return generateLevel13Layout(facing)
     case 'level15': return generateLevel15Layout(facing)
-    case 'level16': return generateLevel16Layout(facing)
     case 'level18': return generateLevel18Layout(facing)
     case 'level19': return generateLevel19Layout(facing)
     case 'level20': return generateLevel20Layout(facing)
@@ -453,12 +451,12 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
       return tr('radio.fixed.level17')
     }
 
-    if (levelConfig.id === 21 || levelConfig.id === 22) {
-      return tr('radio.fixed.level21')
+    if (levelConfig.id === 20 || levelConfig.id === 21) {
+      return tr('radio.fixed.level20')
     }
 
-    if (levelConfig.id === 23) {
-      return tr('radio.fixed.level23')
+    if (levelConfig.id === 22) {
+      return tr('radio.fixed.level22')
     }
 
     return withOpener(buildRadioReport(
@@ -663,7 +661,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     setSequence(cloneNestedCommands(completedProgram))
 
     const levelId = Number(levelConfig.id)
-    if (Number.isInteger(levelId) && levelId >= 3 && levelId <= 20) {
+    if (Number.isInteger(levelId) && levelId >= 3 && levelId <= 19) {
       setPhase('develop')
       setSptAnswer(sptCorrectAnswer)
       setSptCorrect(true)
