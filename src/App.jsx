@@ -54,7 +54,6 @@ const STRATEGY_CARD_LEVELS = new Set([5, 9, 14, 19, 22])
 const LEVEL_SCREEN_MAX_W = GRID_PX + GAP + PANEL_W
 const LEVEL_SCREEN_SAFE_X = 32
 const LEVEL_SCREEN_SAFE_Y = 22
-const TEMP_UNLOCK_ALL_LEVELS = true
 // Temporary editing flag: force area intros while preserving the original seen-state logic below.
 const TEMP_SHOW_MAP_DECLARATIONS_EVERY_OPEN = true
 const SPEED_STORAGE_KEY = 'starlost:anim-speed'
@@ -2984,10 +2983,11 @@ function LevelScreen({
                   ifElseBlocked={ifElseBlocked}
                   speed={animSpeed}
                   onSpeedChange={onAnimSpeedChange}
+                  levelId={levelConfig.id}
                   showVisorFlip={!levelConfig.noVisorFlip}
                   targetCommands={levelConfig.targetCommands ?? null}
                   showRepeat={Boolean(levelConfig.allowRepeat)}
-                  showCollect={levelConfig.allowCollect ?? levelConfig.id >= 5}
+                  showCollect={Boolean(levelConfig.allowCollect) || levelConfig.id >= 5}
                   showIfPath={Boolean(levelConfig.allowIfPath)}
                   showIfElse={Boolean(levelConfig.useIfElse)}
                   defaultIfPathCondition={effectiveDefaultIfPathCondition}
@@ -3356,12 +3356,7 @@ export default function App() {
       console.warn('[StarMap] Ignoring invalid level selection:', levelNumber)
       return
     }
-    // Original locking guard:
-    // if (!isLevelUnlocked(nextLevelNumber, completedLevels)) {
-    //   console.warn('[StarMap] Ignoring locked level selection:', levelNumber)
-    //   return
-    // }
-    if (!TEMP_UNLOCK_ALL_LEVELS && !isLevelUnlocked(nextLevelNumber, completedLevels)) {
+    if (!isLevelUnlocked(nextLevelNumber, completedLevels)) {
       console.warn('[StarMap] Ignoring locked level selection:', levelNumber)
       return
     }

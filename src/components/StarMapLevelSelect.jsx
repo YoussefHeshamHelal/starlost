@@ -6,8 +6,6 @@ import MenuSoundIcon from './MenuSoundIcon'
 import './menuScreens.css'
 
 
-const TEMP_UNLOCK_ALL_LEVELS = true
-
 function getZones(t) {
   return [
   {
@@ -120,11 +118,8 @@ function MenuModal({ onClose }) {
 function LevelNode({ level, position, completedLevels, medalsByLevel, onSelectLevel }) {
   const { t } = useTranslation()
   const completed = isLevelCompleted(level, completedLevels)
-  // Original locking logic:
-  // const unlocked = isLevelUnlocked(level, completedLevels)
-  // const locked = !unlocked
-  const unlocked = TEMP_UNLOCK_ALL_LEVELS ? true : isLevelUnlocked(level, completedLevels)
-  const locked = TEMP_UNLOCK_ALL_LEVELS ? false : !unlocked
+  const unlocked = isLevelUnlocked(level, completedLevels)
+  const locked = !unlocked
   const medal = completed ? medalsByLevel?.[String(level)]?.medal : null
   const className = [
     'star-node',
@@ -182,11 +177,7 @@ function ZoneTrail({ zone }) {
 }
 
 function StarZone({ zone, completedLevels, medalsByLevel, onSelectLevel }) {
-  // Original zone locking logic:
-  // const zoneUnlocked = zone.path.some(level => isLevelUnlocked(level, completedLevels))
-  const zoneUnlocked = TEMP_UNLOCK_ALL_LEVELS
-    ? true
-    : zone.path.some(level => isLevelUnlocked(level, completedLevels))
+  const zoneUnlocked = zone.path.some(level => isLevelUnlocked(level, completedLevels))
   return (
     <section className={`star-zone ${zone.className} ${zoneUnlocked ? '' : 'star-zone--locked'}`} aria-label={zone.title}>
       <h2 className="star-zone__title">{zone.title}</h2>

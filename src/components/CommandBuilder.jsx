@@ -198,6 +198,7 @@ const META = {
 }
 
 const PALETTE_ORDER = ['F', 'TR', 'TL', 'C', 'REPEAT', 'IF_PATH']
+const LEVEL_5_PLUS_PALETTE_ORDER = ['F', 'TL', 'TR', 'C', 'REPEAT', 'IF_PATH']
 
 const IF_PATH_OPTIONS = [
   { value: 'ahead', labelKey: 'blocks.ahead', label: 'ahead' },
@@ -1844,6 +1845,7 @@ export default function CommandBuilder({
   runBlocked = false,
   speed,
   onSpeedChange,
+  levelId = null,
   showVisorFlip = true,
   targetCommands = null,
   showRepeat = false,
@@ -2032,7 +2034,8 @@ export default function CommandBuilder({
     onReorder(insertCommandAtPath(sequence, [], index, inserted))
   }, [canAddCommandCode, onReorder, sequence])
 
-  const visibleCommands = PALETTE_ORDER.filter((code) => {
+  const paletteOrder = Number(levelId) >= 5 ? LEVEL_5_PLUS_PALETTE_ORDER : PALETTE_ORDER
+  const visibleCommands = paletteOrder.filter((code) => {
     if (code === 'REPEAT') return showRepeat
     if (code === 'IF_PATH') return showIfPath
     if (code === 'C') return showCollect
