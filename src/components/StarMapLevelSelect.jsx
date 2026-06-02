@@ -195,6 +195,12 @@ function StarZone({ zone, completedLevels, medalsByLevel, onSelectLevel }) {
         ))}
         {!zoneUnlocked && <span className="star-zone__lock-emblem" aria-hidden="true" />}
       </div>
+      {!zoneUnlocked && (
+        <div className="star-zone__center-lock" aria-hidden="true">
+          <span className="star-zone__center-lock-shackle" />
+          <span className="star-zone__center-lock-body" />
+        </div>
+      )}
     </section>
   )
 }

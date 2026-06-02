@@ -1132,6 +1132,7 @@
 
 .star-zone {
   position: absolute;
+  isolation: isolate;
 }
 
 .star-zone--crash { left: 14.9%; top: 14.25%; width: 33.6%; height: 24.1%; --zone-color: #ff9b12; --zone-glow: rgba(255, 147, 16, 0.9); --zone-deep: #7b2e00; --node-hot: #fff3a3; --node-mid: #ff970f; --node-deep: #7a2f00; --node-glow: rgba(255, 154, 18, 0.86); }
@@ -1211,6 +1212,7 @@
   inset: 0;
   width: 100%;
   height: 100%;
+  z-index: 2;
 }
 
 .star-zone--locked {
@@ -1240,22 +1242,7 @@
 }
 
 .star-zone__lock-emblem {
-  position: absolute;
-  right: 5%;
-  top: 10%;
-  width: clamp(23px, 30.24px, 34px);
-  aspect-ratio: 1;
-  z-index: 3;
-  opacity: 0.82;
-  border-radius: 50%;
-  border: 1.5px solid rgba(220, 234, 245, 0.72);
-  background:
-    radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.72), transparent 31%),
-    linear-gradient(145deg, rgba(111, 126, 142, 0.86), rgba(32, 43, 58, 0.92));
-  box-shadow:
-    inset 0 1px 2px rgba(255, 255, 255, 0.26),
-    inset 0 -4px 8px rgba(0, 0, 0, 0.32),
-    0 0 12px rgba(175, 198, 219, 0.34);
+  display: none;
 }
 
 .star-zone__lock-emblem::before {
@@ -1281,6 +1268,57 @@
   border-radius: 4px;
   background: rgba(238, 246, 252, 0.94);
   box-shadow: inset 0 -3px 5px rgba(68, 80, 96, 0.34);
+}
+
+.star-zone__center-lock {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: clamp(54px, 76px, 86px);
+  aspect-ratio: 1;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid rgba(221, 233, 247, 0.5);
+  background:
+    radial-gradient(circle at 35% 24%, rgba(255, 255, 255, 0.18), transparent 32%),
+    linear-gradient(145deg, rgba(42, 52, 67, 0.72), rgba(5, 9, 17, 0.7));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -10px 18px rgba(0, 0, 0, 0.34),
+    0 0 20px rgba(178, 198, 225, 0.25),
+    0 0 38px rgba(82, 99, 130, 0.2);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.star-zone__center-lock-shackle {
+  position: absolute;
+  left: 31%;
+  top: 18%;
+  width: 38%;
+  height: 34%;
+  box-sizing: border-box;
+  border: clamp(4px, 6px, 7px) solid rgba(232, 240, 250, 0.84);
+  border-bottom: 0;
+  border-radius: 999px 999px 0 0;
+  filter: drop-shadow(0 0 7px rgba(215, 229, 246, 0.28));
+}
+
+.star-zone__center-lock-body {
+  position: absolute;
+  left: 25%;
+  top: 44%;
+  width: 50%;
+  height: 34%;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(245, 249, 255, 0.9), rgba(150, 166, 187, 0.86));
+  box-shadow:
+    inset 0 2px 3px rgba(255, 255, 255, 0.42),
+    inset 0 -6px 8px rgba(61, 72, 90, 0.32),
+    0 0 12px rgba(214, 230, 248, 0.2);
 }
 
 .star-zone--crash .star-zone__node-layer {
