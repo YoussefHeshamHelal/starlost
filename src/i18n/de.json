@@ -219,19 +219,22 @@
     "skip": "überspringen ->",
     "cards": {
       "embody": {
-        "title": "Ich habe mir vorgestellt, LUMA zu sein",
+        "title": "Ich stellte mir vor, LUMA zu sein",
         "subtitle": "Hineinversetzen",
         "description": "Ich habe mir vorgestellt, genau dort zu stehen, wo LUMA war, und gespürt, in welche Richtung ich schaue.",
         "quote": "\"Ich habe an deine Sicht gedacht.\""
       },
       "rotate": {
-        "title": "Ich habe die Karte gedreht",
+        "title": "Ich drehte die Karte",
         "subtitle": "Drehen",
         "description": "Ich habe die Karte in meinem Kopf gedreht, bis sie zu LUMAs Blickrichtung passte.",
         "quote": "\"Ich habe die Karte gedreht.\""
       },
       "landmarks": {
-        "title": "Ich habe Felsen benutzt",
+        "title": "Ich nutzte die Felsen",
+        "rocksTitle": "Ich nutzte die Felsen",
+        "treesTitle": "Ich nutzte die Bäume",
+        "boxesTitle": "Ich nutzte die Kisten",
         "subtitle": "Merkpunkte",
         "description": "Ich habe Felsen und Schiffsteile in der Nähe gesucht, um LUMAs Blickrichtung herauszufinden.",
         "quote": "\"Ich habe den großen Felsen gesehen.\""

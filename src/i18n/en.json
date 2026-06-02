@@ -219,19 +219,22 @@
     "skip": "skip ->",
     "cards": {
       "embody": {
-        "title": "I Imagined Being LUMA",
+        "title": "I imagined being LUMA",
         "subtitle": "Embody",
         "description": "I pictured myself standing right where LUMA was, and felt which way I was facing.",
         "quote": "\"I thought about your view.\""
       },
       "rotate": {
-        "title": "I Rotated the Map",
+        "title": "I rotated the map",
         "subtitle": "Rotate",
         "description": "I spun the map around in my head until it matched the way LUMA was looking.",
         "quote": "\"I turned the map.\""
       },
       "landmarks": {
-        "title": "I Used the Rocks",
+        "title": "I used the rocks",
+        "rocksTitle": "I used the rocks",
+        "treesTitle": "I used the trees",
+        "boxesTitle": "I used the boxes",
         "subtitle": "Landmarks",
         "description": "I found the rocks and ship parts nearby to figure out which direction LUMA was facing.",
         "quote": "\"I saw the tall rock.\""

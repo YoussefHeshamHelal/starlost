@@ -9,7 +9,7 @@ import {
   getTutorialFeatureKeys,
 } from './data/tutorials'
 import { useGameState } from './hooks/useGameState'
-import GameGrid from './components/GameGrid'
+import GameGrid, { CargoCrateObstacle, ForestTreeObstacle, RockObstacle } from './components/GameGrid'
 import CommandBuilder from './components/CommandBuilder'
 import StartPage from './components/StartPage'
 import MissionSetup from './components/MissionSetup'
@@ -1289,6 +1289,24 @@ const STRATEGY_CARDS = [
   },
 ]
 
+function getLandmarkStrategyVariant(levelId) {
+  if ([9, 14].includes(levelId)) return 'trees'
+  if ([20, 23].includes(levelId)) return 'boxes'
+  return 'rocks'
+}
+
+function getStrategyCardsForLevel(levelId) {
+  const landmarkVariant = getLandmarkStrategyVariant(levelId)
+  return STRATEGY_CARDS.map(card => {
+    if (card.id !== 'landmarks') return card
+    return {
+      ...card,
+      visualId: landmarkVariant,
+      titleKey: `strategy.cards.landmarks.${landmarkVariant}Title`,
+    }
+  })
+}
+
 function StrategyVisual({ id, color, selected }) {
   const glow = selected ? `${color}55` : `${color}24`
   const commonSvgStyle = {
@@ -1302,26 +1320,35 @@ function StrategyVisual({ id, color, selected }) {
     return (
       <svg viewBox="0 0 92 92" aria-hidden="true" style={commonSvgStyle}>
         <defs>
-          <linearGradient id="strategyMapGrad" x1="15" y1="12" x2="72" y2="74" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#ccfbf1" />
-            <stop offset="0.58" stopColor="#67e8f9" />
-            <stop offset="1" stopColor="#14b8a6" />
+          <linearGradient id="strategyRotateRing" x1="18" y1="17" x2="75" y2="76" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#ecfeff" />
+            <stop offset="0.52" stopColor="#5eead4" />
+            <stop offset="1" stopColor="#0d9488" />
           </linearGradient>
-          <radialGradient id="strategyMapGlow" cx="50%" cy="45%" r="52%">
+          <linearGradient id="strategyRotateArrow" x1="18" y1="18" x2="76" y2="76" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#fef9c3" />
+            <stop offset="0.48" stopColor="#ffffff" />
+            <stop offset="1" stopColor="#99f6e4" />
+          </linearGradient>
+          <radialGradient id="strategyRotateGlow" cx="50%" cy="45%" r="55%">
             <stop stopColor="#ffffff" stopOpacity="0.92" />
             <stop offset="1" stopColor={color} stopOpacity="0" />
           </radialGradient>
         </defs>
-        <circle cx="46" cy="46" r="42" fill="url(#strategyMapGlow)" />
-        <circle cx="46" cy="46" r="36" fill={`${color}18`} stroke={`${color}55`} strokeWidth="1.5" />
-        <g transform="rotate(-13 46 48)">
-          <path d="M20 31 L38 23 L55 31 L72 24 L72 62 L55 70 L38 62 L20 70 Z" fill="url(#strategyMapGrad)" stroke="#083344" strokeWidth="3.2" strokeLinejoin="round" />
-          <path d="M38 23 L38 62 M55 31 L55 70" fill="none" stroke="#0f766e" strokeWidth="2.4" strokeLinecap="round" opacity="0.72" />
-          <path d="M27 49 C34 40 44 40 51 49 C58 58 65 56 70 50" fill="none" stroke="#ffffff" strokeWidth="3.4" strokeLinecap="round" opacity="0.9" />
-          <circle cx="33" cy="37" r="3" fill="#fef3c7" stroke="#0f766e" strokeWidth="1.6" />
+        <circle cx="46" cy="46" r="42" fill="url(#strategyRotateGlow)" />
+        <circle cx="46" cy="46" r="34" fill={`${color}14`} stroke={`${color}55`} strokeWidth="1.5" />
+        <g stroke="#0f766e" strokeLinejoin="round" strokeLinecap="round">
+          <path d="M18 47 C17 27 36 14 56 18 C61 19 65 22 68 25" fill="none" strokeWidth="11" />
+          <path d="M67 15 L80 30 L59 34 L68 25 Z" fill="#0f766e" strokeWidth="3" />
+          <path d="M74 45 C75 65 56 78 36 74 C31 73 27 70 24 67" fill="none" strokeWidth="11" />
+          <path d="M25 77 L12 62 L33 58 L24 67 Z" fill="#0f766e" strokeWidth="3" />
         </g>
-        <path d="M65 14 C78 25 82 42 77 58" fill="none" stroke="#fef3c7" strokeWidth="4.2" strokeLinecap="round" />
-        <path d="M71 57 L78 61 L82 53" fill="none" stroke="#fef3c7" strokeWidth="4.2" strokeLinecap="round" strokeLinejoin="round" />
+        <g strokeLinejoin="round" strokeLinecap="round">
+          <path d="M18 47 C17 27 36 14 56 18 C61 19 65 22 68 25" fill="none" stroke="url(#strategyRotateRing)" strokeWidth="7" />
+          <path d="M67 15 L80 30 L59 34 L68 25 Z" fill="#c9fff3" stroke="#c9fff3" strokeWidth="1" />
+          <path d="M74 45 C75 65 56 78 36 74 C31 73 27 70 24 67" fill="none" stroke="url(#strategyRotateArrow)" strokeWidth="7" />
+          <path d="M25 77 L12 62 L33 58 L24 67 Z" fill="#ecfeff" stroke="#ecfeff" strokeWidth="1" />
+        </g>
         <path d="M25 78 C34 83 51 84 64 78" fill="none" stroke="#0f172a" strokeOpacity="0.22" strokeWidth="4" strokeLinecap="round" />
       </svg>
     )
@@ -1331,52 +1358,48 @@ function StrategyVisual({ id, color, selected }) {
     return (
       <svg viewBox="0 0 92 92" aria-hidden="true" style={commonSvgStyle}>
         <defs>
-          <linearGradient id="strategyHelmetGrad" x1="18" y1="13" x2="72" y2="74" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#f5f3ff" />
-            <stop offset="0.55" stopColor="#c4b5fd" />
-            <stop offset="1" stopColor="#8b5cf6" />
+          <linearGradient id="strategyBrainFold" x1="18" y1="14" x2="76" y2="78" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#fff7ed" />
+            <stop offset="0.42" stopColor="#f9a8d4" />
+            <stop offset="1" stopColor="#a78bfa" />
           </linearGradient>
-          <linearGradient id="strategyVisorGrad" x1="25" y1="31" x2="72" y2="57" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#0f172a" />
-            <stop offset="0.48" stopColor="#0e7490" />
-            <stop offset="1" stopColor="#020617" />
-          </linearGradient>
+          <radialGradient id="strategyBrainGlow" cx="45%" cy="35%" r="60%">
+            <stop stopColor="#ffffff" stopOpacity="0.9" />
+            <stop offset="0.55" stopColor="#f0abfc" stopOpacity="0.34" />
+            <stop offset="1" stopColor={color} stopOpacity="0" />
+          </radialGradient>
         </defs>
-        <circle cx="46" cy="46" r="39" fill={`${color}18`} stroke={`${color}44`} strokeWidth="1.5" />
-        <path d="M21 50 C21 28 34 16 49 16 C66 16 76 30 76 48 C76 67 63 78 46 78 C30 78 21 66 21 50 Z" fill="url(#strategyHelmetGrad)" stroke="#312e81" strokeWidth="3.2" />
-        <path d="M27 45 C34 33 56 30 70 40 C70 55 57 64 42 62 C33 61 27 54 27 45 Z" fill="url(#strategyVisorGrad)" stroke="#a5f3fc" strokeWidth="3.2" />
-        <path d="M35 47 C43 42 56 42 64 48" fill="none" stroke="#67e8f9" strokeWidth="3.2" strokeLinecap="round" />
-        <circle cx="45" cy="49" r="4.2" fill="#fef3c7" />
-        <circle cx="59" cy="48" r="3.2" fill="#fef3c7" />
-        <path d="M18 42 L9 36 M18 53 L8 54 M72 31 L83 24" stroke="#fde68a" strokeWidth="3.2" strokeLinecap="round" />
-        <path d="M34 76 C43 82 57 82 66 75" fill="none" stroke="#0f172a" strokeOpacity="0.24" strokeWidth="4" strokeLinecap="round" />
+        <circle cx="46" cy="46" r="39" fill="url(#strategyBrainGlow)" stroke={`${color}44`} strokeWidth="1.5" />
+        <path d="M27 57 C18 53 16 40 24 34 C23 24 32 17 41 21 C46 13 59 15 62 25 C72 26 78 36 73 45 C79 54 72 66 61 64 C56 72 43 72 38 64 C33 67 28 64 27 57 Z" fill="url(#strategyBrainFold)" stroke="#5b21b6" strokeWidth="2.8" strokeLinejoin="round" />
+        <path d="M40 22 C36 28 38 35 45 38 M58 25 C52 28 51 35 56 40 M27 36 C34 36 38 40 37 47 M72 44 C64 43 59 47 59 55 M38 64 C39 55 46 52 53 55 M25 52 C33 50 38 53 41 60" fill="none" stroke="#7e22ce" strokeWidth="2.6" strokeLinecap="round" opacity="0.76" />
+        <path d="M33 32 C38 29 44 30 48 35 M49 21 C47 28 50 34 57 36 M46 43 C53 41 59 44 61 51" fill="none" stroke="#fff7ed" strokeWidth="2.1" strokeLinecap="round" opacity="0.62" />
+        <circle cx="65" cy="30" r="3" fill="#fef3c7" opacity="0.85" />
+        <circle cx="24" cy="43" r="2.4" fill="#ffffff" opacity="0.8" />
+        <path d="M30 77 C40 82 58 82 68 76" fill="none" stroke="#0f172a" strokeOpacity="0.22" strokeWidth="4" strokeLinecap="round" />
       </svg>
     )
   }
 
+  if (id === 'trees') {
+    return (
+      <div aria-hidden="true" style={{ ...commonSvgStyle, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ transform: 'scale(1.18)' }}><ForestTreeObstacle /></div>
+      </div>
+    )
+  }
+
+  if (id === 'boxes') {
+    return (
+      <div aria-hidden="true" style={{ ...commonSvgStyle, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ transform: 'scale(1.22)' }}><CargoCrateObstacle /></div>
+      </div>
+    )
+  }
+
   return (
-    <svg viewBox="0 0 92 92" aria-hidden="true" style={commonSvgStyle}>
-      <defs>
-        <linearGradient id="strategyClueGrad" x1="14" y1="16" x2="68" y2="70" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#fef3c7" />
-          <stop offset="0.58" stopColor="#fbbf24" />
-          <stop offset="1" stopColor="#d97706" />
-        </linearGradient>
-        <linearGradient id="strategyScannerGrad" x1="52" y1="20" x2="78" y2="55" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#e0f2fe" />
-          <stop offset="1" stopColor="#38bdf8" />
-        </linearGradient>
-      </defs>
-      <circle cx="46" cy="46" r="39" fill={`${color}18`} stroke={`${color}44`} strokeWidth="1.5" />
-      <path d="M17 67 L31 38 L48 66 Z" fill="url(#strategyClueGrad)" stroke="#7c2d12" strokeWidth="3" strokeLinejoin="round" />
-      <path d="M35 69 L52 29 L72 68 Z" fill="#b45309" stroke="#7c2d12" strokeWidth="3" strokeLinejoin="round" />
-      <path d="M27 58 L38 52 M47 59 L64 53" stroke="#fff7ed" strokeWidth="2.4" strokeLinecap="round" opacity="0.78" />
-      <rect x="55" y="19" width="20" height="25" rx="5" fill="url(#strategyScannerGrad)" stroke="#075985" strokeWidth="2.5" />
-      <circle cx="65" cy="30" r="4.2" fill="#0f172a" stroke="#e0f2fe" strokeWidth="1.8" />
-      <path d="M59 45 L53 56" stroke="#075985" strokeWidth="4" strokeLinecap="round" />
-      <path d="M19 28 C29 20 43 19 54 26 M17 19 C31 8 50 8 64 19" fill="none" stroke="#7dd3fc" strokeWidth="3.4" strokeLinecap="round" opacity="0.86" />
-      <path d="M24 78 C36 83 58 84 72 77" fill="none" stroke="#0f172a" strokeOpacity="0.22" strokeWidth="4" strokeLinecap="round" />
-    </svg>
+    <div aria-hidden="true" style={{ ...commonSvgStyle, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ transform: 'scale(1.22)' }}><RockObstacle /></div>
+    </div>
   )
 }
 
@@ -1429,7 +1452,7 @@ function StrategyCard({ card, selected, onSelect }) {
         position: 'absolute',
         inset: 8,
         borderRadius: 13,
-        border: `1px solid ${isSelected ? `${card.border}55` : (theme === 'light' ? 'rgba(14,116,144,0.12)' : 'rgba(148,163,184,0.12)')}`,
+        border: `1px solid ${isSelected ? `${card.border}55` : (theme === 'light' ? 'rgba(14,116,144,0.12)' : 'rgba(255,255,255,0.34)')}`,
         pointerEvents: 'none',
       }} />
       <div aria-hidden="true" style={{
@@ -1493,10 +1516,10 @@ function StrategyCard({ card, selected, onSelect }) {
           boxShadow: isSelected ? `0 0 26px ${card.glow}` : 'none',
         }}
       >
-        <StrategyVisual id={card.id} color={card.border} selected={isSelected} />
+        <StrategyVisual id={card.visualId ?? card.id} color={card.border} selected={isSelected} />
       </motion.div>
       <p style={{ fontSize: 17, fontWeight: 950, color: isSelected ? card.color : t.textPrimary, lineHeight: 1.22, margin: 0, position: 'relative', zIndex: 1, transition: 'color 0.2s', maxWidth: 190, minHeight: 42, display: 'flex', alignItems: 'center' }}>
-        {tr(`strategy.cards.${card.id}.title`, card.title)}
+        {tr(card.titleKey ?? `strategy.cards.${card.id}.title`, card.title)}
       </p>
       <motion.div
         initial={{ opacity: 0, scale: 0 }}
@@ -1519,6 +1542,7 @@ function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER
   const { t: tr } = useTranslation()
   const [selected, setSelected] = useState(null)
   const [confirmed, setConfirmed] = useState(false)
+  const strategyCards = getStrategyCardsForLevel(levelId)
   const theme = useTheme()
   const t = THEMES[theme]
 
@@ -1618,7 +1642,7 @@ function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER
         transition={{ delay: 0.25 }}
         style={{ display: 'flex', gap: 18, width: '100%', maxWidth: 860, zIndex: 1, alignItems: 'stretch' }}
       >
-        {STRATEGY_CARDS.map(card => (
+        {strategyCards.map(card => (
           <StrategyCard key={card.id} card={card} selected={selected} onSelect={setSelected} />
         ))}
       </motion.div>
@@ -1670,19 +1694,6 @@ function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER
           )}
         </AnimatePresence>
       </motion.div>
-
-      {!confirmed && (
-        <button
-          onClick={() => onDone(null)}
-          style={{
-            position: 'absolute', bottom: 16, right: 20,
-            background: 'transparent', border: 'none',
-            color: t.textMuted, fontSize: 10, fontFamily: 'monospace',
-            cursor: 'pointer', letterSpacing: 1, fontWeight: 600,
-          }}
-        >
-          {tr('strategy.skip')}</button>
-      )}
     </motion.div>
   )
 }
@@ -1971,6 +1982,7 @@ function MapDeclarationOverlay({ declaration, topOffset = HEADER_H, onDismiss })
   const buttonKey = mapId === 'crashSite'
     ? 'mapDeclarations.common.startAdventure'
     : 'mapDeclarations.common.continueAdventure'
+  const showNewMapLabel = mapId !== 'crashSite'
   const mapOrder = ['crashSite', 'forestEntrance', 'deepForest', 'repairSite', 'launchSite']
   const currentMapIndex = Math.max(0, mapOrder.indexOf(mapId))
   const starDots = [
@@ -1988,16 +2000,13 @@ function MapDeclarationOverlay({ declaration, topOffset = HEADER_H, onDismiss })
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       style={{
-        position: 'absolute',
-        top: topOffset,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        position: 'fixed',
+        inset: 0,
         zIndex: 140,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 'clamp(18px, 4vw, 38px)',
+        padding: `calc(${topOffset}px + clamp(18px, 4vw, 38px)) clamp(18px, 4vw, 38px) clamp(18px, 4vw, 38px)`,
         boxSizing: 'border-box',
         background: isLight
           ? `radial-gradient(circle at 18% 16%, ${accent}44, transparent 30%), radial-gradient(circle at 82% 78%, rgba(14,165,233,0.24), transparent 34%), linear-gradient(135deg, rgba(15,23,42,0.42), rgba(8,13,28,0.58))`
@@ -2042,7 +2051,7 @@ function MapDeclarationOverlay({ declaration, topOffset = HEADER_H, onDismiss })
           boxShadow: isLight
             ? `0 34px 90px rgba(15,23,42,0.30), 0 0 0 10px ${accent}18, 0 0 48px ${accent}28, inset 0 1px 0 rgba(255,255,255,0.96)`
             : `0 36px 100px rgba(0,0,0,0.68), 0 0 68px ${accent}3a, inset 0 1px 0 rgba(255,255,255,0.14)`,
-          padding: 'clamp(24px, 4.2vw, 42px)',
+          padding: 'clamp(28px, 4.4vw, 46px)',
           textAlign: 'center',
           boxSizing: 'border-box',
           color: isLight ? '#0f172a' : '#e5f7ff',
@@ -2074,27 +2083,32 @@ function MapDeclarationOverlay({ declaration, topOffset = HEADER_H, onDismiss })
             filter: 'blur(4px)',
           }} />
         </div>
-        <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
-          <MapDeclarationVisual accent={accent} mapId={mapId} />
-        </div>
-        <p style={{
-          position: 'relative',
-          margin: '0 0 8px',
-          fontFamily: 'monospace',
-          fontSize: 12,
-          fontWeight: 900,
-          letterSpacing: 3,
-          color: accent,
-        }}>
-          {tr('mapDeclarations.common.newMap')}
-        </p>
+        {showNewMapLabel && (
+          <p style={{
+            position: 'relative',
+            margin: '0 0 10px',
+            fontFamily: 'monospace',
+            fontSize: 'clamp(11px, 2vw, 13px)',
+            fontWeight: 900,
+            letterSpacing: 3.8,
+            color: isLight ? accent : '#d9fff3',
+            textShadow: `0 0 16px ${accent}77`,
+            textTransform: 'uppercase',
+          }}>
+            {tr('mapDeclarations.common.newMap')}
+          </p>
+        )}
         <h2 style={{
           position: 'relative',
-          margin: '0 0 14px',
-          fontSize: 'clamp(34px, 7vw, 62px)',
-          lineHeight: 1,
+          margin: '0 0 18px',
+          fontSize: 'clamp(38px, 7.4vw, 66px)',
+          lineHeight: 0.96,
+          fontWeight: 950,
+          letterSpacing: 0,
           color: isLight ? '#0f172a' : '#f8fafc',
-          textShadow: isLight ? `0 8px 28px ${accent}24` : `0 0 24px ${accent}44`,
+          textShadow: isLight
+            ? `0 8px 28px ${accent}2e, 0 1px 0 rgba(255,255,255,0.86)`
+            : `0 0 26px ${accent}55, 0 3px 18px rgba(0,0,0,0.45)`,
         }}>
           {tr(`mapDeclarations.${mapId}.title`)}
         </h2>
@@ -2111,44 +2125,31 @@ function MapDeclarationOverlay({ declaration, topOffset = HEADER_H, onDismiss })
             <div key={stop} style={{
               height: 8,
               borderRadius: 999,
-              background: index <= currentMapIndex ? accent : (isLight ? 'rgba(148,163,184,0.32)' : 'rgba(148,163,184,0.22)'),
+              background: index <= currentMapIndex ? accent : (isLight ? 'rgba(148,163,184,0.32)' : 'rgba(255,255,255,0.52)'),
               boxShadow: index === currentMapIndex ? `0 0 16px ${accent}88` : 'none',
               position: 'relative',
-            }}>
-              {index === currentMapIndex && (
-                <motion.span
-                  aria-hidden="true"
-                  animate={{ scale: [1, 1.25, 1] }}
-                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-                  style={{
-                    position: 'absolute',
-                    left: '50%',
-                    top: '50%',
-                    width: 18,
-                    height: 18,
-                    borderRadius: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    background: '#fef3c7',
-                    border: `3px solid ${accent}`,
-                    boxShadow: `0 0 18px ${accent}`,
-                  }}
-                />
-              )}
-            </div>
+            }} />
           ))}
         </div>
         <p style={{
           position: 'relative',
-          margin: '0 auto 24px',
-          maxWidth: 520,
-          fontSize: 'clamp(15px, 3vw, 18px)',
-          lineHeight: 1.55,
-          fontWeight: 700,
-          color: isLight ? '#334155' : '#cde7f5',
-          background: isLight ? 'rgba(255,255,255,0.58)' : 'rgba(2,6,23,0.34)',
-          border: `1px solid ${accent}2e`,
+          margin: '0 auto 26px',
+          maxWidth: 560,
+          fontSize: 'clamp(16px, 2.8vw, 19px)',
+          lineHeight: 1.62,
+          fontWeight: 760,
+          letterSpacing: 0,
+          color: isLight ? '#263348' : '#d8edf7',
+          background: isLight
+            ? `linear-gradient(135deg, rgba(255,255,255,0.72), ${accent}10)`
+            : `linear-gradient(135deg, rgba(2,6,23,0.42), ${accent}12)`,
+          border: `1px solid ${accent}36`,
           borderRadius: 18,
-          padding: 'clamp(14px, 3vw, 18px)',
+          padding: 'clamp(16px, 3vw, 20px)',
+          boxShadow: isLight
+            ? `0 14px 32px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.82)`
+            : `0 14px 34px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.07)`,
+          textShadow: isLight ? '0 1px 0 rgba(255,255,255,0.76)' : `0 0 14px ${accent}22`,
         }}>
           {tr(`mapDeclarations.${mapId}.body`)}
         </p>

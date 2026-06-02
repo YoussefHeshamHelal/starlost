@@ -246,7 +246,7 @@ function ShipPart() {
   )
 }
 
-function RockObstacle() {
+export function RockObstacle() {
   return (
     <svg width={64} height={54} viewBox="0 0 64 54" fill="none">
       <defs>
@@ -300,7 +300,7 @@ function RockObstacle() {
   )
 }
 
-function CargoCrateObstacle() {
+export function CargoCrateObstacle() {
   return (
     <svg width={68} height={58} viewBox="0 0 68 58" fill="none">
       <defs>
@@ -546,7 +546,7 @@ function IfPathSignal({ signal, tileSize }) {
   )
 }
 
-function ForestTreeObstacle() {
+export function ForestTreeObstacle() {
   return (
     <svg width={66} height={66} viewBox="0 0 66 66" fill="none">
       <defs>
