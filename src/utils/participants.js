@@ -1,4 +1,4 @@
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { deleteField, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 
 const STAR_CODE_PATTERN = /^[A-Z]{4}\d$/
@@ -32,9 +32,6 @@ export async function createOrUpdateParticipant(starCode) {
 
   await setDoc(participantRef, {
     participantId: starCode,
-    starCode,
-    pseudonymCode: starCode,
-    missionCode: starCode,
     game: 'STARLOST',
     source: 'star-code-station',
     createdAt: serverTimestamp(),
@@ -43,9 +40,6 @@ export async function createOrUpdateParticipant(starCode) {
 
   await setDoc(sessionRef, {
     participantId: starCode,
-    starCode,
-    pseudonymCode: starCode,
-    missionCode: starCode,
     sessionId: 'session_1',
     startedAt: serverTimestamp(),
     lastActiveAt: serverTimestamp(),
@@ -64,18 +58,19 @@ export async function touchParticipantSession(starCode) {
 
   await setDoc(participantRef, {
     participantId: starCode,
-    starCode,
-    pseudonymCode: starCode,
-    missionCode: starCode,
+    starCode: deleteField(),
+    pseudonymCode: deleteField(),
+    missionCode: deleteField(),
     game: 'STARLOST',
+    source: 'star-code-station',
     lastActiveAt: serverTimestamp(),
   }, { merge: true })
 
   await setDoc(sessionRef, {
     participantId: starCode,
-    starCode,
-    pseudonymCode: starCode,
-    missionCode: starCode,
+    starCode: deleteField(),
+    pseudonymCode: deleteField(),
+    missionCode: deleteField(),
     sessionId: 'session_1',
     lastActiveAt: serverTimestamp(),
   }, { merge: true })

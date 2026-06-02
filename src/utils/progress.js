@@ -1,4 +1,4 @@
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { deleteField, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 import { cloneNestedCommands } from './commands'
 
@@ -237,6 +237,9 @@ export async function updateSessionProgress(participantId, completedLevelId, kno
   await setDoc(sessionRef, {
     participantId,
     sessionId: 'session_1',
+    starCode: deleteField(),
+    pseudonymCode: deleteField(),
+    missionCode: deleteField(),
     lastActiveAt: serverTimestamp(),
     completedLevels,
     currentLevel: unlockedLevel,

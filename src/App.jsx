@@ -1546,10 +1546,17 @@ function StrategyCardScreen({ levelId, participantId, onDone, topOffset = HEADER
   const theme = useTheme()
   const t = THEMES[theme]
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!selected) return
     setConfirmed(true)
-    logGBI(participantId, levelId, { strategyCard: selected })
+    if (!participantId) {
+      console.warn('[GBI] Skipped strategy card write because participantId is missing.', {
+        levelId,
+        strategyCard: selected,
+      })
+    } else {
+      await logGBI(participantId, levelId, { strategyCard: selected })
+    }
     setTimeout(() => onDone(selected), 1200)
   }
 
@@ -2205,6 +2212,7 @@ function LevelScreen({
   const [tutorialSteps, setTutorialSteps] = useState([])
   const [tutorialIndex, setTutorialIndex] = useState(0)
   const [radioRetryNonce, setRadioRetryNonce] = useState(0)
+  const [radioReplayCount, setRadioReplayCount] = useState(0)
   const successCompletionHandledRef = useRef(false)
   const theme = useTheme()
   const t = THEMES[theme]
@@ -2245,6 +2253,11 @@ function LevelScreen({
       window.removeEventListener('resize', scheduleUpdate)
     }
   }, [updateLevelStageScale, levelConfig.id])
+
+  useEffect(() => {
+    setRadioReplayCount(0)
+    successCompletionHandledRef.current = false
+  }, [levelConfig.id])
 
   const {
     luma, phase,
@@ -2420,6 +2433,7 @@ function LevelScreen({
 
   const handleReplayRadioVoice = useCallback(() => {
     if (levelConfig.noRadio || !helmetReport) return
+    setRadioReplayCount(count => count + 1)
     speakLumaRadio?.(getLumaSpeechText(helmetReport))
   }, [helmetReport, levelConfig.noRadio, speakLumaRadio])
 
@@ -2713,7 +2727,7 @@ function LevelScreen({
     successCompletionHandledRef.current = true
 
     const achievementInfo = buildSuccessAchievementInfo()
-    const snapshot = getGBISnapshot()
+    const snapshot = getGBISnapshot({ radioReplayCount })
     const completedProgramBlocks = shouldPreserveCompletedProgram(levelConfig.id) && sequence.length > 0
       ? cloneNestedCommands(sequence)
       : null
@@ -2721,13 +2735,19 @@ function LevelScreen({
       onCompletedProgramSaved?.(levelConfig.id, completedProgramBlocks)
       await saveCompletedProgram(participantId, levelConfig.id, completedProgramBlocks)
     }
-    await logGBI(participantId, levelConfig.id, {
-      ...snapshot,
-      achievementMedal: achievementInfo?.medal,
-      achievementBlockCount: achievementInfo?.blockCount,
-      achievementTargetBlocks: achievementInfo?.targetBlocks,
-      achievementExtraBlocks: achievementInfo?.extraBlocks,
-    })
+    if (!participantId) {
+      console.warn('[GBI] Skipped completion write because participantId is missing.', {
+        levelId: levelConfig.id,
+      })
+    } else if (!levelConfig.id || !snapshot || Object.keys(snapshot).length === 0) {
+      console.warn('[GBI] Skipped completion write because levelId or snapshot is invalid.', {
+        participantId,
+        levelId: levelConfig.id,
+        snapshot,
+      })
+    } else {
+      await logGBI(participantId, levelConfig.id, snapshot)
+    }
 
     if (destination === 'home') {
       onCompleteAndGoHome(levelConfig.id, achievementInfo)
@@ -2739,7 +2759,7 @@ function LevelScreen({
       return
     }
     onComplete(levelConfig.id, achievementInfo)
-  }, [buildSuccessAchievementInfo, getGBISnapshot, levelConfig.id, onComplete, onCompleteAndGoHome, onCompletedProgramSaved, onStrategyCard, participantId, sequence])
+  }, [buildSuccessAchievementInfo, getGBISnapshot, levelConfig.id, onComplete, onCompleteAndGoHome, onCompletedProgramSaved, onStrategyCard, participantId, radioReplayCount, sequence])
 
   const handleSuccessNext = useCallback(() => {
     finishSuccessfulLevel('next')

@@ -19,6 +19,7 @@ import {
   generateLevel21Layout,
 } from '../data/levels'
 import { clampRepeatTimes, cloneNestedCommands, countProgramBlocks, isIfPathCommand, isRepeatCommand } from '../utils/commands'
+import { calculateMedal } from '../utils/progress'
 import i18n from '../i18n/index.js'
 
 const DIRECTIONS = ['north', 'east', 'south', 'west']
@@ -254,6 +255,79 @@ function createCollectionEffect(luma, partIndex = null) {
     x: luma.x,
     y: luma.y,
   }
+}
+
+function createEmptyCommandCounts() {
+  return {
+    F: 0,
+    TL: 0,
+    TR: 0,
+    C: 0,
+    REPEAT: 0,
+    IF_PATH: 0,
+    IF_ELSE: 0,
+  }
+}
+
+function hasRealElseBranch(command) {
+  return Array.isArray(command?.elseCommands) && command.elseCommands.length > 0
+}
+
+function analyzeProgramForGBI(sequence = []) {
+  const commandCounts = createEmptyCommandCounts()
+  let usedNestedIfElse = false
+  let maxNestingDepth = 0
+
+  const visit = (commands = [], containerDepth = 0, conditionalDepth = 0) => {
+    commands.forEach((command) => {
+      if (typeof command === 'string') {
+        if (Object.prototype.hasOwnProperty.call(commandCounts, command)) {
+          commandCounts[command] += 1
+        }
+        return
+      }
+
+      if (isRepeatCommand(command)) {
+        commandCounts.REPEAT += 1
+        const nextDepth = containerDepth + 1
+        maxNestingDepth = Math.max(maxNestingDepth, nextDepth)
+        visit(command.commands ?? [], nextDepth, conditionalDepth)
+        return
+      }
+
+      if (isIfPathCommand(command)) {
+        const isIfElse = hasRealElseBranch(command)
+        commandCounts[isIfElse ? 'IF_ELSE' : 'IF_PATH'] += 1
+        const nextDepth = containerDepth + 1
+        const nextConditionalDepth = conditionalDepth + 1
+        if (conditionalDepth > 0) usedNestedIfElse = true
+        maxNestingDepth = Math.max(maxNestingDepth, nextDepth)
+        visit(command.commands ?? [], nextDepth, nextConditionalDepth)
+        if (isIfElse) {
+          visit(command.elseCommands, nextDepth, nextConditionalDepth)
+        }
+      }
+    })
+  }
+
+  visit(sequence, 0, 0)
+
+  return {
+    commandCounts,
+    usedRepeat: commandCounts.REPEAT > 0,
+    usedIf: commandCounts.IF_PATH > 0 || commandCounts.IF_ELSE > 0,
+    usedIfElse: commandCounts.IF_ELSE > 0,
+    usedNestedIfElse,
+    maxNestingDepth,
+  }
+}
+
+function normalizeGBITile(tile) {
+  if (!tile) return null
+  const x = Number(tile.x)
+  const y = Number(tile.y)
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null
+  return { x, y }
 }
 
 // ── Layout generator lookup ───────────────────────────────────────────────────
@@ -499,7 +573,6 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
   const [isRunning, setIsRunning]         = useState(false)
   const [attemptCount, setAttemptCount]   = useState(0)
   const [editCount, setEditCount]         = useState(0)
-  const [selfCorrected, setSelfCorrected] = useState(false)
 
   const [missedFragments, setMissedFragments] = useState(false)
   const [missedFragmentsShown, setMissedFragmentsShown] = useState(false)
@@ -515,6 +588,26 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
   const [traceEliminatedTiles, setTraceEliminatedTiles] = useState([])
   const [traceGoalRevealed, setTraceGoalRevealed] = useState(() => !levelConfig.hideGoalUntilTraceCorrect)
   const traceRunStartedRef = useRef(false)
+  const levelStartedAtMsRef = useRef(startTime)
+  const completedAtMsRef = useRef(null)
+  const identifyStartedAtMsRef = useRef(levelConfig.skipIdentify ? null : startTime)
+  const identifyCompletedAtMsRef = useRef(null)
+  const identifyAttemptsRef = useRef(0)
+  const identifyWrongAttemptsRef = useRef(0)
+  const selectedFacingAnswersRef = useRef([])
+  const usedVisorBeforeCorrectIdentifyRef = useRef(null)
+  const runAttemptsRef = useRef(0)
+  const failedRunAttemptsRef = useRef(0)
+  const resetCountRef = useRef(0)
+  const visorFlipCountRef = useRef(0)
+  const blockedPathErrorsRef = useRef(0)
+  const missingFragmentErrorsRef = useRef(0)
+  const wrongCollectAttemptsRef = useRef(0)
+  const outOfBoundsErrorsRef = useRef(0)
+  const predictionAttemptsRef = useRef(0)
+  const predictionCorrectRef = useRef(levelConfig.traceMode ? null : null)
+  const predictedTileRef = useRef(null)
+  const actualEndTileRef = useRef(null)
 
   const isMirrored = levelConfig.mirrorControls && luma.facing === 'south'
   const levelUsesIncompleteCodeRadio = Number(levelConfig.id) >= 3
@@ -531,6 +624,15 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
       setReportOverride(incompleteCodeRadioMessage)
     }
   }, [levelUsesIncompleteCodeRadio, incompleteCodeRadioMessage])
+
+  const incrementRunAttempts = useCallback(() => {
+    runAttemptsRef.current += 1
+    setAttemptCount(runAttemptsRef.current)
+  }, [])
+
+  const incrementFailedRunAttempts = useCallback(() => {
+    failedRunAttemptsRef.current += 1
+  }, [])
 
   const animSpeedRef = useRef(animSpeed)
   useEffect(() => {
@@ -558,8 +660,17 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
   const answerSPT = useCallback((answer) => {
     setSptAnswer(answer)
     const correct = answer === sptCorrectAnswer
+    identifyAttemptsRef.current += 1
+    selectedFacingAnswersRef.current = [...selectedFacingAnswersRef.current, String(answer)]
+    if (!correct) {
+      identifyWrongAttemptsRef.current += 1
+    }
     setSptCorrect(correct)
     if (correct) {
+      if (identifyCompletedAtMsRef.current === null) {
+        identifyCompletedAtMsRef.current = Date.now()
+      }
+      usedVisorBeforeCorrectIdentifyRef.current = visorFlipCountRef.current > 0
       preserveLockedIncompleteCodeRadio(tr('radio.identifySuccess'))
       setPhase('develop')
     }
@@ -570,7 +681,8 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
   const openVisor = useCallback(() => {
     if (visorActive) return
     setVisorActive(true)
-    setVisorFlipCount(c => c + 1)
+    visorFlipCountRef.current += 1
+    setVisorFlipCount(visorFlipCountRef.current)
     if (visorFlipTiming === null) {
       setVisorFlipTiming(hadErrorBefore ? 'reactive' : 'proactive')
     }
@@ -637,6 +749,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
   // ── RESET LUMA ───────────────────────────────────────────────────────────
   const resetLuma = useCallback(() => {
     if (isRunning) return
+    resetCountRef.current += 1
     setLuma({
       x: resolvedStart.x,
       y: resolvedStart.y,
@@ -662,14 +775,14 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
   }, [levelConfig.predictionPrompt, isRunning])
 
   // ── SEQUENCE RUNNER ──────────────────────────────────────────────────────
-  const runSequence = useCallback(({ startIndex = 0, onIncomplete = null } = {}) => {
+  const runSequence = useCallback(({ startIndex = 0, onIncomplete = null, countRunAttempt = true } = {}) => {
     if (isRunning) return
     const continueStartIndex = startIndex
     const commandsToRun = continueStartIndex > 0 ? sequence.slice(continueStartIndex) : sequence
     if (commandsToRun.length === 0) return
     if (levelConfig.predictionPrompt && !predictionTile) return
     setIsRunning(true)
-    setAttemptCount(c => c + 1)
+    if (countRunAttempt) incrementRunAttempts()
     setNeedsReset(false)
     preserveLockedIncompleteCodeRadio(null)
     setCollectionEffects([])
@@ -694,6 +807,13 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     }]
 
     let stoppedEarly = false
+    let failedRunRecorded = false
+
+    const markFailedRun = () => {
+      if (failedRunRecorded) return
+      failedRunRecorded = true
+      incrementFailedRunAttempts()
+    }
 
     const triggerIfPathSignal = (command, result, target) => {
       if (!shouldShowIfPathSignal) return
@@ -784,10 +904,10 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
 
     const executeStep = () => {
       if (stoppedEarly) {
+        markFailedRun()
         setIsRunning(false)
         setHadErrorBefore(true)
         if (!firstFailTime) setFirstFailTime(Date.now())
-        setSelfCorrected(true)
         setNeedsReset(true)
         setIncompleteCodeRadio()
         return
@@ -814,6 +934,8 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
         }
 
         if (atGoal && allPartsCollected) {
+          completedAtMsRef.current = completedAtMsRef.current ?? Date.now()
+          actualEndTileRef.current = normalizeGBITile(currentLuma)
           onLevelSuccess?.()
           setPhase('success')
           setNeedsReset(false)
@@ -824,6 +946,8 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
         })) {
           setNeedsReset(false)
         } else if (atGoal && !allPartsCollected && shipPartObjects.length > 0) {
+          markFailedRun()
+          missingFragmentErrorsRef.current += 1
           if (!missedFragmentsShown) {
             setMissedFragments(true)
             setMissedFragmentsShown(true)
@@ -835,9 +959,9 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
               tr('radio.missing', { count: shipPartObjects.length - localCollected.size, plural: shipPartObjects.length - localCollected.size > 1 ? 's' : '' })
             )
         } else {
+          markFailedRun()
           setHadErrorBefore(true)
           if (!firstFailTime) setFirstFailTime(Date.now())
-          setSelfCorrected(true)
           setNeedsReset(true)
           setIncompleteCodeRadio()
         }
@@ -860,6 +984,12 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
         const outOfBounds = newX < 0 || newX >= gridCols || newY < 0 || newY >= gridRows
 
         if (hitWall || outOfBounds) {
+          markFailedRun()
+          if (outOfBounds) {
+            outOfBoundsErrorsRef.current += 1
+          } else {
+            blockedPathErrorsRef.current += 1
+          }
           blocked = true
           stoppedEarly = true
           onBlockedPath?.()
@@ -870,7 +1000,6 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
           setIsRunning(false)
           setHadErrorBefore(true)
           if (!firstFailTime) setFirstFailTime(Date.now())
-          setSelfCorrected(true)
           setNeedsReset(true)
           return
         } else {
@@ -882,6 +1011,8 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
           localCollected = new Set(localCollected)
           localCollected.add(partIndex)
           justCollectedIndex = partIndex
+        } else {
+          wrongCollectAttemptsRef.current += 1
         }
         collectEffect = createCollectionEffect(currentLuma, justCollectedIndex)
       } else if (effectiveCmd === 'TL') {
@@ -923,6 +1054,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     firstFailTime, collectedParts, shipPartObjects,
     predictionTile, missedFragmentsShown, clearIfPathSignal,
     onBlockedPath, onCollectFragment, onLevelSuccess,
+    incrementRunAttempts, incrementFailedRunAttempts,
     preserveLockedIncompleteCodeRadio, setIncompleteCodeRadio,
   ])
 
@@ -937,6 +1069,10 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     const correctCell = levelConfig.tracingCorrectCell
     const correct = Boolean(correctCell && tile?.x === correctCell.x && tile?.y === correctCell.y)
     const selectionId = `trace-${Date.now()}-${tile?.x}-${tile?.y}`
+    predictionAttemptsRef.current += 1
+    incrementRunAttempts()
+    predictedTileRef.current = normalizeGBITile(tile)
+    predictionCorrectRef.current = correct
 
     setTraceSelection({
       x: tile?.x,
@@ -946,9 +1082,9 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     })
 
     if (!correct) {
+      incrementFailedRunAttempts()
       setHadErrorBefore(true)
       if (!firstFailTime) setFirstFailTime(Date.now())
-      setSelfCorrected(true)
       setReportOverride(tr('radio.traceRetry'))
       window.setTimeout(() => {
         setTraceEliminatedTiles((previousTiles) => (
@@ -961,7 +1097,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
       return false
     }
 
-        traceRunStartedRef.current = true
+    traceRunStartedRef.current = true
     setTraceGoalRevealed(true)
     setReportOverride(isLaunchPadGoal(levelConfig)
       ? tr('radio.traceLaunch')
@@ -974,37 +1110,84 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     }, 920)
 
     window.setTimeout(() => {
-      runSequence()
+      runSequence({ countRunAttempt: false })
     }, 1050)
 
     return true
-  }, [effectiveLevel.walls, firstFailTime, isRunning, levelConfig, phase, runSequence, traceEliminatedTiles])
+  }, [effectiveLevel.walls, firstFailTime, incrementFailedRunAttempts, incrementRunAttempts, isRunning, levelConfig, phase, runSequence, traceEliminatedTiles])
 
   const dismissMissedFragments = useCallback(() => {
     setMissedFragments(false)
   }, [])
 
   // ── GBI SNAPSHOT ──────────────────────────────────────────────────────────
-  const getGBISnapshot = useCallback(() => ({
-    radioAccuracy: sptCorrect,
-    flipCount:     visorFlipCount,
-    flipTiming:    visorFlipTiming,
-    flipUsedOnLevel2: levelConfig.uncertainRadio ? visorFlippedThisLevel : undefined,
-    attemptCount,
-    editCount,
-    selfCorrected,
-    predictionAccuracy: levelConfig.predictionPrompt ? predictionResult : null,
-    sequenceEfficiency: effectiveLevel.solution
-      ? countProgramBlocks(effectiveLevel.solution) / Math.max(countProgramBlocks(sequence), 1)
-      : null,
-    persistenceScore: firstFailTime ? (Date.now() - firstFailTime) / 1000 : null,
-    timeSpent: (Date.now() - startTime) / 1000,
-  }), [
-    sptCorrect, visorFlipCount, visorFlipTiming, visorFlippedThisLevel,
-    attemptCount, editCount, selfCorrected,
-    predictionResult, levelConfig, effectiveLevel,
-    sequence, firstFailTime, startTime,
-  ])
+  const getGBISnapshot = useCallback(({ radioReplayCount = 0 } = {}) => {
+    const completedAtMs = completedAtMsRef.current ?? Date.now()
+    const startedAtMs = levelStartedAtMsRef.current
+    const finalBlockCount = countProgramBlocks(sequence)
+    const targetBlockCount = Number(levelConfig.targetCommands)
+    const hasTargetBlockCount = Number.isFinite(targetBlockCount)
+    const medal = hasTargetBlockCount ? calculateMedal(finalBlockCount, targetBlockCount) : null
+    const programAnalysis = analyzeProgramForGBI(sequence)
+    const identifyRequired = !levelConfig.skipIdentify
+    const identifyAttempts = identifyAttemptsRef.current
+    const isTraceLevel = Number(levelConfig.id) >= 20 || Boolean(levelConfig.traceMode)
+
+    return {
+      levelName: levelConfig.name ?? null,
+      world: effectiveLevel.world ?? levelConfig.world ?? null,
+      levelType: isTraceLevel ? 'trace' : 'programming',
+      completed: true,
+      startedAtMs,
+      completedAtMs,
+      timeSpentMs: Math.max(0, completedAtMs - startedAtMs),
+
+      runAttempts: runAttemptsRef.current,
+      failedRunAttempts: failedRunAttemptsRef.current,
+      successOnFirstRun: runAttemptsRef.current === 1 && failedRunAttemptsRef.current === 0,
+      resetCount: resetCountRef.current,
+
+      finalBlockCount,
+      targetBlockCount: hasTargetBlockCount ? targetBlockCount : null,
+      extraBlocks: hasTargetBlockCount ? Math.max(0, finalBlockCount - targetBlockCount) : null,
+      medal,
+
+      commandCounts: programAnalysis.commandCounts,
+      usedRepeat: programAnalysis.usedRepeat,
+      usedIf: programAnalysis.usedIf,
+      usedIfElse: programAnalysis.usedIfElse,
+      usedNestedIfElse: programAnalysis.usedNestedIfElse,
+      maxNestingDepth: programAnalysis.maxNestingDepth,
+
+      blockedPathErrors: blockedPathErrorsRef.current,
+      missingFragmentErrors: missingFragmentErrorsRef.current,
+      wrongCollectAttempts: wrongCollectAttemptsRef.current,
+      outOfBoundsErrors: outOfBoundsErrorsRef.current,
+
+      identifyRequired,
+      identifyAttempts,
+      identifyWrongAttempts: identifyWrongAttemptsRef.current,
+      identifyCorrectOnFirstTry: identifyRequired ? identifyAttempts === 1 && identifyWrongAttemptsRef.current === 0 : null,
+      identifyTimeMs: identifyRequired && identifyCompletedAtMsRef.current !== null
+        ? Math.max(0, identifyCompletedAtMsRef.current - (identifyStartedAtMsRef.current ?? startedAtMs))
+        : null,
+      selectedFacingAnswers: selectedFacingAnswersRef.current,
+      correctFacing: identifyRequired ? sptCorrectAnswer : null,
+
+      visorFlipCount: visorFlipCountRef.current,
+      usedVisorBeforeCorrectIdentify: identifyRequired ? Boolean(usedVisorBeforeCorrectIdentifyRef.current) : null,
+      radioReplayCount,
+      uncertainRadioLevel: Boolean(levelConfig.uncertainRadio),
+
+      predictionAttempts: isTraceLevel ? predictionAttemptsRef.current : null,
+      predictionCorrect: isTraceLevel ? Boolean(predictionCorrectRef.current) : null,
+      predictedTile: isTraceLevel ? predictedTileRef.current : null,
+      actualEndTile: isTraceLevel ? actualEndTileRef.current : null,
+      traceTimeMs: isTraceLevel ? Math.max(0, completedAtMs - startedAtMs) : null,
+
+      strategyCard: [5, 9, 14, 19, 22].includes(Number(levelConfig.id)) ? null : undefined,
+    }
+  }, [effectiveLevel.world, levelConfig.id, levelConfig.name, levelConfig.skipIdentify, levelConfig.targetCommands, levelConfig.traceMode, levelConfig.uncertainRadio, levelConfig.world, sequence, sptCorrectAnswer])
 
   return {
     luma, phase, setPhase,
