@@ -250,8 +250,8 @@
 
 .start-actions > .menu-pill-button:first-child {
   grid-column: 1 / -1;
-  justify-self: stretch;
-  width: auto;
+  justify-self: center;
+  width: 67%;
 }
 
 .menu-pill-button--continue {
