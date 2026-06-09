@@ -1,72 +1,8 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { isValidParticipantId } from '../utils/participants'
-import { MEDAL_RANKS, TOTAL_LEVELS } from '../utils/progress'
 import MenuSoundIcon from './MenuSoundIcon'
 import './menuScreens.css'
-
-const ACHIEVEMENT_ROWS = [
-  {
-    id: 'first-mission',
-    key: 'firstMission',
-    icon: '\u{1f680}',
-    isUnlocked: ({ completedCount }) => completedCount >= 1,
-  },
-  {
-    id: 'gold-explorer',
-    key: 'goldExplorer',
-    icon: '\u{1f947}',
-    isUnlocked: ({ medalValues }) => medalValues.some(medal => medal === 'gold'),
-  },
-  {
-    id: 'rising-star',
-    key: 'risingStar',
-    icon: '\u2728',
-    isUnlocked: ({ completedCount }) => completedCount >= 5,
-  },
-  {
-    id: 'space-navigator',
-    key: 'spaceNavigator',
-    icon: '\u{1f9ed}',
-    isUnlocked: ({ completedCount }) => completedCount >= 10,
-  },
-  {
-    id: 'deep-explorer',
-    key: 'deepExplorer',
-    icon: '\u{1fa90}',
-    isUnlocked: ({ completedCount }) => completedCount >= TOTAL_LEVELS,
-  },
-  {
-    id: 'bronze-master',
-    key: 'bronzeMaster',
-    icon: '',
-    medal: 'bronze',
-    isUnlocked: ({ medalValues }) => medalValues.length >= TOTAL_LEVELS,
-  },
-  {
-    id: 'silver-master',
-    key: 'silverMaster',
-    icon: '',
-    medal: 'silver',
-    isUnlocked: ({ medalValues }) => medalValues.length >= TOTAL_LEVELS && medalValues.every(medal => (MEDAL_RANKS[medal] ?? 0) >= MEDAL_RANKS.silver),
-  },
-  {
-    id: 'gold-master',
-    key: 'goldMaster',
-    icon: '',
-    medal: 'gold',
-    isUnlocked: ({ medalValues }) => medalValues.length >= TOTAL_LEVELS && medalValues.every(medal => medal === 'gold'),
-  },
-]
-
-function readSavedMissionCode() {
-  if (typeof window === 'undefined') return ''
-  const savedCode = window.localStorage?.getItem('starlost:participantId') || ''
-  if (isValidParticipantId(savedCode)) return savedCode
-  if (savedCode) window.localStorage?.removeItem('starlost:participantId')
-  return ''
-}
 
 function MenuModal({ title, children, onClose, closeLabel, className = '' }) {
   return (
@@ -105,20 +41,10 @@ export default function StartPage({
   onUnlockAudio,
   onStart,
   onContinue,
-  completedLevels = [],
-  medalsByLevel = {},
-  achievementTotals = { gold: 0, silver: 0, bronze: 0 },
 }) {
   const { t, i18n } = useTranslation()
   const [modal, setModal] = useState(null)
-  const [savedMissionCode] = useState(readSavedMissionCode)
   const currentLanguage = i18n.resolvedLanguage || i18n.language || 'en'
-  const canContinue = Boolean(savedMissionCode)
-  const completedCount = Array.isArray(completedLevels) ? completedLevels.length : 0
-  const medalValues = Object.values(medalsByLevel ?? {})
-    .map(value => value?.medal)
-    .filter(medal => MEDAL_RANKS[medal])
-  const achievementContext = { completedCount, medalValues }
 
   return (
     <motion.main
@@ -154,7 +80,7 @@ export default function StartPage({
           <MenuSoundIcon />
         </motion.button>
 
-        <div className={`start-actions ${canContinue ? 'start-actions--returning' : ''}`}>
+        <div className="start-actions">
           <motion.button
             type="button"
             className="menu-pill-button"
@@ -168,30 +94,18 @@ export default function StartPage({
             <span className="button-symbol" aria-hidden="true">{'\u{1f680}'}</span>
             {t('start.startGame')}
           </motion.button>
-          {canContinue && (
-            <motion.button
-              type="button"
-              className="menu-pill-button menu-pill-button--continue"
-              onClick={() => {
-                onUnlockAudio?.()
-                onContinue?.()
-              }}
-              whileHover={{ y: -4, scale: 1.012 }}
-              whileTap={{ scale: 0.96 }}
-            >
-              <span className="button-symbol" aria-hidden="true">{'\u25b6'}</span>
-              {t('start.continue')}
-            </motion.button>
-          )}
           <motion.button
             type="button"
-            className="menu-pill-button menu-pill-button--secondary"
-            onClick={() => setModal('achievements')}
+            className="menu-pill-button menu-pill-button--continue"
+            onClick={() => {
+              onUnlockAudio?.()
+              onContinue?.()
+            }}
             whileHover={{ y: -4, scale: 1.012 }}
             whileTap={{ scale: 0.96 }}
           >
-            <span className="button-symbol" aria-hidden="true">{'\u{1f3c6}'}</span>
-            {t('start.achievements')}
+            <span className="button-symbol" aria-hidden="true">{'\u25b6'}</span>
+            {t('start.continue')}
           </motion.button>
           <motion.button
             type="button"
@@ -211,40 +125,6 @@ export default function StartPage({
               <p>{t('start.aboutBody')}</p>
               <p>{t('start.aboutThesis')}</p>
               <p>{t('start.aboutCredit')}</p>
-            </MenuModal>
-          )}
-          {modal === 'achievements' && (
-            <MenuModal title={t('start.achievementsTitle')} closeLabel={t('common.close')} onClose={() => setModal(null)} className="achievements-modal">
-              <div className="achievements-summary" aria-label={t('start.achievementTotals')}>
-                <span>{t('common.gold')}: {achievementTotals.gold ?? 0}</span>
-                <span>{t('common.silver')}: {achievementTotals.silver ?? 0}</span>
-                <span>{t('common.bronze')}: {achievementTotals.bronze ?? 0}</span>
-                <span>{t('common.completed', { completedCount, totalLevels: TOTAL_LEVELS })}</span>
-              </div>
-              <div className="achievements-list">
-                {ACHIEVEMENT_ROWS.map(row => {
-                  const unlocked = row.isUnlocked(achievementContext)
-                  return (
-                    <div
-                      key={row.id}
-                      className={`achievement-row achievement-row--${row.id} ${unlocked ? 'achievement-row--unlocked' : 'achievement-row--locked'}`}
-                    >
-                      <span className={`achievement-row__icon ${row.medal ? `achievement-row__icon--medal achievement-row__icon--${row.medal}` : ''}`} aria-hidden="true">
-                        {row.medal ? (
-                          <span className={`achievement-medal achievement-medal--${row.medal}`}>
-                            <span className="achievement-medal__ribbon" />
-                            <span className="achievement-medal__disc" />
-                          </span>
-                        ) : row.icon}
-                      </span>
-                      <span className="achievement-row__copy">
-                        <strong>{t(`start.achievementsList.${row.key}.title`)}</strong>
-                        <span>{t(`start.achievementsList.${row.key}.description`)}</span>
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
             </MenuModal>
           )}
           {modal === 'language' && (

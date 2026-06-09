@@ -19,7 +19,7 @@ import TutorialOverlay from './components/TutorialOverlay'
 import LumaSprite from './components/LumaSprite'
 import { logGBI } from './logGBI'
 import { ThemeContext, useTheme, THEMES } from './context/theme'
-import { isValidParticipantId, touchParticipantSession } from './utils/participants'
+import { isValidParticipantId } from './utils/participants'
 import {
   calculateMedal,
   fetchCompletedProgram,
@@ -3055,6 +3055,7 @@ export default function App() {
     current: 'start',
     previous: 'start',
   })
+  const [missionMode, setMissionMode] = useState('create')
   const [participantId, setParticipantId] = useState(readStoredParticipantId)
   const [completedLevels, setCompletedLevels] = useState([])
   const [medalsByLevel, setMedalsByLevel] = useState({})
@@ -3295,7 +3296,10 @@ export default function App() {
     if (!participantId) {
       if (appPhase === 'start') return
 
-      const redirectTimer = window.setTimeout(() => setAppPhase('mission-setup'), 0)
+      const redirectTimer = window.setTimeout(() => {
+        setMissionMode('create')
+        setAppPhase('mission-setup')
+      }, 0)
       return () => window.clearTimeout(redirectTimer)
     }
 
@@ -3331,23 +3335,17 @@ export default function App() {
     setAppPhase('home')
   }, [setAppPhase])
 
-  const handleContinueMission = useCallback(async () => {
-    const storedParticipantId = readStoredParticipantId()
-    if (!storedParticipantId) {
-      setParticipantId('')
-      setAppPhase('mission-setup')
-      return
-    }
+  const handleStartMission = useCallback(() => {
+    unlockAndPlayMusic()
+    setMissionMode('create')
+    setAppPhase('mission-setup')
+  }, [setAppPhase, unlockAndPlayMusic])
 
-    setParticipantId(storedParticipantId)
-    setCompletedProgramsByLevel({})
-    try {
-      await touchParticipantSession(storedParticipantId)
-    } catch (err) {
-      console.error('[StartPage] Failed to refresh saved mission code:', err)
-    }
-    setAppPhase('home')
-  }, [setAppPhase])
+  const handleContinueMission = useCallback(() => {
+    unlockAndPlayMusic()
+    setMissionMode('continue')
+    setAppPhase('mission-setup')
+  }, [setAppPhase, unlockAndPlayMusic])
 
   const handleSelectLevel = useCallback((levelNumber) => {
     const nextLevelNumber = Number(levelNumber)
@@ -3756,14 +3754,8 @@ export default function App() {
                 muted={muted}
                 onToggleMuted={handleToggleMuted}
                 onUnlockAudio={unlockAndPlayMusic}
-                onStart={() => {
-                  unlockAndPlayMusic()
-                  setAppPhase('mission-setup')
-                }}
+                onStart={handleStartMission}
                 onContinue={handleContinueMission}
-                completedLevels={participantId ? completedLevels : []}
-                medalsByLevel={participantId ? medalsByLevel : {}}
-                achievementTotals={participantId ? achievementTotals : { gold: 0, silver: 0, bronze: 0 }}
               />
             </motion.div>
           )}
@@ -3779,6 +3771,7 @@ export default function App() {
               style={ACTIVE_PAGE_SHELL_STYLE}
             >
               <MissionSetup
+                mode={missionMode}
                 muted={muted}
                 onToggleMuted={handleToggleMuted}
                 onUnlockAudio={unlockAndPlayMusic}

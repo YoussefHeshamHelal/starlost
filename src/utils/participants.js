@@ -21,6 +21,16 @@ export class MissionCodeAlreadyUsedError extends Error {
   }
 }
 
+export class MissionCodeNotFoundError extends Error {
+  constructor(starCode) {
+    super('This STARLOST code was not found. Please enter a code you already used before.')
+    this.name = 'MissionCodeNotFoundError'
+    this.code = 'mission-code/not-found'
+    this.missionCode = starCode
+    this.starCode = starCode
+  }
+}
+
 export async function createOrUpdateParticipant(starCode) {
   const participantRef = doc(db, 'participants', starCode)
   const sessionRef = doc(db, 'participants', starCode, 'sessions', 'session_1')
@@ -50,6 +60,27 @@ export async function createOrUpdateParticipant(starCode) {
       unlockedLevel: 1,
     },
   }, { merge: true })
+}
+
+export async function loginExistingParticipant(rawStarCode) {
+  const starCode = sanitizeParticipantId(rawStarCode)
+  if (!isValidParticipantId(starCode)) {
+    throw new MissionCodeNotFoundError(starCode)
+  }
+
+  const participantRef = doc(db, 'participants', starCode)
+  const sessionRef = doc(db, 'participants', starCode, 'sessions', 'session_1')
+  const [participantSnapshot, sessionSnapshot] = await Promise.all([
+    getDoc(participantRef),
+    getDoc(sessionRef),
+  ])
+
+  if (!participantSnapshot.exists() || !sessionSnapshot.exists()) {
+    throw new MissionCodeNotFoundError(starCode)
+  }
+
+  await touchParticipantSession(starCode)
+  return starCode
 }
 
 export async function touchParticipantSession(starCode) {

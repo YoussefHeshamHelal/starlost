@@ -217,7 +217,7 @@
   left: 50%;
   bottom: 1.7%;
   transform: translateX(-50%);
-  width: min(46%, 740px);
+  width: min(50%, 800px);
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: clamp(12px, 20.88px, 24px);
@@ -250,12 +250,6 @@
 
 .start-actions > .menu-pill-button:first-child {
   grid-column: 1 / -1;
-  justify-self: center;
-  width: calc((100% - clamp(12px, 20.88px, 24px)) / 2);
-}
-
-.start-actions--returning > .menu-pill-button:first-child {
-  grid-column: auto;
   justify-self: stretch;
   width: auto;
 }
@@ -1732,6 +1726,17 @@
     inset 0 -10px 18px rgba(0, 0, 0, 0.22),
     0 0 16px rgba(56, 197, 255, 0.68),
     0 0 34px rgba(43, 118, 255, 0.32);
+}
+
+.star-map-achievements-button {
+  position: absolute;
+  right: 1.15%;
+  bottom: 2.2%;
+  width: clamp(210px, 300px, 340px);
+  min-height: clamp(48px, 70px, 78px);
+  font-size: clamp(17px, 24px, 29px);
+  gap: clamp(10px, 15px, 18px);
+  z-index: 6;
 }
 
 .star-progress__readout {

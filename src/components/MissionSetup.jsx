@@ -3,8 +3,10 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
   MissionCodeAlreadyUsedError,
+  MissionCodeNotFoundError,
   createOrUpdateParticipant,
   isValidParticipantId,
+  loginExistingParticipant,
   sanitizeParticipantId,
 } from '../utils/participants'
 import MenuSoundIcon from './MenuSoundIcon'
@@ -114,8 +116,9 @@ function MenuModal({ onClose }) {
   )
 }
 
-export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAudio, onBack, onComplete }) {
+export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAudio, onBack, onComplete, mode = 'create' }) {
   const { t } = useTranslation()
+  const isContinueMode = mode === 'continue'
   const [letters, setLetters] = useState(['', '', '', ''])
   const [selectedDigit, setSelectedDigit] = useState('')
   const [error, setError] = useState('')
@@ -153,21 +156,34 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
     setLoading(true)
     setError('')
     try {
-      await createOrUpdateParticipant(starCode)
-      window.localStorage?.setItem('starlost:participantId', starCode)
-      onComplete(starCode)
+      const activeStarCode = isContinueMode
+        ? await loginExistingParticipant(starCode)
+        : starCode
+
+      if (!isContinueMode) {
+        await createOrUpdateParticipant(activeStarCode)
+      }
+
+      window.localStorage?.setItem('starlost:participantId', activeStarCode)
+      onComplete(activeStarCode, mode)
     } catch (err) {
-      console.error('[MissionSetup] Failed to create STARLOST code:', {
+      console.error(`[MissionSetup] Failed to ${isContinueMode ? 'continue with' : 'create'} STARLOST code:`, {
         code: err?.code,
         message: err?.message,
         stack: err?.stack,
         error: err,
       })
-      setError(err instanceof MissionCodeAlreadyUsedError ? t('mission.duplicate') : t('mission.saveError'))
+      if (err instanceof MissionCodeAlreadyUsedError) {
+        setError(t('mission.duplicate'))
+      } else if (err instanceof MissionCodeNotFoundError) {
+        setError(t('mission.notFound'))
+      } else {
+        setError(t('mission.saveError'))
+      }
     } finally {
       setLoading(false)
     }
-  }, [focusNextEmpty, onComplete, onUnlockAudio, starCode, t])
+  }, [focusNextEmpty, isContinueMode, mode, onComplete, onUnlockAudio, starCode, t])
 
   const updateLetter = useCallback((index, value) => {
     const nextLetter = normalizeLetter(value)
@@ -236,11 +252,17 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
           <MenuSoundIcon />
         </motion.button>
 
-        <p className="star-code-bubble">
-          {t('mission.speechStart')}
-          <br />
-          <span className="star-code-bubble__accent">{t('mission.speechAccent')}</span> {t('mission.speechEnd')}
-        </p>
+        {isContinueMode ? (
+          <p className="star-code-bubble">
+            {t('mission.continueSpeech')}
+          </p>
+        ) : (
+          <p className="star-code-bubble">
+            {t('mission.speechStart')}
+            <br />
+            <span className="star-code-bubble__accent">{t('mission.speechAccent')}</span> {t('mission.speechEnd')}
+          </p>
+        )}
 
         <form
           className="star-code-form"
@@ -335,8 +357,8 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
           whileHover={loading ? undefined : { y: -4, scale: 1.015 }}
           whileTap={loading ? undefined : { scale: 0.96 }}
         >
-          <span className="star-code-primary-button__icon" aria-hidden="true">{'\u2726'}</span>
-          <span className="star-code-primary-button__text">{loading ? t('mission.saving') : t('mission.create')}</span>
+          <span className="star-code-primary-button__icon" aria-hidden="true">{isContinueMode ? '\u25b6' : '\u2726'}</span>
+          <span className="star-code-primary-button__text">{loading ? t('mission.saving') : t(isContinueMode ? 'mission.continue' : 'mission.create')}</span>
         </motion.button>
 
         <motion.button

@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { isLevelCompleted, isLevelUnlocked, TOTAL_LEVELS } from '../utils/progress'
+import AchievementsModal from './AchievementsModal'
 import MenuSoundIcon from './MenuSoundIcon'
 import './menuScreens.css'
 
@@ -211,6 +212,7 @@ export default function StarMapLevelSelect({
   onUnlockAudio,
   completedLevels = [],
   medalsByLevel = {},
+  achievementTotals = { gold: 0, silver: 0, bronze: 0 },
   loading = false,
   onSelectLevel,
   onBack,
@@ -283,6 +285,17 @@ export default function StarMapLevelSelect({
           {'\u2190'} {t('common.back')}
         </motion.button>
 
+        <motion.button
+          type="button"
+          className="star-map-achievements-button menu-pill-button menu-pill-button--secondary"
+          onClick={() => setModal('achievements')}
+          whileHover={{ y: -4, scale: 1.012 }}
+          whileTap={{ scale: 0.96 }}
+        >
+          <span className="button-symbol" aria-hidden="true">{'\u{1f3c6}'}</span>
+          {t('start.achievements')}
+        </motion.button>
+
         <div className="star-progress" aria-live="polite">
           <div className="star-progress__readout">
             <ProgressStarIcon />
@@ -299,6 +312,14 @@ export default function StarMapLevelSelect({
 
         <AnimatePresence>
           {modal === 'about' && <MenuModal onClose={() => setModal(null)} />}
+          {modal === 'achievements' && (
+            <AchievementsModal
+              completedLevels={normalizedCompletedLevels}
+              medalsByLevel={medalsByLevel}
+              achievementTotals={achievementTotals}
+              onClose={() => setModal(null)}
+            />
+          )}
         </AnimatePresence>
       </div>
     </motion.main>
