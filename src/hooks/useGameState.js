@@ -42,6 +42,33 @@ function tr(key, options) {
   return i18n.t(key, options)
 }
 
+function getCurrentI18nLanguage() {
+  return i18n.resolvedLanguage || i18n.language || 'en'
+}
+
+function radioTranslation(key, options) {
+  return { type: 'translation', key, options }
+}
+
+function radioListTranslation(key, fallback, index) {
+  return { type: 'listTranslation', key, fallback, index }
+}
+
+function translateRadioMessage(message) {
+  if (!message) return null
+  if (typeof message === 'string') return message
+  if (message.type === 'translation') return tr(message.key, message.options)
+  if (message.type === 'listTranslation') {
+    const list = getTranslatedList(message.key, message.fallback)
+    return list[message.index] ?? message.fallback?.[message.index] ?? null
+  }
+  return null
+}
+
+function isRadioTranslation(message, key) {
+  return message?.type === 'translation' && message.key === key
+}
+
 function getRelativeLabel(direction) {
   return tr(`radio.relative.${direction}`, RELATIVE_LABEL[direction])
 }
@@ -361,6 +388,14 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     onLevelSuccess,
     onBlockedPath,
   } = soundEvents
+  const [currentLanguage, setCurrentLanguage] = useState(getCurrentI18nLanguage)
+
+  useEffect(() => {
+    const handleLanguageChanged = () => setCurrentLanguage(getCurrentI18nLanguage())
+    i18n.on('languageChanged', handleLanguageChanged)
+    return () => i18n.off('languageChanged', handleLanguageChanged)
+  }, [])
+
   // 1. Resolve facing first
   const [initialFacing] = useState(() => {
     if (levelConfig.lumaFacing === 'random') {
@@ -428,7 +463,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
 
   // ── Level 2/3/4 uncertain radio ───────────────────────────────────────────
   // Pick a fixed uncertain message for this session (so it doesn't change on re-renders)
-  const [initialRadioHint] = useState(() => {
+  const initialRadioHint = useMemo(() => {
     const opener = tr('radio.canYouSee', RADIO_HINT_OPENER)
     const withOpener = (hint) => `${opener} ${hint}`
 
@@ -489,7 +524,12 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
       new Set(),
       effectiveLevel.world ?? levelConfig.world,
     ))
-  })
+  }, [
+    currentLanguage, effectiveLevel.goal, effectiveLevel.world,
+    layout.objects, layout.walls, levelConfig.goal, levelConfig.id,
+    levelConfig.noRadio, levelConfig.uncertainRadio, levelConfig.world,
+    resolvedFacing, resolvedStart.x, resolvedStart.y,
+  ])
 
   // Whether the player has flipped the visor at least once (for Level 2 reinforcement)
   const [visorFlippedThisLevel, setVisorFlippedThisLevel] = useState(false)
@@ -498,6 +538,10 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
   // ── Reactive helmet report ────────────────────────────────────────────────
   const [reportOverride, setReportOverride] = useState(null)
   const uncertainMessage = initialRadioHint
+  const translatedReportOverride = useMemo(
+    () => translateRadioMessage(reportOverride),
+    [reportOverride, currentLanguage]
+  )
 
   const liveReport = useMemo(() => {
     if (initialRadioHint !== undefined) {
@@ -554,13 +598,14 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     effectiveLevel.goal, effectiveLevel.world, levelConfig.goal, levelConfig.world,
     collectedParts, levelConfig.id, levelConfig.uncertainRadio,
     resolvedStart.x, resolvedStart.y, resolvedFacing,
-    visorFlippedThisLevel, initialRadioHint, sptCorrect, uncertainMessage
+    visorFlippedThisLevel, initialRadioHint, sptCorrect, uncertainMessage,
+    currentLanguage,
   ])
 
   const helmetReport = levelConfig.noRadio
-    ? reportOverride ?? liveReport
-    : reportOverride
-      ? reportOverride
+    ? translatedReportOverride ?? liveReport
+    : translatedReportOverride
+      ? translatedReportOverride
       : sptCorrect
       ? tr('radio.identifySuccess')
       : liveReport
@@ -611,19 +656,18 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
 
   const isMirrored = levelConfig.mirrorControls && luma.facing === 'south'
   const levelUsesIncompleteCodeRadio = Number(levelConfig.id) >= 3
-  const incompleteCodeRadioMessage = tr('radio.incompleteCode')
   const preserveLockedIncompleteCodeRadio = useCallback((nextMessage = null) => {
     setReportOverride(previous => (
-      levelUsesIncompleteCodeRadio && previous === incompleteCodeRadioMessage
+      levelUsesIncompleteCodeRadio && isRadioTranslation(previous, 'radio.incompleteCode')
         ? previous
         : nextMessage
     ))
-  }, [levelUsesIncompleteCodeRadio, incompleteCodeRadioMessage])
+  }, [levelUsesIncompleteCodeRadio])
   const setIncompleteCodeRadio = useCallback(() => {
     if (levelUsesIncompleteCodeRadio) {
-      setReportOverride(incompleteCodeRadioMessage)
+      setReportOverride(radioTranslation('radio.incompleteCode'))
     }
-  }, [levelUsesIncompleteCodeRadio, incompleteCodeRadioMessage])
+  }, [levelUsesIncompleteCodeRadio])
 
   const incrementRunAttempts = useCallback(() => {
     runAttemptsRef.current += 1
@@ -671,7 +715,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
         identifyCompletedAtMsRef.current = Date.now()
       }
       usedVisorBeforeCorrectIdentifyRef.current = visorFlipCountRef.current > 0
-      preserveLockedIncompleteCodeRadio(tr('radio.identifySuccess'))
+      preserveLockedIncompleteCodeRadio(radioTranslation('radio.identifySuccess'))
       setPhase('develop')
     }
     return correct
@@ -690,7 +734,9 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
     // Mark that the visor was flipped and pick a reaction message where used.
     if (levelConfig.uncertainRadio && !visorFlippedThisLevel) {
       setVisorFlippedThisLevel(true)
-      setVisorFlipReaction(levelConfig.id === 13 ? null : getRandomFrom(getTranslatedList('radio.visorReactions', VISOR_FLIP_REACTIONS)))
+      const reactionCount = getTranslatedList('radio.visorReactions', VISOR_FLIP_REACTIONS).length || VISOR_FLIP_REACTIONS.length
+      const reactionIndex = Math.floor(Math.random() * reactionCount)
+      setVisorFlipReaction(levelConfig.id === 13 ? null : radioListTranslation('radio.visorReactions', VISOR_FLIP_REACTIONS, reactionIndex))
     }
   }, [visorActive, visorFlipTiming, hadErrorBefore, levelConfig.id, levelConfig.uncertainRadio, visorFlippedThisLevel])
 
@@ -956,7 +1002,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
           if (!firstFailTime) setFirstFailTime(Date.now())
           setNeedsReset(true)
           setReportOverride(
-              tr('radio.missing', { count: shipPartObjects.length - localCollected.size, plural: shipPartObjects.length - localCollected.size > 1 ? 's' : '' })
+              radioTranslation('radio.missing', { count: shipPartObjects.length - localCollected.size, plural: shipPartObjects.length - localCollected.size > 1 ? 's' : '' })
             )
         } else {
           markFailedRun()
@@ -1085,7 +1131,7 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
       incrementFailedRunAttempts()
       setHadErrorBefore(true)
       if (!firstFailTime) setFirstFailTime(Date.now())
-      setReportOverride(tr('radio.traceRetry'))
+      setReportOverride(radioTranslation('radio.traceRetry'))
       window.setTimeout(() => {
         setTraceEliminatedTiles((previousTiles) => (
           previousTiles.includes(traceKey) ? previousTiles : [...previousTiles, traceKey]
@@ -1099,9 +1145,9 @@ export function useGameState(levelConfig, animSpeed = 50, soundEvents = {}) {
 
     traceRunStartedRef.current = true
     setTraceGoalRevealed(true)
-    setReportOverride(isLaunchPadGoal(levelConfig)
-      ? tr('radio.traceLaunch')
-      : tr('radio.traceCore'))
+    setReportOverride(radioTranslation(isLaunchPadGoal(levelConfig)
+      ? 'radio.traceLaunch'
+      : 'radio.traceCore'))
 
     window.setTimeout(() => {
       setTraceSelection((currentSelection) => (
