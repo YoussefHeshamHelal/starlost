@@ -255,7 +255,8 @@ export default function StarMapLevelSelect({
         ))}
       </div>
       <div className="starlost-menu__stage star-map-ui-layer">
-        <motion.button
+        {/* TEMP: About button hidden temporarily. Uncomment this block to restore it later. */}
+        {/* <motion.button
           type="button"
           className="menu-icon-button menu-icon-button--left"
           aria-label={t('common.aboutStarlost')}
@@ -264,7 +265,7 @@ export default function StarMapLevelSelect({
           whileTap={{ scale: 0.94 }}
         >
           <span className="menu-icon-button__info">i</span>
-        </motion.button>
+        </motion.button> */}
         <button
           type="button"
           className={`menu-icon-button menu-icon-button--right ${muted ? 'menu-icon-button--muted' : ''}`}

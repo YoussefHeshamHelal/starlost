@@ -4,6 +4,7 @@ import { cloneNestedCommands } from './commands'
 
 export const TOTAL_LEVELS = 22
 export const COMPLETED_PROGRAM_MAX_LEVEL = 19
+export const TEMPORARILY_UNLOCK_ALL_LEVELS = true
 export const MEDAL_RANKS = {
   bronze: 1,
   silver: 2,
@@ -26,6 +27,8 @@ export function normalizeCompletedLevels(completedLevels) {
 }
 
 export function getUnlockedLevel(completedLevels) {
+  if (TEMPORARILY_UNLOCK_ALL_LEVELS) return TOTAL_LEVELS
+
   const completedSet = new Set(normalizeCompletedLevels(completedLevels))
   let level = 1
   while (level <= TOTAL_LEVELS && completedSet.has(level)) level += 1
@@ -38,6 +41,10 @@ export function isLevelCompleted(levelId, completedLevels) {
 
 export function isLevelUnlocked(levelId, completedLevels) {
   const level = Number(levelId)
+  if (TEMPORARILY_UNLOCK_ALL_LEVELS) {
+    return Number.isInteger(level) && level >= 1 && level <= TOTAL_LEVELS
+  }
+
   return isLevelCompleted(level, completedLevels) || level <= getUnlockedLevel(completedLevels)
 }
 

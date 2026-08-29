@@ -229,7 +229,8 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
     >
       <img className="starlost-menu__bg" src="/assets/ui/star-code-station-bg.png" alt="" />
       <div className="starlost-menu__stage">
-        <motion.button
+        {/* TEMP: About button hidden temporarily. Uncomment this block to restore it later. */}
+        {/* <motion.button
           type="button"
           className="menu-icon-button menu-icon-button--left"
           aria-label={t('common.aboutStarlost')}
@@ -238,7 +239,7 @@ export default function MissionSetup({ muted = false, onToggleMuted, onUnlockAud
           whileTap={{ scale: 0.94 }}
         >
           <span className="menu-icon-button__info">i</span>
-        </motion.button>
+        </motion.button> */}
 
         <motion.button
           type="button"
