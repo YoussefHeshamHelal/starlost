@@ -11,6 +11,19 @@ export function isValidParticipantId(id) {
   return STAR_CODE_PATTERN.test(String(id ?? ''))
 }
 
+// IDs passed in the `pid` URL parameter. Limited to characters that are safe as a Firestore document ID.
+const PROVIDED_PARTICIPANT_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
+
+export function isValidProvidedParticipantId(id) {
+  return PROVIDED_PARTICIPANT_ID_PATTERN.test(String(id ?? ''))
+}
+
+export function readParticipantIdFromUrl() {
+  if (typeof window === 'undefined') return ''
+  const pid = new URLSearchParams(window.location.search).get('pid')?.trim() || ''
+  return isValidProvidedParticipantId(pid) ? pid : ''
+}
+
 export class MissionCodeAlreadyUsedError extends Error {
   constructor(starCode) {
     super('This STARLOST code is already used. Please try another code.')
@@ -60,6 +73,23 @@ export async function createOrUpdateParticipant(starCode) {
       unlockedLevel: 1,
     },
   }, { merge: true })
+}
+
+export async function startParticipantFromId(participantId) {
+  const participantSnapshot = await getDoc(doc(db, 'participants', participantId))
+  if (participantSnapshot.exists()) {
+    await touchParticipantSession(participantId)
+    return participantId
+  }
+
+  try {
+    await createOrUpdateParticipant(participantId)
+  } catch (err) {
+    // A concurrent start (e.g. React StrictMode running the effect twice) may have created it first.
+    if (!(err instanceof MissionCodeAlreadyUsedError)) throw err
+    await touchParticipantSession(participantId)
+  }
+  return participantId
 }
 
 export async function loginExistingParticipant(rawStarCode) {

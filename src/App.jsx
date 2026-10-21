@@ -19,7 +19,11 @@ import TutorialOverlay from './components/TutorialOverlay'
 import LumaSprite from './components/LumaSprite'
 import { logGBI } from './logGBI'
 import { ThemeContext, useTheme, THEMES } from './context/theme'
-import { isValidParticipantId } from './utils/participants'
+import {
+  isValidProvidedParticipantId,
+  readParticipantIdFromUrl,
+  startParticipantFromId,
+} from './utils/participants'
 import {
   calculateMedal,
   fetchCompletedProgram,
@@ -170,7 +174,7 @@ function readStoredParticipantId() {
   if (typeof window === 'undefined') return ''
   try {
     const storedId = window.localStorage?.getItem(PARTICIPANT_STORAGE_KEY) || ''
-    if (isValidParticipantId(storedId)) return storedId
+    if (isValidProvidedParticipantId(storedId)) return storedId
     if (storedId) window.localStorage?.removeItem(PARTICIPANT_STORAGE_KEY)
     return ''
   } catch {
@@ -3051,12 +3055,14 @@ export default function App() {
   const musicUnlockedRef = useRef(false)
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0)
   const [levelSessionKey, setLevelSessionKey] = useState(0)
+  // A `?pid=` URL parameter is used as the participant ID in place of the STARLOST code entry.
+  const [urlParticipantId] = useState(readParticipantIdFromUrl)
   const [appPhaseState, setAppPhaseState] = useState({
     current: 'start',
     previous: 'start',
   })
   const [missionMode, setMissionMode] = useState('create')
-  const [participantId, setParticipantId] = useState(readStoredParticipantId)
+  const [participantId, setParticipantId] = useState(() => urlParticipantId || readStoredParticipantId())
   const [completedLevels, setCompletedLevels] = useState([])
   const [medalsByLevel, setMedalsByLevel] = useState({})
   const [achievementTotals, setAchievementTotals] = useState({ gold: 0, silver: 0, bronze: 0 })
@@ -3292,6 +3298,18 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    if (!urlParticipantId) return
+    try {
+      window.localStorage?.setItem(PARTICIPANT_STORAGE_KEY, urlParticipantId)
+    } catch {
+      // Storage is optional here; the participant still works for this page load.
+    }
+    startParticipantFromId(urlParticipantId).catch(err => {
+      console.error('[Participant] Failed to start participant from pid:', err)
+    })
+  }, [urlParticipantId])
+
+  useEffect(() => {
     if (!['start', 'home', 'playing', 'strategy-card'].includes(appPhase)) return
     if (!participantId) {
       if (appPhase === 'start') return
@@ -3337,15 +3355,23 @@ export default function App() {
 
   const handleStartMission = useCallback(() => {
     unlockAndPlayMusic()
+    if (urlParticipantId) {
+      setAppPhase('home')
+      return
+    }
     setMissionMode('create')
     setAppPhase('mission-setup')
-  }, [setAppPhase, unlockAndPlayMusic])
+  }, [setAppPhase, unlockAndPlayMusic, urlParticipantId])
 
   const handleContinueMission = useCallback(() => {
     unlockAndPlayMusic()
+    if (urlParticipantId) {
+      setAppPhase('home')
+      return
+    }
     setMissionMode('continue')
     setAppPhase('mission-setup')
-  }, [setAppPhase, unlockAndPlayMusic])
+  }, [setAppPhase, unlockAndPlayMusic, urlParticipantId])
 
   const handleSelectLevel = useCallback((levelNumber) => {
     const nextLevelNumber = Number(levelNumber)
