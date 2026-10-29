@@ -3298,18 +3298,6 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!urlParticipantId) return
-    try {
-      window.localStorage?.setItem(PARTICIPANT_STORAGE_KEY, urlParticipantId)
-    } catch {
-      // Storage is optional here; the participant still works for this page load.
-    }
-    startParticipantFromId(urlParticipantId).catch(err => {
-      console.error('[Participant] Failed to start participant from pid:', err)
-    })
-  }, [urlParticipantId])
-
-  useEffect(() => {
     if (!['start', 'home', 'playing', 'strategy-card'].includes(appPhase)) return
     if (!participantId) {
       if (appPhase === 'start') return
@@ -3353,25 +3341,40 @@ export default function App() {
     setAppPhase('home')
   }, [setAppPhase])
 
+  const enterWithUrlParticipant = useCallback(async () => {
+    try {
+      await startParticipantFromId(urlParticipantId)
+    } catch (err) {
+      console.error('[Participant] Failed to start participant from pid:', err)
+      return
+    }
+    try {
+      window.localStorage?.setItem(PARTICIPANT_STORAGE_KEY, urlParticipantId)
+    } catch {
+      // Storage is optional; the participant is already set for this page load.
+    }
+    setAppPhase('home')
+  }, [setAppPhase, urlParticipantId])
+
   const handleStartMission = useCallback(() => {
     unlockAndPlayMusic()
     if (urlParticipantId) {
-      setAppPhase('home')
+      enterWithUrlParticipant()
       return
     }
     setMissionMode('create')
     setAppPhase('mission-setup')
-  }, [setAppPhase, unlockAndPlayMusic, urlParticipantId])
+  }, [enterWithUrlParticipant, setAppPhase, unlockAndPlayMusic, urlParticipantId])
 
   const handleContinueMission = useCallback(() => {
     unlockAndPlayMusic()
     if (urlParticipantId) {
-      setAppPhase('home')
+      enterWithUrlParticipant()
       return
     }
     setMissionMode('continue')
     setAppPhase('mission-setup')
-  }, [setAppPhase, unlockAndPlayMusic, urlParticipantId])
+  }, [enterWithUrlParticipant, setAppPhase, unlockAndPlayMusic, urlParticipantId])
 
   const handleSelectLevel = useCallback((levelNumber) => {
     const nextLevelNumber = Number(levelNumber)
